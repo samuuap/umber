@@ -1,6 +1,6 @@
 # CLAUDE.md — Proyecto Umber 🍂
 
-Planificador cinematográfico otoñal con IA. Chat conversacional que recomienda películas y series según el estado de ánimo del usuario, usando DeepSeek + búsqueda semántica sobre un corpus de ~5.000 títulos vectorizados en Supabase pgvector.
+Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una especialidad). Chat conversacional que recomienda películas y series según el ánimo y los gustos del usuario, usando DeepSeek + búsqueda semántica sobre un corpus de ~16.000 títulos conocidos vectorizados en Supabase pgvector. Plan y estado en `docs/fase-8-experto-general.md`.
 
 ---
 
@@ -23,14 +23,14 @@ Planificador cinematográfico otoñal con IA. Chat conversacional que recomienda
 ```
 /
 ├── src/
-│   ├── components/          # SiteHeader, SiteFooter, ModeCard, ContentCard, PosterCard, ChatMessage, AuthForm
+│   ├── components/          # SiteHeader, SiteFooter, LeafMark, ContentCard, PosterCard, ChatMessage, AuthForm, AuthScene
 │   ├── layouts/
 │   │   └── Layout.astro     # Layout base: tema, tipografías, metadatos, cabecera y pie
 │   ├── middleware.ts        # Sesión de Supabase (cookies) en Astro.locals, en cada petición
 │   ├── env.d.ts             # Tipos de Astro.locals
 │   ├── pages/
-│   │   ├── index.astro      # Pantalla de inicio — selector de modo
-│   │   ├── chat.astro       # Chat: ?mode=movie para empezar, ?conversation=<id> para retomar
+│   │   ├── index.astro      # Portada: el cuadro para empezar (GET a /chat?mode=…&q=…), cómo funciona, «Si te gustó…», el apartado de otoño
+│   │   ├── chat.astro       # Chat: ?mode=movie para empezar (&q= lo envía al abrir), ?conversation=<id> para retomar
 │   │   ├── entrar.astro     # Login (formulario sin JS)
 │   │   ├── registro.astro   # Registro: usuario, email y contraseña dos veces; exige confirmar el email
 │   │   ├── salir.ts         # POST: cierra la sesión de este navegador
@@ -52,13 +52,16 @@ Planificador cinematográfico otoñal con IA. Chat conversacional que recomienda
 │   │   ├── errors.ts        # Jerarquía de errores tipados
 │   │   ├── types.ts         # Tipos de dominio, los 4 modos y el contrato de /api/chat
 │   │   ├── database.types.ts  # Tipos de las tablas de Supabase
-│   │   ├── deepseek.ts      # Cliente DeepSeek (compatible con SDK OpenAI)
+│   │   ├── deepseek.ts      # Cliente DeepSeek y pasarela: toda llamada queda registrada
+│   │   ├── trace.ts         # Traza de cada petición: pasos, llamadas a modelos, tokens y coste
+│   │   ├── llm-pricing.ts   # Precio de DeepSeek por token, con hora punta
 │   │   ├── supabase.ts      # Clientes Supabase (anon / cookies / usuario / service)
 │   │   ├── tmdb.ts          # Funciones TMDB
 │   │   ├── platforms.ts     # Plataformas de TMDB con caché en Supabase (platforms_cache)
 │   │   ├── rate-limit.ts    # Límites de /api/chat y /api/search por usuario o IP
 │   │   ├── recommendations.ts # Fichas por id, para las conversaciones retomadas
 │   │   ├── explore.ts       # Filtros de /explorar en la URL, listado, géneros y ficha
+│   │   ├── showcase.ts      # Escaparate: muy conocidas y sus parecidos, y el de otoño; con caché
 │   │   ├── embeddings.ts    # Generación de embeddings (Qwen3 autoalojado)
 │   │   ├── search.ts        # Búsqueda semántica: suelo de similitud y reordenado
 │   │   ├── chat.ts          # Validación del chat, contexto del modelo y fichas
@@ -75,16 +78,21 @@ Planificador cinematográfico otoñal con IA. Chat conversacional que recomienda
 │   │   ├── chat.ts          # El chat: envío, stream, errores, fichas
 │   │   ├── content-card.ts  # Rellenar fichas y botón de favorito
 │   │   ├── explore.ts       # Aplicar al momento el género y el orden de /explorar
+│   │   ├── home.ts          # Intro envía en el cuadro de la portada; el índice cambia de cartel
+│   │   ├── transitions.ts   # El cartel pulsado viaja a la ficha (View Transitions)
 │   │   ├── auth-form.ts     # Mostrar la contraseña y avisar si las dos no coinciden
 │   │   └── conversations.ts # Confirmar antes de borrar una conversación
 │   ├── prompts/
 │   │   ├── system.md        # System prompt de Umber (identidad, tono, reglas)
+│   │   ├── specialty-autumn.md  # Capa de la especialidad de otoño
 │   │   └── user-context.md  # Plantilla del user prompt con {{variables}}
 │   └── styles/
 │       └── global.css       # Tailwind + tema otoñal
 ├── scripts/
 │   ├── verify-schema.mjs    # Comprueba esquema y RLS vía Data API
 │   ├── check-guardrails.mjs # Casos delicados contra el chat: fuera de tema, crisis, piratería…
+│   ├── eval-chat.mjs        # 30 peticiones reales de punta a punta: cumple lo pedido y juez
+│   ├── eval-dialogue.mjs    # Personas simuladas con gustos ocultos: ¿acierta preguntando?
 │   ├── embeddings/
 │   │   └── server.py        # Qwen3-Embedding local con la API de OpenAI (sin conexión)
 │   └── seed/
@@ -161,19 +169,26 @@ npm run db:verify  # comprueba esquema, RLS y restricciones vía Data API
 npm run db:verify-rls  # comprueba el aislamiento entre dos usuarios reales
 npm run db:types   # regenera src/lib/database.types.ts desde el esquema real
 npm run check:guardrails  # 17 casos delicados contra el chat (npm run dev); repetir al tocar system.md
+node scripts/eval-chat.mjs [url] [--only a,b] [--debug]  # 30 peticiones reales, comprobadas y con juez
+node scripts/eval-dialogue.mjs [url] [--runs 4] [--debug] # personas simuladas con perfil oculto; juez
 
 # Seed del corpus (una vez, o para actualizaciones). Python ≥ 3.10: el del sistema es 3.9
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r scripts/embeddings/requirements.txt -r scripts/seed/requirements.txt
 npm run embeddings                  # en otra terminal
-python scripts/seed/fetch-tmdb.py   # universo de ~17.000 títulos de TMDB
-python scripts/seed/score.py        # autumn_score y selección de los ~5.000
+python scripts/seed/fetch-tmdb.py   # universo de ~17.000 títulos de TMDB, con reparto y recomendaciones
+python scripts/seed/score.py        # autumn_score y selección (lo conocido, más lo de otoño)
 python scripts/seed/embed.py        # vectoriza el corpus (búsqueda y «sin nombre»)
-python scripts/seed/load-db.py      # upsert en Supabase y parecidos (--prune borra lo que sobra)
+# En local y no en Cloudflare, que pasa de su cupo diario con miles de documentos:
+#   EMBEDDINGS_URL=http://127.0.0.1:8080/v1 EMBEDDINGS_API_KEY= EMBEDDINGS_MODEL= python scripts/seed/embed.py
+python scripts/seed/suggest.py      # lo que recomendaría un cinéfilo (DeepSeek, ~1–2 USD una vez)
+python scripts/seed/load-db.py      # upsert en Supabase y parecidos (--prune borra lo que sobra;
+                                    # se para si alguien lo guardó: --drop-favorites para borrarlo igual)
 python scripts/seed/load-db.py --similar-only   # solo los parecidos, sin reescribir content
 # Tras recargar muchos vectores, reconstruir el índice: el grafo HNSW se degrada
 npx supabase db query --linked "reindex index public.content_embedding_hnsw_idx"
 python scripts/seed/search.py "tarde de lluvia"   # búsquedas de control
+python scripts/seed/eval-similar.py                # «Más como esta», puntuado por un juez (céntimos)
 python scripts/seed/check-embeddings.py            # ¿da el servicio de .env.local los vectores del corpus?
 ```
 
@@ -199,13 +214,19 @@ CREATE TABLE content (
   synopsis_en   TEXT,
   genres        TEXT[],
   keywords      TEXT[],
-  autumn_score  FLOAT,
-  embedding     VECTOR(1024),   -- Qwen3-Embedding-0.6B, dimensión nativa
+  autumn_score  FLOAT,          -- especialidad de otoño, 0–1, en todos los títulos
+  embedding     HALFVEC(1024),  -- Qwen3-Embedding-0.6B, dimensión nativa, 2 bytes por número
   poster_path   TEXT,
   backdrop_path TEXT,
   runtime       INTEGER,
   seasons       INTEGER,
   status        TEXT CHECK (status IN ('released', 'ended', 'ongoing')),
+  vote_count        INTEGER,    -- votos en TMDB: lo conocido que es
+  vote_average      REAL,
+  popularity        REAL,       -- la de TMDB, que se mueve con las tendencias
+  original_language TEXT,       -- ISO 639-1
+  top_cast          TEXT[] NOT NULL DEFAULT '{}',  -- los 6 primeros del reparto
+  collection_id     INTEGER,    -- saga de TMDB (belongs_to_collection)
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   -- TMDB numera películas y series en espacios independientes: /movie/550 y
@@ -216,7 +237,7 @@ CREATE TABLE content (
 -- HNSW y no ivfflat: no hay que dimensionar listas, da mejor recall y se puede
 -- crear sobre la tabla vacía. Con 5.000 filas, ivfflat con lists=100 dejaría
 -- ~50 filas por lista y degradaría la recuperación.
-CREATE INDEX ON content USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX content_embedding_hnsw_idx ON content USING hnsw (embedding halfvec_cosine_ops);
 ```
 
 Qué contiene cada columna, tal como la rellena el seed:
@@ -226,16 +247,30 @@ Qué contiene cada columna, tal como la rellena el seed:
   dos sinopsis
 - `genres` en español, para mostrar. `keywords` en inglés: TMDB no las traduce
 - `director`: en series, quien la crea (`created_by`), que es el equivalente
-- `autumn_score` entre 0 y 1: la media de 3 puntuaciones de deepseek-flash
-  (0–100), en lotes distintos, / 100. Decide qué entra al corpus y sirve para
-  reordenar candidatos en el chat. El criterio es **otoño antes que Halloween**:
+- **Qué entra** (Fase 8): lo conocido. Películas con 200 votos o más y nota por
+  encima de 3,5; series de todo tipo con 500 o más. Y, para la especialidad de
+  otoño, lo que entraba antes aunque no llegue: otoñal (películas 32+, series
+  40+) y relevante (300 votos y nota de 6 o 7; sin mínimo de votos lo muy
+  otoñal, 60+, y lo de los dos últimos años). Constantes en `score.py`
+- `people_search`: dirección y reparto en minúsculas y sin tildes, para el
+  filtro por persona de `search_content`. Lo mantiene un trigger: no escribirlo
+- `vote_count`, `vote_average`, `popularity`, `top_cast` y `collection_id` salen
+  de una segunda descarga de TMDB (`data/extras-*.jsonl`), con sus
+  recomendaciones, que no van a la base: las usa «Más como esta»
+- `autumn_score` entre 0 y 1, **en todos los títulos**: la media de 3
+  puntuaciones de deepseek-flash (0–100), en lotes distintos, / 100. Es la
+  especialidad de otoño: ya no decide qué entra al corpus, solo lo de otoño.
+  El criterio de la puntuación es **otoño antes que Halloween**:
   Halloween cuenta si la película va de él, y el terror sin Halloween ni ambiente
   otoñal puntúa 40 como mucho. El prompt está en `scripts/seed/score.py`
 - `embedding`: de un texto en inglés (título, sinopsis, géneros y keywords),
   con la sinopsis española solo si falta la inglesa. Lleva también el título
-  español cuando es otro (3.944 de 5.000): sin él, «Cadena perpetua» no
+  español cuando es otro (unas tres cuartas partes): sin él, «Cadena perpetua» no
   encontraba *The Shawshank Redemption*. Lo construye `document_text()` en
   `scripts/seed/common.py`
+- `embedding` en `halfvec` (Fase 8): la mitad de espacio, con recall@10 del
+  98,5 % frente al 99 % de `vector` (20 consultas). `search_content` recibe un
+  `vector(1024)`, como siempre, y lo convierte
 
 ### `users_favorites`
 
@@ -280,6 +315,7 @@ CREATE TABLE conversations (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   mode        TEXT NOT NULL CHECK (mode IN ('movie', 'tv', 'weekend', 'month')),
+  specialty   TEXT CHECK (specialty IN ('autumn')),  -- null: Umber general (Fase 8)
   messages    JSONB NOT NULL DEFAULT '[]',  -- { role, content, created_at } y, en los de
                                            -- Umber, recommendation_ids y language
   created_at  TIMESTAMPTZ DEFAULT NOW(),
@@ -299,12 +335,19 @@ CREATE OR REPLACE FUNCTION search_content(
   query_embedding VECTOR(1024),
   content_type    TEXT DEFAULT NULL,
   match_count     INT DEFAULT 10,
-  min_score       FLOAT DEFAULT 0.5
+  min_score       FLOAT DEFAULT 0.5,
+  -- Filtros (Fase 8): los que pidió la persona, todos opcionales
+  genres_any TEXT[], genres_none TEXT[], year_from INT, year_to INT,
+  max_runtime INT, languages TEXT[], min_votes INT, max_votes INT,
+  person TEXT,          -- dirección o reparto, sin tildes ni mayúsculas
+  min_autumn FLOAT      -- la especialidad de otoño
 )
 RETURNS TABLE (
   id UUID, tmdb_id INTEGER, type TEXT, title TEXT, title_en TEXT,
   year INTEGER, director TEXT, synopsis TEXT, synopsis_en TEXT,
   genres TEXT[], autumn_score FLOAT, poster_path TEXT,
+  vote_count INTEGER, vote_average REAL, runtime INTEGER,
+  original_language TEXT, top_cast TEXT[],
   similarity FLOAT
 )
 LANGUAGE plpgsql STABLE
@@ -336,13 +379,30 @@ no se ve en la firma:
   sigue recorriendo el índice hasta completar el `LIMIT`: con 0.99, hasta 4,3 s y
   un timeout del rol `anon`. El chat pide con `min_score = -1` y aplica su suelo
   (0,30) en `src/lib/search.ts`; como las filas llegan ordenadas, da lo mismo
+- **Dos caminos** (Fase 8): con filtros, cuenta antes las filas que pasan (unos
+  30 ms) y, si son 4.000 o menos, busca **exacto sobre lo filtrado**, sin el
+  índice, que filtra según recorre y con tan pocos tendría que recorrerlo casi
+  entero (pasaba de 3 s). Con más, o sin filtros, el índice con
+  `iterative_scan`. En caliente, 0,1–0,6 s; diez a la vez, 0,4 s. Son dos
+  consultas: con un `CASE` en el `ORDER BY` el planificador no usaría el índice
+  nunca. El `+ 0` del camino exacto es para que no lo use
+- **La app la llama con la secret key** (`searchPool`): el rol `anon` corta a los
+  3 s, y con la base en frío una búsqueda filtrada podía pasar de ahí. El corpus
+  es público, así que no cambia lo que se puede leer
+- **Tras una migración que reescriba las filas de `content`** (un `update` de
+  toda la tabla, como la de `people_search`), `vacuum full public.content` y
+  reconstruir el índice HNSW: sin ello, las búsquedas pasaron de 0,1 a 2 s
+- **El filtro por persona va sobre `content.people_search`** (dirección y
+  reparto ya plegados, con un trigger). Plegar en cada búsqueda eran 112.000
+  llamadas a `fold_search_text`, que no se incrusta por llevar `search_path`:
+  «de Nolan» llegaba al timeout de `anon`
 
 ### Explorar el corpus
 
 ```sql
 -- Una página del listado; en cada fila, el total con esos filtros
 explore_content(p_type TEXT, p_genre TEXT, p_query TEXT,
-                p_sort TEXT DEFAULT 'autumn',  -- 'autumn' | 'recent' | 'title'
+                p_sort TEXT DEFAULT 'autumn',  -- 'popular' | 'autumn' | 'recent' | 'title'
                 p_limit INT DEFAULT 36, p_offset INT DEFAULT 0)
   RETURNS TABLE (id, type, title, title_en, year, poster_path, autumn_score, total_count)
 
@@ -369,15 +429,24 @@ CREATE TABLE content_similar (
 ```
 
 - Los 12 más parecidos a cada título, del mismo tipo. **Los calcula el seed**
-  (`load-db.py`), no la web: la ficha solo los lee, sin búsqueda vectorial
-- Se comparan con un **segundo vector, de lo que cuenta cada título sin su
-  nombre** (`plot_text()` en `scripts/seed/common.py`). Con el de búsqueda, que
-  lleva el título, dos títulos se parecían por cómo se llaman: *Cuando Harry
-  encontró a Sally* junto a *Harry, un amigo que os quiere*, un thriller
-- Ese vector no va a la base (`data/plot-embeddings.jsonl`): otra columna de
-  1024 dimensiones y su índice costarían unos 60 MB del plan gratuito. Por
-  fuerza bruta en numpy, exacto; de los 24 más parecidos, los 12 primeros tras
-  sumar `0,2 × autumn_score`, como el chat
+  (`scripts/seed/similar.py`, desde `load-db.py`), no la web: la ficha solo los
+  lee, sin búsqueda vectorial. `similarity` es la puntuación del método
+- **Método híbrido** (Fase 8), seis señales con pesos medidos con
+  `eval-similar.py` (40 películas, juez de DeepSeek; ver la Fase 8):
+  - **Cinéfilo**: lo que deepseek-flash recomendaría a quien adoró el título
+    (`suggest.py`, 10 por título, una vez). Solo cuenta lo que se encuentra en el
+    corpus por título y año: no puede colar uno inventado
+  - **Argumento**: un **segundo vector, de lo que cuenta cada título sin su
+    nombre** (`plot_text()`). Con el de búsqueda, que lleva el título, dos títulos
+    se parecían por cómo se llaman (*Cuando Harry encontró a Sally* junto a
+    *Harry, un amigo que os quiere*, un thriller)
+  - **TMDB** (sus recomendaciones), **géneros**, **keywords** y **popularidad**
+  - Reglas: el mismo público (ni infantil para lo que no lo es, ni lo contrario)
+    y nada de terror para quien no lo pide, salvo que lo sugieran el cinéfilo o
+    TMDB; dos como mucho de una saga; una versión de cada título
+- El vector de argumento no va a la base (`data/plot-embeddings.jsonl`): otra
+  columna y su índice costarían espacio del plan gratuito. Por fuerza bruta en
+  numpy, en bloques: exacto y en unos segundos
 - Lectura pública, como el corpus; sin políticas de escritura
 
 ### `platforms_cache` y `rate_limits` — solo servidor
@@ -415,14 +484,55 @@ hit_rate_limit(p_key TEXT, p_window_seconds INT[], p_limits INT[]) RETURNS INTEG
   UTC) y borra lo caducado en cada llamada. Los límites viven en
   `src/lib/rate-limit.ts`
 
+### Trazabilidad — solo servidor
+
+```sql
+chat_traces    -- una fila por petición admitida a /api/chat o /api/search: quién (user_id
+               -- o client_hash), mensaje, respuesta, búsqueda con sus candidatos,
+               -- recomendadas, títulos inventados, pasos con su duración, estado
+llm_calls      -- cada llamada a un modelo de esa petición: tokens (y los de caché),
+               -- coste en USD, primer token, duración, herramienta y argumentos
+usage_daily    -- tokens y coste por día (UTC), proveedor, modelo y propósito
+request_daily  -- peticiones por día, endpoint, estado y con o sin sesión
+
+-- Guarda una petición y sus llamadas en un solo viaje, y suma en los agregados
+record_trace(p_trace JSONB, p_calls JSONB) RETURNS VOID
+-- Borra el texto a los 30 días y las trazas a los 90. pg_cron, cada noche a las 03:17 UTC
+prune_traces() RETURNS VOID
+```
+
+- Las cuatro tablas, como `rate_limits`: RLS sin políticas y sin permisos para
+  `anon` ni `authenticated`. Las dos funciones solo las ejecuta `service_role`
+- **Una petición que no pasa el rate limit no deja traza**, solo suma en
+  `request_daily` (`p_trace.admitted = false`). Las inválidas (400) tampoco: se
+  validan antes del límite. Si dejaran fila, insistir llenaría la base
+- La IP nunca se guarda: `client_hash` es un HMAC de la clave del rate limit
+  (`hashClient` en `src/lib/trace.ts`)
+- Borrar una cuenta o una conversación borra sus trazas en cascada; los
+  agregados diarios no llevan nada de nadie y se quedan
+- Decisión de producto: el texto de las consultas se guarda 30 días, también el
+  de quien no tiene cuenta. Va en la política de privacidad
+
 ---
 
 ## Flujo del chat
 
-Umber conversa: pregunta de 2 a 4 veces para entender el ánimo, decide él cuándo
-buscar y busca con un resumen que escribe él. Si piden otra, la saca de los
-mismos 10 candidatos hasta agotarlos. Si nombran un título concreto, lo comprueba
-en cualquier turno con `buscar_por_titulo`. Reglas y estado en `src/lib/turns.ts`.
+Umber, cinéfilo general (Fase 8), conversa: pregunta de 3 a 5 veces para
+entender qué quiere (ánimo, compañía, gustos, conocida o no), salvo que le pidan
+que recomiende ya («sin preguntas», «sorpréndeme»: `wantsToSkipQuestions`),
+decide él cuándo buscar y busca con un resumen que escribe él y los filtros que
+la persona ha pedido de forma explícita. Lo que la persona ha nombrado como visto
+o favorito no se le recomienda. Si piden otra, la
+saca de los mismos 10 candidatos hasta agotarlos. Si nombran un título concreto,
+lo comprueba con `buscar_por_titulo` en cualquier turno menos el forzado (4
+preguntas seguidas), que tiene que recomendar. Reglas y estado en
+`src/lib/turns.ts`.
+
+**Especialidad** (`?especialidad=otono` en `/chat`, `specialty` en la API, y en
+la conversación guardada): solo títulos de otoño (`autumn_score` ≥ 0,32 en
+películas y 0,40 en series), el otoño pesa al ordenar y el system prompt lleva la
+capa de `src/prompts/specialty-autumn.md`. Sin ella, Umber es general y el otoño
+no pesa nada.
 
 ```
 Usuario escribe
@@ -440,21 +550,30 @@ quedan. Idioma de la respuesta (detectMessageLanguage)
       ↓
 Candidatos que quedan de la última búsqueda: de la base por id, con plataformas
       ↓
-DeepSeek (`deepseek-flash`) con dos herramientas. buscar_por_titulo, siempre;
-buscar_titulos (ánimo), solo tras 2 preguntas. tool_choice required con 4
-preguntas seguidas · auto el resto
+DeepSeek (`deepseek-flash`) con dos herramientas (turnToolsFor). Sin búsqueda
+previa y antes de 3 preguntas, solo buscar_por_titulo (salvo que pida que le
+recomiende ya); con 5 preguntas seguidas, solo buscar_titulos y tool_choice
+required; el resto, las dos y auto. DeepSeek a veces llama a una
+herramienta que no se le ofreció: el servidor la trata como buscar_titulos
   ├─ texto: una pregunta, u «otra» de los que quedan → al cliente
-  ├─ buscar_por_titulo(«Cadena perpetua / The Shawshank Redemption»):
-  │     Los que se llaman así primero, y parecidos hasta 10. Si no está, no
-  │     cuenta como búsqueda: Umber lo dice y sigue preguntando
-  └─ buscar_titulos(resumen en inglés):
+  ├─ buscar_por_titulo(«Cadena perpetua / The Shawshank Redemption», intención):
+  │     «verlo»: los que se llaman así primero, y sus parecidos de «Más como
+  │     esta» (`content_similar`) hasta 10. «parecido» (le encantó, ya la vio,
+  │     quiere algo así): solo los parecidos; lo nombrado va de referencia y no
+  │     puede recomendarlo. Si no está, no cuenta como búsqueda: Umber lo dice y
+  │     sigue preguntando
+  └─ buscar_titulos(resumen en inglés + filtros: géneros, años, duración,
+     idiomas, persona, popularidad):
         Evento `searching` al cliente («Buscando títulos que encajen…»)
               ↓
         Embedding del resumen (Qwen3-Embedding, Cloudflare Workers AI)
               ↓
-        pgvector → 30 candidatos, sin los ya recomendados
+        pgvector con los filtros → 30 candidatos, sin los ya recomendados.
+        Con menos de 3, se quitan filtros por orden (popularidad, géneros,
+        época y duración; nunca persona, idioma ni lo excluido) y se le dice
               ↓
-        Reordenar por similitud + 0,2 × autumn_score → 10
+        Reordenar por similitud + 0,08 × popularidad (+ 0,2 × otoño en la
+        especialidad) → 10, con votos, nota, duración, idioma y reparto
               ↓
         Plataformas (platforms_cache, 3 días; si no, TMDB con 2 s de tope)
               ↓
@@ -464,7 +583,7 @@ Stream SSE al cliente (los primeros 280 caracteres se retienen: un preámbulo
 antes de buscar se descarta)
       ↓
 Guardar en Supabase (si autenticado; append_conversation_messages) con search y
-recommendation_ids → evento `done`
+recommendation_ids → evento `done` → traza (`record_trace`) → cerrar el stream
 ```
 
 La búsqueda ocurre con el stream ya abierto, detrás del evento `searching`: la
@@ -477,14 +596,18 @@ Contrato de `POST /api/chat`, tipado en `src/lib/types.ts`:
 - **Cuerpo** (`ChatRequestBody`): `mode`, `message` (≤ 1.000 caracteres) y,
   opcionales, `history` (mensajes `user`/`assistant`, solo sin conversación
   guardada; el navegador manda la conversación entera), `conversation_id`,
-  `locale` y `region`. Los mensajes de Umber del historial llevan lo que
+  `locale`, `region` y `specialty` (`autumn`; con `conversation_id` manda la
+  guardada). Los mensajes de Umber del historial llevan lo que
   devolvió `done`: `search` y `recommendation_ids`. Sin eso, el servidor no sabe
   qué candidatos le quedan
 - **Tope por conversación**: 40 mensajes contando los de Umber
   (`MAX_CONVERSATION_MESSAGES`, 20 turnos). El que no cabe recibe 409
   `conversation_full`. En los dos últimos turnos Umber va cerrando, y el chat
   avisa cuando quedan 5. Para `conversation_full` y `trial_used`, la interfaz
-  muestra un panel (empezar otra, o crear cuenta) en vez de un error
+  muestra un panel (empezar otra, o crear cuenta) en vez de un error. El resto
+  de errores salen en la burbuja con lo que se puede hacer (`recoveryFor` en
+  `src/scripts/chat.ts`): «Reintentar» si repetir puede servir, «Entrar de
+  nuevo» con `auth_error`, «Empezar una nueva» con `not_found`
 - **Sesión**: la de las cookies (el navegador) o `Authorization: Bearer
   <access_token>` (scripts). Sin ninguna se chatea sin guardar; con un token
   inválido o caducado, 401
@@ -503,9 +626,13 @@ Contrato de `POST /api/chat`, tipado en `src/lib/types.ts`:
 Los otros dos endpoints, con el mismo formato de error:
 
 - **`POST /api/search`** (`SearchRequestBody` → `SearchResponse`): `{ query,
-  type?, limit? }`, con `limit` de 1 a 30. Devuelve lo mismo que ve Umber, con
-  `similarity`, `autumn_score` y `rank_score`. Sesión opcional; rate limit
-  propio (20/min y 300/día por IP, 30/min y 1.000/día con sesión)
+  type?, limit?, filters?, specialty? }`, con `limit` de 1 a 30 y los mismos
+  filtros que el chat (`genres_any`, `genres_none`, `year_from`, `year_to`,
+  `max_runtime`, `languages`, `person`, `popularity`). Devuelve lo mismo que ve
+  Umber, con `similarity`, `autumn_score`, `vote_count` y `rank_score`, y
+  `relaxed`: los filtros que hubo que quitar. Sesión opcional; rate limit
+  propio (20/min y 300/día por IP, 30/min y 1.000/día con sesión, 5.000/día
+  entre todos: protege la cuota gratuita de Cloudflare, que comparte con el chat)
 - **`GET /api/tmdb?content_id=<uuid>&region=ES`** (`PlatformsResponse`):
   plataformas de un título del corpus, por `lookupPlatforms`. Sin `region`, la de
   `Accept-Language`. `Cache-Control` público de un día en la CDN. No acepta rutas
@@ -534,6 +661,13 @@ Los otros dos endpoints, con el mismo formato de error:
   limita los envíos. Para probar, crear usuarios ya confirmados con la Admin API
   (como hace `scripts/verify-rls.mjs`) y, si hace falta un enlace, sacarlo de
   `/auth/v1/admin/generate_link`, que no envía correo
+- **El correo que trae Supabase no sirve para gente real**: 2 correos por hora
+  en todo el proyecto y solo a direcciones del equipo (con las demás,
+  `email_address_not_authorized`). Producción necesita un SMTP propio y gratuito,
+  sin servidor ni dominio de pago (ver «Correo de la cuenta» en la Fase 6). El
+  enlace caduca a la hora. `supabase/config.toml` es solo para el Supabase
+  local: no usar `supabase config push`, que pisaría la configuración de Auth
+  del proyecto
 - El registro pide **nombre de usuario**, email y la contraseña dos veces (8 a 72
   caracteres, el tope de bcrypt). El nombre va en `signUp({ options: { data: {
   username } } })` y acaba en `profiles` (ver el esquema). Se entra con el email
@@ -597,6 +731,13 @@ Los modos `weekend` y `month` están diseñados. No eliminar sus tipos ni consta
 - **Sin razonamiento** en el chat de `movie` y `tv` y en `complete()`:
   `src/lib/deepseek.ts` lo envía siempre. `weekend` y `month` podrán activarlo,
   subiendo `max_tokens`. Motivo y medidas en `docs/fase-4-api-chat.md`
+- **Pasarela**: `streamChat()` y `complete()` exigen `trace` y `purpose`, y
+  `embedQuery()` la traza: no hay llamada a un modelo sin registrar. El stream
+  pide `stream_options: { include_usage: true }`, y DeepSeek manda al final los
+  tokens con los de caché aparte (`prompt_cache_hit_tokens`), que cuestan 50
+  veces menos. El coste sale de `src/lib/llm-pricing.ts` (en hora punta, el
+  doble) y se guarda con cada llamada. `PROMPT_VERSION` (`src/lib/prompts.ts`)
+  cambia con cualquier cambio de prompt, para comparar versiones
 
 ---
 
@@ -638,8 +779,12 @@ Los modos `weekend` y `month` están diseñados. No eliminar sus tipos ni consta
 
 - Usar `append_to_response=watch/providers` para obtener plataformas en una sola llamada
 - Región por defecto para streaming: `ES`. Detectar por idioma del usuario si es posible
-- Pósters: `https://image.tmdb.org/t/p/w500{poster_path}`
-- Backdrops hero: `https://image.tmdb.org/t/p/original{backdrop_path}`
+- Pósters al tamaño en que se muestran: `w185` y `w342` con `srcset` en las
+  rejillas (`PosterCard`), `w342` en las fichas del chat y favoritos
+  (`TMDB_POSTER_SIZE`), `w342`/`w500` en la ficha grande. Con `w342` fijo,
+  `/explorar` pesaba 1,2 MB de carteles; así, unos 490 kB. El `sizes` de las
+  rejillas no puede pasar de 185 px en escritorio, o se baja `w342` en todas
+- Backdrops: `w780` y `w1280` con `srcset`, nunca `original` (varios MB)
 - Las plataformas se piden siempre con `lookupPlatforms()` (`src/lib/platforms.ts`),
   que las cachea en `platforms_cache`, y no con las funciones de `src/lib/tmdb.ts`
 
@@ -647,17 +792,68 @@ Los modos `weekend` y `month` están diseñados. No eliminar sus tipos ni consta
 
 ## Estética
 
-```
-Fondo base:        #0D0B08  (negro cálido)
-Superficie:        #1A1510  (capas de contenido)
-Acento principal:  #C8872A  (ámbar)
-Acento secundario: #7A4E2D  (siena)
-Texto principal:   #E8DDD0  (crema cálida)
-Texto secundario:  #8A7B6E  (gris cálido)
+«Noche de otoño», en clave editorial (rediseño del 2026-10-04): como una revista
+de cine en otoño. Oscura y cálida, mucho espacio, **un solo acento** y
+composiciones asimétricas en vez de rejillas de tarjetas iguales. Nada de
+degradados de color ni de elementos infantiles. Tokens `umber-*` en
+`src/styles/global.css`.
 
-Tipografía display:  Playfair Display (serif)
-Tipografía UI:       Inter (sans-serif)
 ```
+Fondo base:        #14110D  (noche cálida)          umber-base
+Superficie:        #1C1813  (fichas, el cuadro)     umber-surface
+Superficie +1:     #262019  (tus burbujas)          umber-raised
+Filetes:           #2E261F  (separan; decorativos)  umber-line
+Borde de control:  #7B6C5E               3,4:1      umber-rule
+Texto principal:   #EFE6D8  (crema)      15:1       umber-cream
+Texto secundario:  #AB9B88  (ceniza)     7:1        umber-ash
+Acento:            #D9893D  (ámbar)      6,8:1      umber-amber (+ umber-amber-hover)
+
+Titulares:         Newsreader de titular (opsz 72), 300 y cursiva   font-display
+Lo que se lee:     Newsreader de lectura (opsz 16), 400 y 600       font-serif
+Interfaz:          Schibsted Grotesk 400–600                        font-sans
+```
+
+- **El ámbar, medido**: la acción principal, lo elegido (la línea de una
+  pestaña) y los títulos que recomienda Umber. Rótulos, enlaces secundarios y
+  todo lo demás, en crema o ceniza
+- **La regla de la tipografía**: lo que se dice va en serif (Umber, lo que
+  escribes, las sinopsis, los títulos); la interfaz, en sans. La cursiva de
+  titular marca una palabra por titular, no más («¿Qué te apetece ver *hoy*?»)
+- Contraste contra el fondo base; todos pasan AA. Los campos llevan solo la
+  línea de abajo, en `umber-rule`: lo que identifica un control pide 3:1
+- Piezas comunes en `global.css`: usarlas antes que repetir clases.
+  Titulares `display-1/2/3`; `eyebrow` (y `eyebrow-rule`, con filete), `lead`,
+  `reading`; `btn-primary`, `btn-secondary` y `.arrow` (la flecha que se
+  adelanta); `link`, `link-quiet`; `field`, `field-label`, `select-wrap`;
+  `chip`; `tabs`/`tab` (pestañas con línea, en enlaces o en radios); `composer`
+  (el cuadro donde se escribe a Umber); `graded` (el etalonado de los
+  fotogramas); `dot-list`
+- Imágenes: carteles con radio de 3 px, no de tarjeta. Los fotogramas de
+  ambiente (portada, cuenta, fondo de la ficha) llevan `graded`, para que
+  fotogramas muy distintos parezcan de la misma película. Salen de
+  `src/lib/showcase.ts`, elegidas por criterio y no por id: en general, películas
+  muy conocidas y bien valoradas (5.000 votos o más, nota de 7,4), y en la portada
+  una de ellas con sus parecidos («Si te gustó…»); en el apartado de otoño, dramas
+  y romances otoñales, sin terror, comedia ni infantil
+- **Umber es general; el otoño, un apartado** (Fase 8): nada de otoño en los
+  textos generales (portada, pie, título y descripción por defecto). La
+  especialidad tiene su sección en la portada, con la etiqueta «Nuevo», y lleva a
+  `/chat?…&especialidad=otono` y a `/explorar?sort=autumn`
+- Grano de película encima de todo (`/grain.svg`, al 4 %), con mezcla normal:
+  un modo de fusión en una capa fija hace que el scroll recomponga la página
+- **Movimiento**, siempre lento y apagado con `prefers-reduced-motion`:
+  `rise` al cargar (escalonado con `[animation-delay:…]`), `develop` (un
+  fotograma que se revela), `reveal` al entrar en pantalla con
+  `animation-timeline: view()` (sin soporte, ya está ahí) y `message-in` en el
+  chat. Entre páginas, `@view-transition` funde una con otra sin JavaScript, y el
+  cartel pulsado en una rejilla viaja hasta la ficha (`src/scripts/transitions.ts`,
+  con `data-poster-link`, `data-poster` y `data-poster-target`)
+- Fuentes: solo `latin` (cubre el español). Newsreader en dos cortes fijos de
+  su eje óptico, no el eje entero: 45 + 56 kB en vez de 272. La de lectura no se
+  precarga: solo la bajan las páginas que la usan. Un peso o una cursiva nuevos
+  hay que añadirlos en `fonts` de `astro.config.mjs`
+- La marca es una hoja (`LeafMark`): en la cabecera, como avatar de Umber y en
+  el favicon
 
 ---
 
@@ -672,7 +868,10 @@ Tipografía UI:       Inter (sans-serif)
   (`frame-ancestors 'none'`). En SSR va como cabecera: **no poner otra cabecera
   `Content-Security-Policy` en el middleware**, que la sustituiría. Un recurso
   externo nuevo (imágenes, fuentes, `fetch` del navegador) hay que añadirlo a
-  sus directivas. No funciona en `astro dev`: se prueba sobre el build
+  sus directivas. No funciona en `astro dev`: se prueba sobre el build.
+  **Nada de atributos `style` en el marcado ni de URIs `data:` en el CSS**
+  (`img-src` no las admite: el grano es un archivo). Lo dinámico, por clases o
+  desde JavaScript con `element.style`, que la CSP sí deja
 - `src/middleware.ts` añade `X-Content-Type-Options`, `X-Frame-Options` y
   `Referrer-Policy` a todas las respuestas
 - **Guardarraíles de conversación** en `system.md` («De qué hablas»): solo cine

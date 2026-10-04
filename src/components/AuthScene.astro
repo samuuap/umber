@@ -1,0 +1,44 @@
+---
+/**
+ * Pantalla de cuenta (entrar, registrarse): el formulario a un lado y, en
+ * pantallas anchas, un fotograma al otro. En el móvil, solo el formulario.
+ */
+import { pickStill } from '@/lib/showcase';
+import { backdropUrl } from '@/lib/tmdb';
+
+const still = await pickStill();
+const caption = still === null ? null : [still.title, still.year].filter((part) => part !== null).join(', ');
+---
+
+<main class="mx-auto grid w-full max-w-[80rem] flex-1 gap-x-16 px-5 pt-8 pb-16 sm:px-8 lg:grid-cols-12 lg:pt-10">
+  {
+    still !== null && still.backdrop_path !== null && (
+      <figure class="hidden lg:col-span-6 lg:block" aria-hidden="true">
+        <div class="sticky top-8 aspect-[4/5] overflow-hidden rounded-[3px]">
+          <img
+            src={backdropUrl(still.backdrop_path, 'w1280')}
+            srcset={`${backdropUrl(still.backdrop_path, 'w780')} 780w, ${backdropUrl(still.backdrop_path, 'w1280')} 1280w`}
+            sizes="45vw"
+            alt=""
+            class="graded develop h-full w-full object-cover"
+          />
+          <div class="from-umber-base/85 absolute inset-0 bg-gradient-to-t via-transparent to-transparent" />
+          <figcaption class="absolute inset-x-7 bottom-6 flex flex-wrap items-baseline justify-between gap-x-4">
+            <span class="eyebrow">Fotograma</span>
+            <span class="font-display text-umber-cream/90 text-lg italic">{caption}</span>
+          </figcaption>
+        </div>
+      </figure>
+    )
+  }
+  <div
+    class:list={[
+      'w-full',
+      still === null || still.backdrop_path === null
+        ? 'mx-auto max-w-md lg:col-span-12'
+        : 'mx-auto max-w-md lg:col-span-5 lg:col-start-8 lg:mx-0 lg:max-w-none lg:pt-14',
+    ]}
+  >
+    <slot />
+  </div>
+</main>

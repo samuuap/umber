@@ -1,8 +1,14 @@
 ---
-/** Cabecera común: marca y navegación, según haya sesión o no. */
+/**
+ * Cabecera común: marca y navegación, según haya sesión o no. En las
+ * transiciones entre páginas se queda quieta (`[view-transition-name:header]`).
+ */
+import LeafMark from '@/components/LeafMark.astro';
+import { returnPath } from '@/lib/auth';
+
 const user = Astro.locals.user;
 const current = Astro.url.pathname;
-const next = encodeURIComponent(Astro.url.pathname + Astro.url.search);
+const next = encodeURIComponent(returnPath(Astro.url));
 
 const links = [
   { href: '/explorar', label: 'Explorar' },
@@ -15,20 +21,32 @@ const links = [
 ];
 // Una ficha de /explorar/<id> sigue dentro de «Explorar».
 const isCurrent = (href: string): boolean => current === href || current.startsWith(`${href}/`);
-
-const linkClass =
-  'text-umber-ash hover:text-umber-cream aria-[current=page]:text-umber-cream rounded px-2 py-1.5 transition-colors sm:px-2.5';
 ---
 
-<header class="border-umber-surface border-b">
-  <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4">
-    <a href="/" class="font-display text-2xl font-semibold tracking-tight">Umber</a>
-    <nav aria-label="Principal" class="-ml-2 sm:ml-0">
-      <ul class="flex items-center gap-1 text-sm">
+<header class="relative z-30 [view-transition-name:header]">
+  <div
+    class="mx-auto flex max-w-[80rem] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 pt-5 pb-4 sm:px-8 sm:pt-7"
+  >
+    <a href="/" class="group flex items-center gap-2.5" aria-label="Umber, inicio">
+      <LeafMark
+        class="text-umber-amber size-[1.15rem] transition-transform duration-700 ease-(--ease-soft) group-hover:-rotate-[18deg] motion-reduce:transition-none"
+      />
+      <span class="font-display text-[1.7rem] leading-none tracking-[-0.03em]">Umber</span>
+    </a>
+
+    <nav
+      aria-label="Principal"
+      class:list={[
+        'flex items-center gap-x-6 text-sm',
+        // Con sesión hay cuatro enlaces: en el móvil van en su propia fila.
+        user !== null && 'border-umber-line order-last w-full overflow-x-auto border-t pt-3 sm:order-none sm:w-auto sm:border-0 sm:pt-0',
+      ]}
+    >
+      <ul class="flex items-center gap-x-6">
         {
           links.map((link) => (
             <li>
-              <a href={link.href} class={linkClass} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+              <a href={link.href} class="tab whitespace-nowrap" aria-current={isCurrent(link.href) ? 'page' : undefined}>
                 {link.label}
               </a>
             </li>
@@ -36,29 +54,29 @@ const linkClass =
         }
         {
           user?.username != null && (
-            <li class="text-umber-cream/85 hidden px-2.5 py-1.5 sm:block">@{user.username}</li>
+            <li class="text-umber-ash hidden pb-1.5 lg:block" title="Tu nombre de usuario">
+              @{user.username}
+            </li>
           )
         }
-        <li>
-          {
-            user === null ? (
-              <a
-                href={`/entrar?next=${next}`}
-                class={linkClass}
-                aria-current={current === '/entrar' ? 'page' : undefined}
-              >
-                Entrar
-              </a>
-            ) : (
-              <form method="post" action="/salir">
-                <button type="submit" class={linkClass}>
-                  Salir
-                </button>
-              </form>
-            )
-          }
-        </li>
       </ul>
+      {
+        user === null ? (
+          <a
+            href={`/entrar?next=${next}`}
+            aria-current={current === '/entrar' ? 'page' : undefined}
+            class="btn-secondary px-4 py-2 text-[0.8rem]"
+          >
+            Entrar
+          </a>
+        ) : (
+          <form method="post" action="/salir" class="ml-auto sm:ml-0">
+            <button type="submit" class="tab">
+              Salir
+            </button>
+          </form>
+        )
+      }
     </nav>
   </div>
 </header>

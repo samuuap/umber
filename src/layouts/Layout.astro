@@ -13,8 +13,8 @@ interface Props {
 }
 
 const {
-  title = 'Umber — planificador cinematográfico otoñal',
-  description = 'Cuéntale a Umber cómo te sientes y te encuentra la película o la serie que encaja con ese otoño.',
+  title = 'Umber — tu cinéfilo de confianza',
+  description = 'Cuéntale a Umber cómo estás y qué te gusta, y te recomienda la película o la serie que encaja, con el porqué y dónde verla.',
   footer = true,
 } = Astro.props;
 ---
@@ -26,19 +26,21 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0d0b08" />
+    <meta name="theme-color" content="#14110d" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <title>{title}</title>
     <meta name="description" content={description} />
 
-    <Font cssVariable="--font-playfair" preload />
-    <Font cssVariable="--font-inter" preload />
+    <Font cssVariable="--font-newsreader-display" preload />
+    <Font cssVariable="--font-schibsted" preload />
+    {/* Sin precarga: solo la descargan las páginas que la usan (el chat, las fichas). */}
+    <Font cssVariable="--font-newsreader-text" />
   </head>
   <body class="flex flex-col">
     <a
       href="#contenido"
-      class="bg-umber-amber text-umber-base sr-only z-50 rounded px-3 py-2 focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      class="bg-umber-amber text-umber-base sr-only z-[70] rounded-full px-4 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
     >
       Saltar al contenido
     </a>
@@ -47,5 +49,8 @@ const {
       <slot />
     </div>
     {footer && <SiteFooter />}
+    <script>
+      import '@/scripts/transitions';
+    </script>
   </body>
 </html>

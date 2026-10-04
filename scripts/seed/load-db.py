@@ -9,8 +9,10 @@ Usa la secret key, que es la que se salta RLS: `anon` no puede escribir en
 `content`. Hace upsert por `(tmdb_id, type)`, así que reejecutar actualiza en vez
 de duplicar.
 
-`--prune` borra en cascada los favoritos que apunten a esos títulos. Por eso no
-es el comportamiento por defecto.
+`--prune` borraría en cascada los favoritos que apunten a esos títulos. Por eso
+no es el comportamiento por defecto, y si alguien guardó alguno se detiene sin
+borrar nada y dice cuáles: hace falta añadir `--drop-favorites`. Tras una carga
+grande, reconstruir el índice HNSW (ver `CLAUDE.md`).
 """
 
 from __future__ import annotations
@@ -19,15 +21,11 @@ import argparse
 import json
 from typing import Any
 
-import numpy as np
-
 from common import (
-    AUTUMN_WEIGHT,
     CORPUS_PATH,
     EMBEDDINGS_PATH,
     PLOT_EMBEDDINGS_PATH,
-    SIMILAR_COUNT,
-    SIMILAR_POOL,
+    SUGGESTIONS_PATH,
     content_key,
     document_text,
     http_session,
@@ -38,6 +36,7 @@ from common import (
     to_pg_vector,
     unpack_vector,
 )
+from similar import resolve_suggestions, similar_titles
 
 BATCH_SIZE = 100
 SIMILAR_BATCH_SIZE = 1_000  # sin vectores, las filas son pequeñas
@@ -46,6 +45,7 @@ PAGE_SIZE = 1_000  # el máximo que devuelve PostgREST en Supabase por defecto
 COLUMNS = (
     "tmdb_id", "type", "title", "title_en", "year", "director", "synopsis", "synopsis_en",
     "genres", "keywords", "autumn_score", "poster_path", "backdrop_path", "runtime", "seasons", "status",
+    "vote_count", "vote_average", "popularity", "original_language", "collection_id",
 )
 
 REST = f"{require_env('SUPABASE_URL')}/rest/v1"
@@ -70,7 +70,10 @@ def build_rows() -> list[dict[str, Any]]:
         if embedding is None or embedding["hash"] != text_hash(document_text(item)):
             stale += 1
             continue
-        rows.append({column: item[column] for column in COLUMNS} | {"embedding": to_pg_vector(unpack_vector(embedding["embedding"]))})
+        rows.append(
+            {column: item.get(column) for column in COLUMNS}
+            | {"top_cast": item.get("cast") or [], "embedding": to_pg_vector(unpack_vector(embedding["embedding"]))}
+        )
     if not rows:
         raise SystemExit(f"No hay corpus en {CORPUS_PATH}. Ejecuta antes score.py y embed.py.")
     if stale:
@@ -105,12 +108,12 @@ def loaded_ids() -> dict[str, str]:
 
 
 def similar_rows(ids: dict[str, str]) -> list[dict[str, Any]]:
-    """«Más como esta»: los SIMILAR_COUNT más parecidos a cada título, del mismo tipo.
+    """«Más como esta»: los parecidos de cada título, calculados en `similar.py`.
 
-    Con los vectores de `plot_text` (lo que cuenta, sin el nombre), por fuerza
-    bruta: con 5.000 títulos son milisegundos y el resultado es exacto. De los
-    SIMILAR_POOL más parecidos se quedan los primeros tras sumar el otoño, como
-    hace el chat al reordenar candidatos.
+    Con lo que sugiere el cinéfilo (`suggest.py`, si se ha ejecutado), los
+    vectores de `plot_text` (lo que cuenta, sin el nombre), las recomendaciones
+    de TMDB, géneros, keywords y popularidad. Por fuerza bruta en bloques: con
+    16.000 títulos son unos segundos y el resultado es exacto.
     """
     plots = {row["key"]: row for row in read_jsonl(PLOT_EMBEDDINGS_PATH)}
     items = [item for item in read_jsonl(CORPUS_PATH) if content_key(item["type"], item["tmdb_id"]) in ids]
@@ -121,32 +124,40 @@ def similar_rows(ids: dict[str, str]) -> list[dict[str, Any]]:
     if stale:
         raise SystemExit(f"{len(stale)} títulos sin vector de parecidos o desfasado. Ejecuta antes embed.py.")
 
+    vectors = {
+        content_key(item["type"], item["tmdb_id"]): unpack_vector(plots[content_key(item["type"], item["tmdb_id"])]["embedding"])
+        for item in items
+    }
     rows: list[dict[str, Any]] = []
-    for content_type in ("movie", "tv"):
-        group = [item for item in items if item["type"] == content_type]
-        keys = [content_key(item["type"], item["tmdb_id"]) for item in group]
-        vectors = np.array([unpack_vector(plots[key]["embedding"]) for key in keys], dtype=np.float32)
-        vectors /= np.linalg.norm(vectors, axis=1, keepdims=True)
-        autumn = np.array([item["autumn_score"] or 0 for item in group], dtype=np.float32)
-        similarity = vectors @ vectors.T
-        np.fill_diagonal(similarity, -np.inf)
-        pools = np.argpartition(-similarity, SIMILAR_POOL, axis=1)[:, :SIMILAR_POOL]
-        for i, pool in enumerate(pools):
-            ranked = sorted(pool, key=lambda j: -(similarity[i, j] + AUTUMN_WEIGHT * autumn[j]))[:SIMILAR_COUNT]
-            rows.extend(
-                {
-                    "content_id": ids[keys[i]],
-                    "rank": rank,
-                    "similar_id": ids[keys[j]],
-                    "similarity": round(float(similarity[i, j]), 6),
-                }
-                for rank, j in enumerate(ranked, start=1)
-            )
+    suggested = resolve_suggestions(items, SUGGESTIONS_PATH)
+    if not suggested:
+        print("  ⚠ Sin sugerencias del cinéfilo (suggest.py): «Más como esta» sale peor")
+    for key, similar in similar_titles(items, vectors, suggested=suggested).items():
+        rows.extend(
+            {"content_id": ids[key], "rank": rank, "similar_id": ids[other], "similarity": score}
+            for rank, (other, score) in enumerate(similar, start=1)
+        )
     return rows
 
 
 def upsert_similar(rows: list[dict[str, Any]]) -> None:
-    """Por `(content_id, rank)`: recargar sustituye la lista entera de cada título."""
+    """Por `(content_id, rank)`: recargar sustituye la lista entera de cada título.
+
+    Si una lista nueva es más corta que la de antes, sus últimos puestos se
+    quedarían con títulos viejos: se borran antes los que pasan de su largo.
+    """
+    longest: dict[str, int] = {}
+    for row in rows:
+        longest[row["content_id"]] = max(longest.get(row["content_id"], 0), row["rank"])
+    shorter = sorted({rank for rank in longest.values() if rank < 30})
+    for rank in shorter:
+        ids = [content_id for content_id, length in longest.items() if length == rank]
+        for start in range(0, len(ids), BATCH_SIZE):
+            request(
+                "DELETE",
+                "/content_similar",
+                params={"content_id": f"in.({','.join(ids[start : start + BATCH_SIZE])})", "rank": f"gt.{rank}"},
+            )
     for start in range(0, len(rows), SIMILAR_BATCH_SIZE):
         request(
             "POST",
@@ -157,6 +168,21 @@ def upsert_similar(rows: list[dict[str, Any]]) -> None:
         )
 
 
+def favorited(ids: list[str]) -> dict[str, int]:
+    """`{id: favoritos}` de los títulos de `ids` que alguien ha guardado."""
+    counts: dict[str, int] = {}
+    for start in range(0, len(ids), BATCH_SIZE):
+        batch = ",".join(ids[start : start + BATCH_SIZE])
+        for row in request("GET", "/users_favorites", params={"select": "content_id", "content_id": f"in.({batch})"}).json():
+            counts[row["content_id"]] = counts.get(row["content_id"], 0) + 1
+    return counts
+
+
+def titles_of(ids: list[str]) -> list[str]:
+    rows = request("GET", "/content", params={"select": "title,year", "id": f"in.({','.join(ids)})"}).json()
+    return [f"{row['title']} ({row['year']})" for row in rows]
+
+
 def count(**filters: str) -> int:
     response = request("HEAD", "/content", params={"select": "id", **filters}, headers={"Prefer": "count=exact"})
     return int(response.headers["Content-Range"].split("/")[-1])
@@ -165,6 +191,11 @@ def count(**filters: str) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--prune", action="store_true", help="borrar de content lo que ya no está en el corpus")
+    parser.add_argument(
+        "--drop-favorites",
+        action="store_true",
+        help="con --prune, borrar aunque haya usuarios que guardaron esos títulos (se pierden sus favoritos)",
+    )
     parser.add_argument(
         "--similar-only",
         action="store_true",
@@ -187,6 +218,17 @@ def main() -> None:
     ids = loaded_ids()
     leftovers = [row_id for key, row_id in ids.items() if key not in current]
     if leftovers and args.prune:
+        # Borrar un título borra en cascada los favoritos que lo guardan: sin
+        # pedirlo expresamente, no. Las conversaciones que lo recomendaron se
+        # quedan sin su ficha, pero no pierden texto.
+        saved = favorited(leftovers)
+        if saved and not args.drop_favorites:
+            affected = titles_of(list(saved)[:10])
+            raise SystemExit(
+                f"  ✗ {sum(saved.values())} favoritos de usuarios apuntan a {len(saved)} de los títulos que se "
+                f"borrarían ({', '.join(affected)}{'…' if len(saved) > 10 else ''}). No se ha borrado nada. "
+                "Para borrarlos igualmente: --prune --drop-favorites"
+            )
         for start in range(0, len(leftovers), BATCH_SIZE):
             request("DELETE", "/content", params={"id": f"in.({','.join(leftovers[start : start + BATCH_SIZE])})"})
         print(f"  {len(leftovers)} títulos que ya no están en el corpus, borrados")

@@ -1,6 +1,11 @@
 """
 Puntúa cuán otoñal es cada título del universo y elige el corpus.
 
+Desde la Fase 8 Umber es un experto general y el otoño, una especialidad: el
+corpus es todo lo conocido (`is_known`), y la puntuación de otoño se guarda en
+todos para la especialidad. Lo que entraba antes por otoñal se queda aunque no
+llegue al umbral general.
+
     python score.py
 
 1. deepseek-flash puntúa de 0 a 100 **todo** el universo, por lotes y a
@@ -11,8 +16,9 @@ Puntúa cuán otoñal es cada título del universo y elige el corpus.
 2. Las puntuaciones se guardan en `data/scores.jsonl` con la versión del prompt y
    la pasada: reejecutar no repite llamadas y da el mismo corpus, y cambiar el
    prompt invalida la caché por sí solo.
-3. Entran al corpus los `CORPUS_SIZE[tipo]` de mejor media, con
-   `autumn_score = media / 100`.
+3. Entra al corpus lo conocido (`is_known`: votos y nota) y, para la
+   especialidad, lo otoñal (`MIN_AUTUMN`) y relevante (`is_relevant`), con las
+   series de otoño hasta `AUTUMN_MAX_TV`. Todos llevan `autumn_score = media / 100`.
 
 Hasta la versión anterior, una heurística de géneros y keywords decidía qué
 títulos llegaban al modelo. Premiaba el terror y dejaba fuera clásicos otoñales
@@ -29,6 +35,7 @@ import random
 import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date
 from statistics import mean
 from typing import Any
 
@@ -46,8 +53,26 @@ from common import (
     write_jsonl,
 )
 
-# Reparto 90/10: TMDB tiene muchas menos series con votos suficientes.
-CORPUS_SIZE = {"movie": 4_500, "tv": 500}
+# ─── Qué entra al corpus ─────────────────────────────────────────────────────
+# Decisión de producto (2026-10-04, Fase 8): cine internacional conocido, el
+# español dentro como uno más. Películas con 200 votos o más y nota por encima de
+# 3,5; series de todo tipo con 500 o más. La nota solo quita lo malo de verdad: lo
+# conocido ya lo ordena la popularidad al buscar.
+KNOWN_MIN_VOTES = {"movie": 200, "tv": 500}
+KNOWN_MIN_RATING = 3.5
+
+# La especialidad de otoño, con sus criterios de antes (2026-10-04): otoñal y
+# relevante. Lo que entraba por aquí se queda aunque no llegue al umbral general.
+MIN_AUTUMN = {"movie": 32, "tv": 40}
+MIN_VOTES = {"movie": 300, "tv": 300}
+MIN_RATING = {"movie": 6.0, "tv": 7.0}
+# Sin el mínimo de votos (la nota se exige igual): lo muy otoñal, que es el
+# centro de la especialidad, y lo de los dos últimos años, que aún no ha tenido
+# tiempo de acumularlos. Si no, salía *Cuando cae el otoño* (Ozon, 2024; otoño 82).
+VOTES_EXEMPT_AUTUMN = 60
+RECENT_YEARS = 2
+# Las 500 series más otoñales de entre las relevantes.
+AUTUMN_MAX_TV = 500
 
 MODEL = "deepseek-flash"
 TEMPERATURE = 0.1  # clasificación: lo más estable posible
@@ -192,6 +217,26 @@ def score_all(universe: list[dict[str, Any]]) -> dict[str, list[int]]:
 # ─── Selección ───────────────────────────────────────────────────────────────
 
 
+def is_known(row: dict[str, Any]) -> bool:
+    """Lo que entra al corpus general: conocido y sin una nota desastrosa."""
+    return (
+        row["vote_count"] >= KNOWN_MIN_VOTES[row["type"]]
+        and (row["vote_average"] or 0) > KNOWN_MIN_RATING
+    )
+
+
+def is_relevant(row: dict[str, Any]) -> bool:
+    """De la especialidad de otoño: bien valorado y con votos suficientes para que la nota signifique algo."""
+    content_type = row["type"]
+    if (row["vote_average"] or 0) < MIN_RATING[content_type]:
+        return False
+    return (
+        row["vote_count"] >= MIN_VOTES[content_type]
+        or row["llm_score"] >= VOTES_EXEMPT_AUTUMN
+        or (row["year"] or 0) > date.today().year - RECENT_YEARS
+    )
+
+
 def label(row: dict[str, Any]) -> str:
     return f"{row['llm_score']:>5.1f}  {row['title']} ({row['year']})"
 
@@ -231,9 +276,23 @@ def main() -> None:
             ranked.append(row | {"llm_scores": passes, "llm_score": round(mean(passes), 1)})
         ranked.sort(key=lambda row: (-row["llm_score"], -row["vote_count"]))
 
-        chosen = min(CORPUS_SIZE[content_type], len(ranked))
-        report(content_type, ranked, chosen)
-        corpus += [row | {"autumn_score": round(row["llm_score"] / 100, 3)} for row in ranked[:chosen]]
+        autumnal = [row for row in ranked if row["llm_score"] >= MIN_AUTUMN[content_type]]
+        eligible = [row for row in autumnal if is_relevant(row)]
+        print(f"\n  {content_type}: {len(autumnal)} otoñales (≥{MIN_AUTUMN[content_type]}), "
+              f"{len(autumnal) - len(eligible)} fuera por poco relevantes")
+        chosen = min(AUTUMN_MAX_TV, len(eligible)) if content_type == "tv" else len(eligible)
+        report(content_type, eligible, chosen)
+        autumn_keys = {content_key(row["type"], row["tmdb_id"]) for row in eligible[:chosen]}
+
+        # El corpus: lo conocido, más lo de otoño que no llega al umbral general.
+        known = [row for row in ranked if is_known(row)]
+        known_keys = {content_key(row["type"], row["tmdb_id"]) for row in known}
+        selected = [row for row in ranked if content_key(row["type"], row["tmdb_id"]) in known_keys | autumn_keys]
+        selected.sort(key=lambda row: (-row["vote_count"], row["tmdb_id"]))
+        only_autumn = len(autumn_keys - known_keys)
+        print(f"  {content_type}: {len(known)} conocidos (≥{KNOWN_MIN_VOTES[content_type]} votos, "
+              f"nota >{KNOWN_MIN_RATING}) + {only_autumn} de otoño que no llegan = {len(selected)} al corpus")
+        corpus += [row | {"autumn_score": round(row["llm_score"] / 100, 3)} for row in selected]
 
     write_jsonl(CORPUS_PATH, corpus)
     print(f"\n{len(corpus)} títulos → {CORPUS_PATH.relative_to(DATA_DIR.parent)}")

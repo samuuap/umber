@@ -1,5 +1,8 @@
 ---
-/** Un título en una rejilla de carteles: el de `/explorar` y el de «Más como esta». */
+/**
+ * Un título en una rejilla de carteles: el de `/explorar` y «Más como esta».
+ * Al pulsarlo, el cartel viaja hasta la ficha (`src/scripts/transitions.ts`).
+ */
 import { posterUrl } from '@/lib/tmdb';
 import { CHAT_MODE_DEFINITIONS, type ContentType } from '@/lib/types';
 
@@ -16,33 +19,48 @@ interface Props {
 }
 
 const { item, href, eager = false } = Astro.props;
-const poster = posterUrl(item.poster_path, 'w342');
+const small = posterUrl(item.poster_path, 'w185');
+const large = posterUrl(item.poster_path, 'w342');
+/*
+ * En las rejillas el cartel mide unos 150–183 px: con w185 basta en pantallas
+ * normales, y w342 para las de doble densidad. Con w342 siempre, los 36 de
+ * /explorar pesaban 1,2 MB. Ojo al tocar la rejilla: si `sizes` pasa de 185, el
+ * navegador baja w342 en todas las pantallas.
+ */
+const sizes = '(min-width: 1024px) 183px, (min-width: 640px) 30vw, 46vw';
 ---
 
-<a href={href} class="group block">
+<a href={href} data-poster-link class="group block">
   <div
-    class="bg-umber-surface ring-umber-surface group-hover:ring-umber-amber/70 group-focus-visible:ring-umber-amber relative aspect-[2/3] overflow-hidden rounded-lg ring-1 transition-shadow duration-300"
+    data-poster
+    class="bg-umber-surface relative aspect-[2/3] overflow-hidden rounded-[3px] shadow-[0_18px_40px_-24px_rgb(0_0_0/0.9)] ring-1 ring-white/[0.06] transition-[transform,box-shadow] duration-500 ease-(--ease-soft) group-hover:-translate-y-1.5 group-hover:shadow-[0_28px_50px_-24px_rgb(0_0_0/0.95)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
   >
     {
-      poster === null ? (
-        <div class="text-umber-ash flex h-full items-center justify-center p-3 text-center text-xs">Sin cartel</div>
+      small === null || large === null ? (
+        <div class="text-umber-ash flex h-full items-center justify-center p-3 text-center font-serif text-sm italic">
+          Sin cartel
+        </div>
       ) : (
         <img
-          src={poster}
+          src={large}
+          srcset={`${small} 185w, ${large} 342w`}
+          sizes={sizes}
           alt=""
           width="342"
           height="513"
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
-          class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          class="h-full w-full object-cover saturate-[0.9] transition-[filter,transform] duration-700 ease-(--ease-soft) group-hover:scale-[1.03] group-hover:saturate-100 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
         />
       )
     }
   </div>
-  <p class="group-hover:text-umber-amber mt-2 line-clamp-2 text-sm leading-snug transition-colors">
+  <p
+    class="group-hover:text-umber-amber mt-3.5 line-clamp-2 font-serif text-[0.98rem] leading-snug transition-colors duration-300"
+  >
     {item.title}
   </p>
-  <p class="text-umber-ash mt-0.5 text-xs">
+  <p class="text-umber-ash mt-1 text-xs tracking-[0.02em]">
     {[item.year, CHAT_MODE_DEFINITIONS[item.type].label].filter((part) => part !== null).join(' · ')}
   </p>
 </a>

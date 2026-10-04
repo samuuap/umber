@@ -1,6 +1,7 @@
 ---
 /** Inicio de sesión con email y contraseña. La sesión queda en cookies. */
 import AuthForm from '@/components/AuthForm.astro';
+import AuthScene from '@/components/AuthScene.astro';
 import Layout from '@/layouts/Layout.astro';
 import { authErrorMessage, safeRedirectPath, type AuthFormError } from '@/lib/auth';
 
@@ -39,18 +40,18 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title="Entrar — Umber">
-  <main class="mx-auto w-full max-w-sm flex-1 px-5 py-16">
-    <h1 class="text-3xl font-semibold">Entrar</h1>
-    <p class="text-umber-ash mt-2 text-sm leading-relaxed">
+  <AuthScene>
+    <p class="eyebrow eyebrow-rule rise">Tu cuenta</p>
+    <h1 class="display-1 rise mt-7 [animation-delay:80ms]">Entrar</h1>
+    <p class="lead rise mt-5 [animation-delay:160ms]">
       Con cuenta, Umber guarda tus conversaciones y lo que marques como favorito.
     </p>
-    <AuthForm kind="login" email={email} error={error} />
-    <p class="text-umber-ash mt-6 text-sm">
+    <div class="rise [animation-delay:240ms]">
+      <AuthForm kind="login" email={email} error={error} />
+    </div>
+    <p class="border-umber-line text-umber-ash mt-12 border-t pt-6 text-sm">
       ¿No tienes cuenta?{' '}
-      <a
-        href={`/registro?next=${encodeURIComponent(next)}`}
-        class="text-umber-cream underline underline-offset-4">Regístrate</a
-      >
+      <a href={`/registro?next=${encodeURIComponent(next)}`} class="link">Regístrate gratis</a>
     </p>
-  </main>
+  </AuthScene>
 </Layout>

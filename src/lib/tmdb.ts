@@ -16,7 +16,12 @@ export const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 export const TMDB_DEFAULT_REGION = 'ES';
 export const TMDB_DEFAULT_LANGUAGE = 'es-ES';
 
-export const TMDB_POSTER_SIZE = 'w500';
+/**
+ * Las fichas del chat y de favoritos muestran el cartel a unos 110 px: w342
+ * basta incluso en pantallas de doble densidad, y pesa la mitad que w500. La
+ * ficha grande de `/explorar/<id>` pide los dos con `srcset`.
+ */
+export const TMDB_POSTER_SIZE = 'w342';
 export const TMDB_BACKDROP_SIZE = 'original';
 
 /** Plataformas y pósters en una sola llamada. */

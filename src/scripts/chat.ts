@@ -17,11 +17,13 @@ import {
 import {
   CONVERSATION_WARNING_TURNS,
   isChatMode,
+  isSpecialty,
   remainingTurns,
   type ChatHistoryMessage,
   type ChatMode,
   type ChatRequestBody,
   type Recommendation,
+  type Specialty,
 } from '@/lib/types';
 
 // ─── Elementos ───────────────────────────────────────────────────────────────
@@ -52,6 +54,8 @@ if (!isChatMode(modeAttribute)) {
   throw new Error(`Modo desconocido en la página del chat: ${String(modeAttribute)}`);
 }
 const mode: ChatMode = modeAttribute;
+/** La especialidad de la conversación (otoño), o `null`: Umber general. */
+const specialty: Specialty | null = isSpecialty(root.dataset.specialty) ? root.dataset.specialty : null;
 
 // ─── Estado ──────────────────────────────────────────────────────────────────
 
@@ -128,20 +132,49 @@ function resetAssistantMessage(bubble: HTMLElement): void {
   part(bubble, 'cards').replaceChildren();
 }
 
-/** Sin `retry`, no se ofrece reintentar: repetir daría el mismo error. */
-function showError(bubble: HTMLElement, message: string, retry: (() => void) | null): void {
+/** Cómo seguir tras un error. Sin `retry`, no se ofrece reintentar: repetir daría el mismo error. */
+interface Recovery {
+  readonly retry: (() => void) | null;
+  /** Un enlace con la salida, si la hay: volver a entrar, empezar otra. */
+  readonly action: { readonly href: string; readonly label: string } | null;
+  /** La conversación ya no admite más mensajes: se cierra. */
+  readonly ends: boolean;
+}
+
+function showError(bubble: HTMLElement, message: string, recovery: Pick<Recovery, 'retry' | 'action'>): void {
   part(bubble, 'status').hidden = true;
   part(bubble, 'error-message').textContent = message;
   part(bubble, 'error').hidden = false;
   const retryButton = required<HTMLButtonElement>(bubble, '[data-retry]');
-  retryButton.hidden = retry === null;
-  retryButton.onclick = retry;
+  retryButton.hidden = recovery.retry === null;
+  retryButton.onclick = recovery.retry;
+  const action = part<HTMLAnchorElement>(bubble, 'error-action');
+  action.hidden = recovery.action === null;
+  if (recovery.action !== null) {
+    action.href = recovery.action.href;
+    action.textContent = recovery.action.label;
+  }
 }
 
 // ─── Final de la conversación ────────────────────────────────────────────────
 
 /** Errores con los que el servidor dice que aquí ya no caben más mensajes. */
 const END_CODES: ReadonlySet<string> = new Set(['conversation_full', 'trial_used']);
+
+/** Qué se ofrece según el código de error del servidor. */
+function recoveryFor(code: string | null, retry: () => void): Recovery {
+  if (code !== null && END_CODES.has(code)) return { retry: null, action: null, ends: true };
+  // La sesión ha caducado: tras entrar, se vuelve a esta misma conversación.
+  if (code === 'auth_error') {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    return { retry: null, action: { href: `/entrar?next=${next}`, label: 'Entrar de nuevo' }, ends: false };
+  }
+  // La conversación ya no existe: la borró en otra pestaña.
+  if (code === 'not_found') return { retry: null, action: { href: '/', label: 'Empezar una nueva' }, ends: false };
+  // El mensaje no es válido: enviarlo otra vez daría lo mismo.
+  if (code === 'validation_error') return { retry: null, action: null, ends: false };
+  return { retry, action: null, ends: false };
+}
 
 /** Cierra la conversación: fuera el cuadro de texto, y el panel para empezar otra o registrarse. */
 function endConversation(): void {
@@ -213,7 +246,7 @@ async function readError(response: Response): Promise<{ code: string | null; mes
 function requestBody(message: string): ChatRequestBody {
   // Con conversación guardada, el servidor lee el historial de Supabase.
   return conversationId === null
-    ? { mode, message, history: pastMessages }
+    ? { mode, message, history: pastMessages, ...(specialty === null ? {} : { specialty }) }
     : { mode, message, conversation_id: conversationId };
 }
 
@@ -224,6 +257,13 @@ function requestBody(message: string): ChatRequestBody {
 async function send(message: string, bubble?: HTMLElement): Promise<void> {
   if (controller !== null) return;
   if (emptyState !== null) emptyState.hidden = true;
+  // Un mensaje nuevo deja atrás los fallidos: reintentarlos ahora los mandaría
+  // después de este, y el historial quedaría desordenado.
+  if (bubble === undefined) {
+    list.querySelectorAll<HTMLButtonElement>('[data-retry]').forEach((button) => {
+      button.hidden = true;
+    });
+  }
 
   const target =
     bubble ??
@@ -275,9 +315,9 @@ async function send(message: string, bubble?: HTMLElement): Promise<void> {
     const isStream = response.headers.get('content-type')?.startsWith('text/event-stream') === true;
     if (!response.ok || !isStream || response.body === null) {
       const error = await readError(response);
-      const ended = error.code !== null && END_CODES.has(error.code);
-      showError(target, error.message, ended ? null : retry);
-      if (ended) endConversation();
+      const recovery = recoveryFor(error.code, retry);
+      showError(target, error.message, recovery);
+      if (recovery.ends) endConversation();
       return;
     }
 
@@ -311,21 +351,23 @@ async function send(message: string, bubble?: HTMLElement): Promise<void> {
       } else {
         flush();
         finished = true;
-        const ended = END_CODES.has(event.data.code);
-        showError(target, event.data.message, ended ? null : retry);
-        if (ended) endConversation();
+        const recovery = recoveryFor(event.data.code, retry);
+        showError(target, event.data.message, recovery);
+        if (recovery.ends) endConversation();
       }
     }
     if (!finished) {
       flush();
-      showError(target, CUT_ERROR, retry);
+      showError(target, CUT_ERROR, { retry, action: null });
     }
-  } catch {
+  } catch (error: unknown) {
     flush();
     if (current.signal.aborted) {
-      showError(target, 'Has detenido la respuesta.', retry);
+      showError(target, 'Has detenido la respuesta.', { retry, action: null });
     } else {
-      showError(target, NETWORK_ERROR, retry);
+      // A la persona le basta «sin conexión»; el error de verdad, a la consola.
+      console.error('[chat]', error);
+      showError(target, NETWORK_ERROR, { retry, action: null });
     }
   } finally {
     controller = null;
@@ -389,3 +431,11 @@ root.querySelectorAll<HTMLButtonElement>('[data-suggestion]').forEach((button) =
 // En una conversación guardada, abrir la página lleva al último mensaje.
 if (list.children.length > 0) window.scrollTo({ top: document.documentElement.scrollHeight });
 updateTurnsLeft();
+
+// Llega desde la portada con su primer mensaje: se envía ya. Fuera de la URL,
+// para que recargar no lo vuelva a mandar.
+const initialMessage = root.dataset.initialMessage ?? '';
+if (initialMessage.length > 0) {
+  window.history.replaceState(null, '', `/chat?mode=${mode}${specialty === 'autumn' ? '&especialidad=otono' : ''}`);
+  void send(initialMessage);
+}

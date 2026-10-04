@@ -1,98 +1,351 @@
 ---
 /**
- * Portada: qué es Umber y el selector de modos. El fondo es el backdrop de un
- * título muy otoñal del corpus, distinto en cada visita.
+ * Portada: la acción primero. Se escribe cómo te sientes, se elige película o
+ * serie, y el chat empieza con ese mensaje (`/chat?mode=…&q=…`, un formulario
+ * GET que funciona sin JavaScript). Debajo, cómo funciona, una frase de Umber,
+ * «Si te gustó…» y el apartado de la especialidad de otoño.
+ *
+ * Umber es general (Fase 8): el ejemplo es una película muy conocida y sus
+ * parecidos, y el otoño tiene su propio apartado.
  */
-import ModeCard from '@/components/ModeCard.astro';
+import LeafMark from '@/components/LeafMark.astro';
 import Layout from '@/layouts/Layout.astro';
-import { errorMessage } from '@/lib/errors';
-import { getSupabaseClient, unwrap } from '@/lib/supabase';
-import { backdropUrl } from '@/lib/tmdb';
-import { CHAT_MODES, CHAT_MODE_DEFINITIONS } from '@/lib/types';
+import { EXPLORE_PATH } from '@/lib/explore';
+import { pickAutumn, pickKnown, pickRelated, pickStill, type ShowcaseTitle } from '@/lib/showcase';
+import { backdropUrl, posterUrl } from '@/lib/tmdb';
+import { CHAT_MODES, CHAT_MODE_DEFINITIONS, MAX_MESSAGE_CHARS } from '@/lib/types';
 
-/** Solo los más otoñales: el fondo es lo primero que se ve. */
-const HERO_MIN_AUTUMN_SCORE = 0.85;
-const HERO_POOL = 80;
+const INDEX_SIZE = 6;
+/** Con menos parecidos conocidos, el índice no dice «Si te gustó…»: son seis conocidas. */
+const MIN_RELATED = 4;
 
-interface Hero {
-  readonly title: string;
-  readonly year: number | null;
-  readonly path: string;
-}
+const still = await pickStill();
+const [related, autumn] = await Promise.all([
+  still === null ? Promise.resolve([]) : pickRelated(still.id, INDEX_SIZE),
+  pickAutumn(3),
+]);
+const indexIsRelated = still !== null && related.length >= MIN_RELATED;
+const index = indexIsRelated ? related : await pickKnown(INDEX_SIZE, still?.id ?? null);
 
-let hero: Hero | null = null;
-try {
-  const rows = unwrap(
-    await getSupabaseClient()
-      .from('content')
-      .select('title, year, backdrop_path')
-      .gte('autumn_score', HERO_MIN_AUTUMN_SCORE)
-      .not('backdrop_path', 'is', null)
-      .limit(HERO_POOL),
-  );
-  const pick = rows[Math.floor(Math.random() * rows.length)];
-  if (pick?.backdrop_path != null) {
-    hero = { title: pick.title, year: pick.year, path: pick.backdrop_path };
-  }
-} catch (error: unknown) {
-  // La portada funciona sin fondo: no merece un error.
-  console.warn('[portada] Sin imagen de fondo:', errorMessage(error));
-}
+const SUGGESTIONS = [
+  'Algo lento y con mucha atmósfera',
+  'Una comedia para reírme sin pensar',
+  'Un thriller que no me deje respirar',
+] as const;
+
+const STEPS = [
+  { title: 'Cuéntale cómo estás', text: 'Con tus palabras: tu ánimo, con quién la vas a ver, algo que te encantó.' },
+  { title: 'Te pregunta lo justo', text: 'Unas preguntas cortas para afinar. Si tienes prisa, dile que te recomiende ya.' },
+  { title: 'Te recomienda una', text: 'Te explica por qué esa y no otra, y en qué plataforma está.' },
+] as const;
+const NUMERALS = ['i', 'ii', 'iii'] as const;
+
+const upcoming = CHAT_MODES.filter((mode) => !CHAT_MODE_DEFINITIONS[mode].available).map(
+  (mode) => CHAT_MODE_DEFINITIONS[mode],
+);
+const signedIn = Astro.locals.user !== null;
+const credit = (item: ShowcaseTitle): string =>
+  [item.director, item.year].filter((part) => part !== null).join(', ');
+const stillCaption = still === null ? null : [still.title, still.year].filter((part) => part !== null).join(', ');
+
+/** Las tres de otoño, montadas en escalera. */
+const AUTUMN_POSITIONS = [
+  'left-0 top-10 w-[38%]',
+  'left-[30%] top-0 z-10 w-[40%]',
+  'right-0 top-16 w-[36%]',
+] as const;
 ---
 
 <Layout>
-  <main>
-    <section class="relative isolate overflow-hidden">
-      {
-        hero !== null && (
-          <img
-            src={backdropUrl(hero.path, 'w1280')}
-            srcset={`${backdropUrl(hero.path, 'w780')} 780w, ${backdropUrl(hero.path, 'w1280')} 1280w, ${backdropUrl(hero.path)} 3840w`}
-            sizes="100vw"
-            alt=""
-            fetchpriority="high"
-            class="absolute inset-0 -z-10 h-full w-full object-cover opacity-45"
-          />
-        )
-      }
-      <div
-        class="from-umber-base via-umber-base/75 to-umber-base/20 absolute inset-0 -z-10 bg-gradient-to-t"
-        aria-hidden="true"
-      >
-      </div>
-
-      <div class="mx-auto max-w-5xl space-y-6 px-5 pt-20 pb-16 sm:pt-32 sm:pb-24">
-        <p class="text-umber-amber text-xs font-medium tracking-[0.25em] uppercase">Cine para este otoño</p>
-        <h1 class="font-display max-w-3xl text-5xl leading-[1.05] font-semibold sm:text-7xl">
-          Cuéntale a Umber cómo te sientes.
-        </h1>
-        <p class="text-umber-cream/85 max-w-xl text-lg leading-relaxed">
-          Te devuelve una película o una serie que encaje con ese ánimo, te explica por qué y te dice
-          dónde verla.
+  <main class="flex-1">
+    <section
+      class="mx-auto grid max-w-[80rem] gap-y-16 px-5 pt-10 pb-24 sm:px-8 lg:grid-cols-12 lg:gap-x-10 lg:pt-14 lg:pb-32"
+    >
+      <div class="lg:col-span-7 lg:pt-12">
+        <p class="eyebrow eyebrow-rule rise">Tu cinéfilo de confianza</p>
+        <h1 class="display-1 rise mt-7 [animation-delay:90ms]">¿Qué te apetece ver <em>hoy</em>?</h1>
+        <p class="lead rise mt-7 max-w-[33rem] [animation-delay:180ms]">
+          Cuéntale a Umber cómo estás y qué te gusta. Te hará unas preguntas y te recomendará una película o una
+          serie, con el porqué y dónde verla.
         </p>
+
+        <form
+          id="portada"
+          action="/chat"
+          method="get"
+          data-home-composer
+          class="composer rise mt-10 max-w-[38rem] [animation-delay:270ms]"
+        >
+          <fieldset class="tabs px-5 pt-4 sm:px-6">
+            <legend class="sr-only">¿Película o serie?</legend>
+            <span aria-hidden="true" class="text-umber-ash pb-1.5 text-sm">Busco</span>
+            <label>
+              <input type="radio" name="mode" value="movie" checked class="sr-only" />
+              <span class="tab">una película</span>
+            </label>
+            <label>
+              <input type="radio" name="mode" value="tv" class="sr-only" />
+              <span class="tab">una serie</span>
+            </label>
+          </fieldset>
+          <label for="mensaje-portada" class="sr-only">Cuéntale a Umber cómo te sientes</label>
+          <textarea
+            id="mensaje-portada"
+            name="q"
+            rows="3"
+            maxlength={MAX_MESSAGE_CHARS}
+            required
+            placeholder="Hoy no tengo el día y me apetece algo que abrace…"
+            class="placeholder:text-umber-ash/70 block w-full resize-none bg-transparent px-5 pt-3 pb-4 font-serif text-[1.2rem] leading-relaxed focus:outline-none sm:px-6"
+          ></textarea>
+          <div class="border-umber-line flex items-center justify-between gap-4 border-t px-5 py-3.5 sm:px-6">
+            <p class="text-umber-ash hidden text-xs sm:block">
+              {signedIn ? 'Tus conversaciones se guardan en tu cuenta.' : 'Sin cuenta: una conversación de prueba al día.'}
+            </p>
+            <button type="submit" class="btn-primary ml-auto">
+              Pedir recomendación <span class="arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="rise mt-7 max-w-[38rem] [animation-delay:360ms]">
+          <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
+          <ul class="mt-4 flex flex-wrap gap-2" aria-labelledby="sugerencias">
+            {
+              SUGGESTIONS.map((suggestion) => (
+                <li>
+                  {/* Fuera del cuadro pero de su formulario (`form`). `formnovalidate`: el cuadro puede ir vacío. */}
+                  <button form="portada" type="submit" name="q" value={suggestion} formnovalidate class="chip">
+                    {suggestion}
+                  </button>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
       </div>
 
       {
-        hero !== null && (
-          <p class="text-umber-ash absolute right-5 bottom-3 text-xs">
-            En la imagen: {hero.title}
-            {hero.year !== null && ` (${String(hero.year)})`}
-          </p>
+        still !== null && still.backdrop_path !== null && (
+          <figure class="relative lg:col-span-5">
+            <a href={`${EXPLORE_PATH}/${still.id}`} class="group relative block" tabindex="-1" aria-hidden="true">
+              <div class="relative aspect-[4/3] overflow-hidden rounded-[3px] lg:aspect-[4/5]">
+                <img
+                  src={backdropUrl(still.backdrop_path, 'w1280')}
+                  srcset={`${backdropUrl(still.backdrop_path, 'w780')} 780w, ${backdropUrl(still.backdrop_path, 'w1280')} 1280w`}
+                  sizes="(min-width: 1024px) 40vw, 100vw"
+                  alt=""
+                  fetchpriority="high"
+                  class="graded develop h-full w-full object-cover transition-transform duration-[1.8s] ease-(--ease-soft) group-hover:scale-[1.03] motion-reduce:transition-none"
+                />
+                <div class="from-umber-base/60 absolute inset-0 bg-gradient-to-t via-transparent to-transparent" />
+              </div>
+              {/* Su cartel, montado sobre la esquina del fotograma. */}
+              <img
+                src={posterUrl(still.poster_path, 'w185')}
+                srcset={`${posterUrl(still.poster_path, 'w185')} 185w, ${posterUrl(still.poster_path, 'w342')} 342w`}
+                sizes="7.5rem"
+                alt=""
+                width="185"
+                height="278"
+                class="graded rise ring-umber-base absolute -bottom-14 -left-10 hidden aspect-[2/3] w-30 rounded-[3px] object-cover shadow-[0_30px_60px_-20px_rgb(0_0_0/0.95)] ring-[6px] [animation-delay:1100ms] lg:block"
+              />
+            </a>
+            <figcaption class="mt-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 lg:pl-26">
+              <span class="eyebrow">Fotograma</span>
+              <a href={`${EXPLORE_PATH}/${still.id}`} class="link-quiet font-display text-lg italic">
+                {stillCaption}
+              </a>
+            </figcaption>
+          </figure>
         )
       }
     </section>
 
-    <section aria-labelledby="modos" class="mx-auto max-w-5xl space-y-5 px-5 py-12">
-      <h2 id="modos" class="text-2xl">¿Qué te apetece?</h2>
-      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {
-          CHAT_MODES.map((mode) => (
-            <li>
-              <ModeCard definition={CHAT_MODE_DEFINITIONS[mode]} />
-            </li>
-          ))
-        }
-      </ul>
+    <section aria-labelledby="como-funciona" class="border-umber-line border-t">
+      <div class="mx-auto grid max-w-[80rem] gap-14 px-5 py-24 sm:px-8 lg:grid-cols-12 lg:gap-x-10 lg:py-32">
+        <div class="reveal lg:col-span-5">
+          <p class="eyebrow eyebrow-rule">Cómo funciona</p>
+          <h2 id="como-funciona" class="display-2 mt-7">Como hablar con alguien que ha visto <em>mucho</em> cine.</h2>
+        </div>
+        <ol class="lg:col-span-6 lg:col-start-7 lg:pt-20">
+          {
+            STEPS.map((step, position) => (
+              <li class="reveal border-umber-line grid grid-cols-[3.25rem_1fr] border-t py-7 last:border-b">
+                <span class="font-display text-umber-amber pt-0.5 text-[1.6rem] leading-none italic" aria-hidden="true">
+                  {NUMERALS[position]}.
+                </span>
+                <div>
+                  <h3 class="font-sans text-[1.05rem] font-medium tracking-normal">{step.title}</h3>
+                  <p class="text-umber-ash mt-1.5 leading-relaxed">{step.text}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
     </section>
+
+    <section aria-label="Cómo habla Umber" class="mx-auto w-full max-w-[80rem] px-5 pb-24 sm:px-8 lg:pb-32">
+      <figure class="reveal max-w-4xl lg:ml-[16.666%]">
+        <LeafMark class="text-umber-amber size-6" />
+        <blockquote class="font-display mt-8 text-[clamp(1.85rem,3.8vw,3.1rem)] leading-[1.14] tracking-[-0.025em]">
+          <p>«¿Te apetece algo que te acompañe en el bajón, <em>o algo que te saque de él</em>?»</p>
+        </blockquote>
+        <figcaption class="text-umber-ash mt-8 flex items-center gap-3 text-sm">
+          <span class="bg-umber-rule h-px w-7" aria-hidden="true"></span>
+          Umber, a las once y media de un martes cualquiera
+        </figcaption>
+      </figure>
+    </section>
+
+    {
+      index.length > 0 && (
+        <section aria-labelledby="del-catalogo" class="border-umber-line border-t">
+          <div class="mx-auto max-w-[80rem] px-5 py-24 sm:px-8 lg:py-32">
+            <div class="reveal flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
+              <div>
+                <p class="eyebrow eyebrow-rule">Del catálogo</p>
+                <h2 id="del-catalogo" class="display-2 mt-7 max-w-3xl">
+                  {indexIsRelated && still !== null ? (
+                    <>
+                      Si te gustó <em>{still.title}</em>
+                    </>
+                  ) : (
+                    <>
+                      Seis para <em>empezar</em>
+                    </>
+                  )}
+                </h2>
+              </div>
+              {indexIsRelated && still !== null ? (
+                <a href={`${EXPLORE_PATH}/${still.id}#mas-como-esta`} class="link-quiet text-sm">
+                  Más como esta <span class="arrow" aria-hidden="true">→</span>
+                </a>
+              ) : (
+                <a href={EXPLORE_PATH} class="link-quiet text-sm">
+                  Ver el catálogo entero <span class="arrow" aria-hidden="true">→</span>
+                </a>
+              )}
+            </div>
+
+            <div data-index class="mt-14 grid gap-12 lg:grid-cols-12 lg:gap-x-10">
+              <ol class="border-umber-line border-t lg:col-span-7">
+                {index.map((item, position) => (
+                  <li class="reveal">
+                    <a
+                      href={`${EXPLORE_PATH}/${item.id}`}
+                      data-index-item={position}
+                      class="group border-umber-line grid grid-cols-[3rem_1fr] items-center gap-x-5 border-b py-5 sm:grid-cols-[3rem_1fr_auto] lg:grid-cols-[3rem_1fr_auto] lg:py-6"
+                    >
+                      <img
+                        src={posterUrl(item.poster_path, 'w92')}
+                        srcset={`${posterUrl(item.poster_path, 'w92')} 92w, ${posterUrl(item.poster_path, 'w185')} 185w`}
+                        sizes="3rem"
+                        alt=""
+                        width="92"
+                        height="138"
+                        loading="lazy"
+                        class="aspect-[2/3] w-12 rounded-[2px] object-cover lg:hidden"
+                      />
+                      <span class="text-umber-ash hidden text-xs tabular-nums lg:block" aria-hidden="true">
+                        {String(position + 1).padStart(2, '0')}
+                      </span>
+                      <span class="min-w-0">
+                        <span class="font-display group-hover:text-umber-amber block text-[clamp(1.45rem,2.5vw,2.15rem)] leading-[1.1] tracking-[-0.02em] transition-[color,transform] duration-500 ease-(--ease-soft) group-hover:translate-x-1.5 motion-reduce:group-hover:translate-x-0">
+                          {item.title}
+                        </span>
+                        <span class="text-umber-ash mt-1 block text-sm sm:hidden">{credit(item)}</span>
+                      </span>
+                      <span class="text-umber-ash hidden text-right text-sm sm:block">{credit(item)}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+
+              <div class="hidden lg:col-span-4 lg:col-start-9 lg:block" aria-hidden="true">
+                <div class="sticky top-10">
+                  <div class="bg-umber-surface relative aspect-[2/3] overflow-hidden rounded-[3px] shadow-[0_40px_80px_-40px_rgb(0_0_0/0.95)]">
+                    {index.map((item, position) => (
+                      <img
+                        src={posterUrl(item.poster_path, 'w342')}
+                        srcset={`${posterUrl(item.poster_path, 'w342')} 342w, ${posterUrl(item.poster_path, 'w500')} 500w`}
+                        sizes="30vw"
+                        alt=""
+                        width="342"
+                        height="513"
+                        loading="lazy"
+                        data-index-poster={position}
+                        data-active={position === 0 ? '' : undefined}
+                        class="absolute inset-0 h-full w-full scale-[1.02] object-cover opacity-0 transition-[opacity,transform] duration-700 ease-(--ease-soft) data-[active]:scale-100 data-[active]:opacity-100"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    <section aria-labelledby="otono" class="border-umber-line border-t">
+      <div class="mx-auto grid max-w-[80rem] gap-16 px-5 py-24 sm:px-8 lg:grid-cols-12 lg:items-center lg:gap-x-10 lg:py-32">
+        <div class="reveal lg:col-span-6">
+          <p class="eyebrow eyebrow-rule">
+            Especialidad
+            <span class="border-umber-amber/60 text-umber-amber ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+              Nuevo
+            </span>
+          </p>
+          <h2 id="otono" class="display-2 mt-7">El Umber de <em>otoño</em></h2>
+          <p class="lead mt-6 max-w-md">
+            Un Umber que solo recomienda cine y series de otoño: luz baja, lluvia, vuelta a las clases, cosechas. Y
+            Halloween, cuando la película va de eso.
+          </p>
+          <div class="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
+            <a href="/chat?mode=movie&especialidad=otono" class="btn-primary">
+              Una película de otoño <span class="arrow" aria-hidden="true">→</span>
+            </a>
+            <a href="/chat?mode=tv&especialidad=otono" class="link-quiet text-sm">Una serie de otoño</a>
+            <a href={`${EXPLORE_PATH}?sort=autumn`} class="link-quiet text-sm">Lo más otoñal del catálogo</a>
+          </div>
+        </div>
+
+        {
+          autumn.length === 3 && (
+            <div class="reveal relative h-[300px] sm:h-[380px] lg:col-span-5 lg:col-start-8 lg:h-[460px]" aria-hidden="true">
+              {autumn.map((item, position) => (
+                <img
+                  src={posterUrl(item.poster_path, 'w342')}
+                  srcset={`${posterUrl(item.poster_path, 'w185')} 185w, ${posterUrl(item.poster_path, 'w342')} 342w`}
+                  sizes="(min-width: 1024px) 14rem, 38vw"
+                  alt=""
+                  width="342"
+                  height="513"
+                  loading="lazy"
+                  class={`graded ring-umber-base absolute aspect-[2/3] rounded-[3px] object-cover shadow-[0_30px_60px_-24px_rgb(0_0_0/0.95)] ring-[5px] ${AUTUMN_POSITIONS[position]}`}
+                />
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </section>
+
+    {
+      upcoming.length > 0 && (
+        <p class="text-umber-ash mx-auto w-full max-w-[80rem] px-5 pb-6 text-sm leading-relaxed sm:px-8">
+          <span class="text-umber-cream">En preparación.</span>{' '}
+          {upcoming
+            .map((mode) => `${mode.label}: ${mode.description.charAt(0).toLowerCase()}${mode.description.slice(1)}`)
+            .join(' · ')}
+        </p>
+      )
+    }
   </main>
 </Layout>
+
+<script>
+  import '@/scripts/home';
+</script>

@@ -1,27 +1,38 @@
 @import 'tailwindcss';
 
-/* ─── Tema otoñal ────────────────────────────────────────────────────────────
-   Paleta y tipografías de CLAUDE.md, expuestas como tokens de Tailwind.
-   Prefijo `umber-` para no chocar con las escalas por defecto de Tailwind
-   (`amber-500` y compañía siguen disponibles).
+/* ─── Noche de otoño ─────────────────────────────────────────────────────────
+   Paleta y tipografías de CLAUDE.md («Estética»), como tokens de Tailwind.
+   Prefijo `umber-` para no chocar con las escalas por defecto de Tailwind.
+   Un solo acento, el ámbar, y medido: la acción principal, lo elegido y los
+   títulos que recomienda Umber. Todo lo demás es crema, ceniza y espacio.
+   Contraste contra la base: crema 15:1, ceniza 7:1, ámbar 6,8:1 (AA); el
+   borde de los controles, 3,4:1 (WCAG 1.4.11 pide 3:1).
    -------------------------------------------------------------------------- */
 @theme {
-  /* Negro cálido, base de todo */
-  --color-umber-base: #0d0b08;
-  /* Capas de contenido sobre la base */
-  --color-umber-surface: #1a1510;
-  /* Acento principal — ámbar */
-  --color-umber-amber: #c8872a;
-  /* Acento secundario — siena */
-  --color-umber-sienna: #7a4e2d;
-  /* Texto principal — crema cálida */
-  --color-umber-cream: #e8ddd0;
-  /* Texto secundario — gris cálido */
-  --color-umber-ash: #8a7b6e;
+  /* Fondo: noche cálida, no negro puro */
+  --color-umber-base: #14110d;
+  /* Superficies: fichas, el cuadro de texto */
+  --color-umber-surface: #1c1813;
+  /* Un nivel más: las burbujas propias */
+  --color-umber-raised: #262019;
+  /* Filetes: separan sin pesar. Decorativos, sin requisito de contraste */
+  --color-umber-line: #2e261f;
+  /* Borde de lo que se puede tocar: campos, botones secundarios */
+  --color-umber-rule: #7b6c5e;
+  /* Texto principal — crema */
+  --color-umber-cream: #efe6d8;
+  /* Texto secundario — ceniza cálida */
+  --color-umber-ash: #ab9b88;
+  /* El acento — ámbar */
+  --color-umber-amber: #d9893d;
+  --color-umber-amber-hover: #e39a52;
 
   /* Las variables `--font-*` las inyecta la API de fuentes de Astro */
-  --font-display: var(--font-playfair);
-  --font-sans: var(--font-inter);
+  --font-display: var(--font-newsreader-display);
+  --font-serif: var(--font-newsreader-text);
+  --font-sans: var(--font-schibsted);
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
@@ -42,16 +53,54 @@
   body {
     min-height: 100dvh;
     background-color: var(--color-umber-base);
+    /* Una lámpara encendida arriba, sin llegar a ser un degradado de color. */
+    background-image: radial-gradient(
+      ellipse 70% 42rem at 78% -12rem,
+      color-mix(in oklab, var(--color-umber-amber) 7%, transparent),
+      transparent 70%
+    );
+    background-repeat: no-repeat;
     color: var(--color-umber-cream);
     font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /*
+   * Grano de película encima de todo, muy bajo. Mezcla normal y no `overlay`:
+   * un modo de fusión en una capa fija obliga a recomponer la página entera al
+   * hacer scroll, y en el móvil se nota.
+   */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    background-image: url('/grain.svg');
+    background-size: 180px;
+    opacity: 0.04;
   }
 
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* La cursiva de los titulares es la de Newsreader, no una inclinación falsa. */
+  em {
+    font-synthesis: none;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   ::selection {
@@ -61,7 +110,234 @@
 
   :focus-visible {
     outline: 2px solid var(--color-umber-amber);
-    outline-offset: 2px;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+/* ─── Piezas comunes ─────────────────────────────────────────────────────────
+   Las que se repiten en varias pantallas. El resto va en clases de Tailwind
+   junto a su marcado. La regla de la tipografía: lo que se dice (Umber, quien
+   escribe, las sinopsis) va en serif; la interfaz, en sans.
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Titulares. El tamaño crece con la pantalla sin saltos. */
+  .display-1 {
+    @apply font-display text-[clamp(2.9rem,7.4vw,6.4rem)] leading-[0.94] tracking-[-0.035em];
+  }
+
+  .display-2 {
+    @apply font-display text-[clamp(2.15rem,4.4vw,3.6rem)] leading-[1.02] tracking-[-0.03em];
+  }
+
+  .display-3 {
+    @apply font-display text-[clamp(1.7rem,2.8vw,2.35rem)] leading-[1.08] tracking-[-0.025em];
+  }
+
+  /* Rótulo pequeño sobre un titular; con `eyebrow-rule`, precedido de un filete. */
+  .eyebrow {
+    @apply text-umber-ash font-sans text-[0.7rem] font-semibold tracking-[0.24em] uppercase;
+  }
+
+  .eyebrow-rule {
+    @apply inline-flex items-center gap-3 before:block before:h-px before:w-7 before:bg-current before:opacity-60;
+  }
+
+  .lead {
+    @apply text-umber-ash text-[1.0625rem] leading-relaxed sm:text-lg;
+  }
+
+  /* Texto de lectura: lo que dice Umber y las sinopsis. */
+  .reading {
+    @apply font-serif text-[1.075rem] leading-[1.72] sm:text-[1.135rem];
+  }
+
+  .btn-primary {
+    @apply bg-umber-amber text-umber-base hover:bg-umber-amber-hover inline-flex items-center justify-center gap-2.5 rounded-full px-5 py-3 text-sm font-semibold tracking-[0.01em] whitespace-nowrap transition-[background-color,transform] duration-300 ease-(--ease-soft) active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply border-umber-rule/70 text-umber-cream hover:border-umber-cream/80 hover:bg-umber-cream/[0.04] inline-flex items-center justify-center gap-2.5 rounded-full border px-5 py-3 text-sm font-medium whitespace-nowrap transition-[border-color,background-color,transform] duration-300 ease-(--ease-soft) active:scale-[0.98];
+  }
+
+  /* La flecha de un botón o enlace se adelanta un poco al pasar por encima. */
+  .arrow {
+    @apply inline-block transition-transform duration-300 ease-(--ease-soft) motion-reduce:transition-none;
+  }
+
+  :is(.btn-primary, .btn-secondary, .link, .link-quiet):hover .arrow {
+    transform: translateX(0.25rem);
+  }
+
+  .link {
+    @apply text-umber-amber decoration-umber-amber/40 hover:text-umber-amber-hover hover:decoration-umber-amber-hover font-medium underline decoration-1 underline-offset-[5px] transition-colors;
+  }
+
+  /* Un enlace que no pide atención: ceniza, y crema al pasar. */
+  .link-quiet {
+    @apply text-umber-ash hover:text-umber-cream transition-colors duration-300;
+  }
+
+  /*
+   * Campo con solo la línea de abajo, como en un formulario impreso. La línea es
+   * `umber-rule` (3,4:1): lo que identifica un control pide 3:1.
+   */
+  .field {
+    @apply border-umber-rule text-umber-cream placeholder:text-umber-ash/75 focus:border-umber-amber block w-full rounded-none border-0 border-b bg-transparent px-0 py-2.5 transition-[border-color,box-shadow] duration-300 focus:shadow-[0_1px_0_0_var(--color-umber-amber)] focus:outline-none aria-invalid:border-red-400;
+  }
+
+  /* El `<select>` sin su flecha nativa: la pone un SVG junto a él (`.select-wrap`). */
+  .select-wrap {
+    @apply relative;
+  }
+
+  .select-wrap select {
+    @apply cursor-pointer appearance-none pr-7;
+  }
+
+  .select-wrap svg {
+    @apply text-umber-ash pointer-events-none absolute right-0 bottom-3.5 size-3.5;
+  }
+
+  .field-label {
+    @apply text-umber-ash block text-[0.7rem] font-semibold tracking-[0.18em] uppercase;
+  }
+
+  .chip {
+    @apply border-umber-line text-umber-cream/90 hover:border-umber-rule hover:text-umber-cream hover:bg-umber-cream/[0.03] inline-flex items-center rounded-full border px-4 py-2 text-[0.9rem] transition-[border-color,background-color,color] duration-300;
+  }
+
+  /*
+   * Pestañas: Película / Serie, Todo / Películas / Series. La elegida es crema y
+   * lleva debajo una línea ámbar (6,8:1) que se dibuja al elegirla; el color
+   * solo no bastaría para distinguirla.
+   */
+  .tabs {
+    @apply flex flex-wrap items-center gap-x-6 gap-y-2;
+  }
+
+  .tab {
+    @apply text-umber-ash hover:text-umber-cream after:bg-umber-amber relative block cursor-pointer pb-1.5 text-sm font-medium transition-colors duration-300 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:transition-transform after:duration-500 after:ease-(--ease-soft) aria-[current=page]:text-umber-cream aria-[current=page]:after:scale-x-100;
+  }
+
+  /* La versión con radio: el `<input>` va oculto justo antes del texto. */
+  .tabs input:checked + .tab {
+    @apply text-umber-cream after:scale-x-100;
+  }
+
+  .tabs input:focus-visible + .tab {
+    outline: 2px solid var(--color-umber-amber);
+    outline-offset: 4px;
+  }
+
+  /* Con colores forzados (alto contraste) los colores se pierden: queda la línea. */
+  @media (forced-colors: active) {
+    .tabs input:checked + .tab,
+    .tab[aria-current='page'] {
+      text-decoration: underline;
+      text-underline-offset: 6px;
+    }
+  }
+
+  /* El cuadro donde se le escribe a Umber, en la portada y en el chat. */
+  .composer {
+    @apply border-umber-line bg-umber-surface/85 focus-within:border-umber-rule rounded-2xl border backdrop-blur-sm transition-[border-color,box-shadow] duration-500;
+    box-shadow: 0 30px 80px -40px rgb(0 0 0 / 0.9);
+  }
+
+  .composer:focus-within {
+    box-shadow:
+      0 30px 80px -40px rgb(0 0 0 / 0.9),
+      0 0 0 4px color-mix(in oklab, var(--color-umber-amber) 9%, transparent);
+  }
+
+  /* Fotograma con el color de la casa: un poco de sepia y menos saturación. */
+  .graded {
+    filter: sepia(0.22) saturate(0.82) contrast(1.04) brightness(0.9);
+  }
+
+  /* Lista de plataformas o datos separada por puntos medios. */
+  .dot-list {
+    @apply flex flex-wrap gap-x-2 gap-y-1 [&>li+li]:before:mr-2 [&>li+li]:before:text-umber-ash/60 [&>li+li]:before:content-['·'];
+  }
+}
+
+/* ─── Movimiento ─────────────────────────────────────────────────────────────
+   Pocas animaciones y lentas, que acompañen sin llamar la atención. Todas se
+   apagan con `prefers-reduced-motion`.
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Entrada al cargar: sube un poco y aparece. El retraso, con `[animation-delay:…]`. */
+  .rise {
+    animation: rise 1s var(--ease-soft) both;
+  }
+
+  /* El fotograma de la portada se revela como una foto. */
+  .develop {
+    animation: develop 2.2s var(--ease-soft) 0.15s both;
+  }
+
+  /* Al hacer scroll: aparece cuando entra en pantalla. Sin soporte, ya está ahí. */
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+
+  /* Un mensaje nuevo del chat. */
+  .message-in {
+    animation: rise 0.6s var(--ease-soft) both;
+  }
+
+  /* «Pensando…»: respira, no parpadea. */
+  .breathe {
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rise,
+    .develop,
+    .reveal,
+    .message-in,
+    .breathe {
+      animation: none;
+    }
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+}
+
+/*
+ * Misma lista de filtros que `.graded`, en el mismo orden, más el desenfoque:
+ * si no casan, el navegador no interpola y el cambio llega de golpe a mitad.
+ * Sin paso intermedio de opacidad: acaba en la del elemento (el fondo de la
+ * ficha va al 50 %).
+ */
+@keyframes develop {
+  from {
+    opacity: 0;
+    filter: sepia(1) saturate(0.82) contrast(1.04) brightness(0.5) blur(8px);
+    transform: scale(1.06);
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.45;
   }
 }
 
@@ -73,8 +349,8 @@
 @layer components {
   .reveal-card {
     animation:
-      card-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay, 0ms) both,
-      card-glow 1.8s ease-out var(--reveal-delay, 0ms);
+      card-rise 0.8s var(--ease-soft) var(--reveal-delay, 0ms) both,
+      card-glow 2s ease-out var(--reveal-delay, 0ms);
   }
 
   [data-develop='waiting'] {
@@ -82,7 +358,7 @@
   }
 
   [data-develop='on'] {
-    animation: poster-develop 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: poster-develop 1.6s var(--ease-soft) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -103,8 +379,8 @@
 @keyframes card-glow {
   from,
   25% {
-    border-color: color-mix(in oklab, var(--color-umber-amber) 55%, transparent);
-    box-shadow: 0 0 28px -6px color-mix(in oklab, var(--color-umber-amber) 35%, transparent);
+    border-color: color-mix(in oklab, var(--color-umber-amber) 50%, transparent);
+    box-shadow: 0 0 32px -8px color-mix(in oklab, var(--color-umber-amber) 30%, transparent);
   }
 }
 
@@ -116,5 +392,49 @@
   }
   35% {
     opacity: 1;
+  }
+}
+
+/* ─── Transiciones entre páginas ─────────────────────────────────────────────
+   Sin JavaScript: el navegador funde una página con la siguiente (Chrome,
+   Edge y Safari; Firefox navega como siempre). La cabecera no se mueve, y el
+   cartel que se pulsa en una rejilla viaja hasta la ficha
+   (`src/scripts/transitions.ts`).
+   -------------------------------------------------------------------------- */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: 180ms ease-out both page-out;
+}
+
+::view-transition-new(root) {
+  animation: 420ms var(--ease-soft) both page-in;
+}
+
+::view-transition-group(poster) {
+  animation-duration: 520ms;
+  animation-timing-function: var(--ease-soft);
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

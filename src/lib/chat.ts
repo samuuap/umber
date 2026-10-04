@@ -16,8 +16,14 @@ import {
 } from '@/lib/locale';
 import type { ToolDefinition } from '@/lib/deepseek';
 import { lookupPlatforms, type PlatformsCache } from '@/lib/platforms';
-import { SYSTEM_PROMPT, renderUserContext } from '@/lib/prompts';
-import { normalizeTitle, type RankedCandidate } from '@/lib/search';
+import { renderUserContext, systemPrompt } from '@/lib/prompts';
+import {
+  MOVIE_GENRES,
+  normalizeTitle,
+  parseSearchFilters,
+  type FilterKeys,
+  type RankedCandidate,
+} from '@/lib/search';
 import { posterUrl, TMDB_DEFAULT_REGION } from '@/lib/tmdb';
 import {
   MAX_QUESTIONS,
@@ -31,15 +37,19 @@ import {
   DEFAULT_LOCALE,
   MAX_CONVERSATION_MESSAGES,
   MAX_MESSAGE_CHARS,
+  NO_FILTERS,
   remainingTurns,
   isChatMode,
   isLocale,
+  isSpecialty,
   type ChatHistoryMessage,
   type ChatMessage,
   type ChatMode,
   type ContentCandidate,
   type Locale,
   type Recommendation,
+  type SearchFilters,
+  type Specialty,
 } from '@/lib/types';
 
 // ─── Límites ─────────────────────────────────────────────────────────────────
@@ -65,6 +75,8 @@ export interface ChatRequest {
   readonly conversationId: string | null;
   readonly locale: Locale;
   readonly region: string;
+  /** La de una conversación nueva; con `conversationId` manda la guardada. */
+  readonly specialty: Specialty | null;
 }
 
 function parseHistory(value: unknown): ChatHistoryMessage[] {
@@ -125,6 +137,11 @@ export function parseChatRequest(body: unknown, acceptLanguage: string | null): 
     throw new ValidationError('La región tiene que ser un código de dos letras, como «ES».');
   }
 
+  const specialty = body['specialty'];
+  if (specialty !== undefined && !isSpecialty(specialty)) {
+    throw new ValidationError('Especialidad desconocida.');
+  }
+
   return {
     mode,
     message: parseText(body['message'], MAX_MESSAGE_CHARS, 'el mensaje'),
@@ -132,6 +149,7 @@ export function parseChatRequest(body: unknown, acceptLanguage: string | null): 
     conversationId: conversationId ?? null,
     locale: locale ?? localeFromAcceptLanguage(acceptLanguage) ?? DEFAULT_LOCALE,
     region: region ?? regionFromAcceptLanguage(acceptLanguage) ?? TMDB_DEFAULT_REGION,
+    specialty: specialty ?? null,
   };
 }
 
@@ -177,6 +195,24 @@ function synopsisIn(candidate: ContentCandidate, language: Locale): string | nul
     : (candidate.synopsis ?? candidate.synopsis_en);
 }
 
+/**
+ * Títulos en negrita que no son de ningún candidato, cada uno una vez: o
+ * inventados, o nombrados sin haberlos buscado. Contar todas las menciones daba
+ * un aviso falso cada vez que Umber nombraba dos veces el mismo título.
+ */
+export function unknownTitleMentions(
+  text: string,
+  candidates: readonly ContentCandidate[],
+): TitleMention[] {
+  const seen = new Set<string>();
+  return extractTitleMentions(text).filter((mention) => {
+    const key = normalizeTitle(mention.title);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return !candidates.some((candidate) => mentionMatches(mention, candidate));
+  });
+}
+
 /** Lo que Umber ya ha recomendado en la conversación, sin repetir. */
 export function extractRecommended(history: readonly ChatMessage[]): TitleMention[] {
   const seen = new Set<string>();
@@ -215,11 +251,28 @@ export function buildSearchQuery(history: readonly ChatMessage[], message: strin
   return [...previous, message].join('\n');
 }
 
-/** La herramienta con la que Umber busca, cuando ya tiene claro el ánimo. */
+/** Los filtros de `buscar_titulos`, con los nombres que ve el modelo. */
+const TOOL_FILTER_KEYS: FilterKeys = {
+  genresAny: 'generos',
+  genresNone: 'generos_excluidos',
+  yearFrom: 'desde_anio',
+  yearTo: 'hasta_anio',
+  maxRuntime: 'duracion_maxima',
+  languages: 'idiomas',
+  person: 'persona',
+  popularity: 'popularidad',
+};
+
+/**
+ * La herramienta con la que Umber busca, cuando ya tiene claro qué quiere la
+ * persona. El resumen lleva el ánimo; los filtros, lo que ha pedido de forma
+ * explícita y se puede comprobar en la ficha (Fase 8). Son condiciones duras:
+ * si sobran, `searchCandidates` los va quitando y se lo dice.
+ */
 export const SEARCH_TOOL: ToolDefinition = {
   name: 'buscar_titulos',
   description:
-    'Busca en el catálogo títulos que encajen con el ánimo de la persona. Llámala cuando ya lo tengas claro, o cuando necesites títulos nuevos porque su ánimo ha cambiado o ya no te quedan candidatos. Para un título concreto que nombre la persona, usa buscar_por_titulo.',
+    'Busca en el catálogo títulos que encajen con lo que quiere la persona: su ánimo y lo que haya pedido. Llámala cuando ya lo tengas claro, o cuando necesites títulos nuevos porque ha cambiado de idea o ya no te quedan candidatos. Para un título concreto, o para algo parecido a un título sin más condiciones, usa buscar_por_titulo.',
   parameters: {
     type: 'object',
     properties: {
@@ -227,6 +280,42 @@ export const SEARCH_TOOL: ToolDefinition = {
         type: 'string',
         description:
           'El ánimo y lo que le apetece ver, en una o dos frases en inglés (el catálogo está en inglés): tono, ritmo, temas, con quién lo ve. Conserva los títulos, personas o lugares que mencione. Lo que no quiere, dilo en positivo: en vez de «nada de terror», «something calm and gentle».',
+      },
+      generos: {
+        type: 'array',
+        items: { type: 'string', enum: [...MOVIE_GENRES] },
+        description: 'Si pide un género concreto: una comedia, un western, terror, un documental; «comedia romántica» → ["Romance"]. Basta con que el título tenga uno de ellos.',
+      },
+      generos_excluidos: {
+        type: 'array',
+        items: { type: 'string', enum: [...MOVIE_GENRES] },
+        description: 'Géneros que no quiere ver: «nada de terror» → ["Terror"].',
+      },
+      desde_anio: {
+        type: 'integer',
+        description: 'Si pide una época: «de los 90» → 1990; «de los 80 o los 90» → 1980; «reciente» → 2020.',
+      },
+      hasta_anio: {
+        type: 'integer',
+        description: 'Si pide una época: «de los 90» → 1999; «de los 80 o los 90» → 1999; «un clásico» o «en blanco y negro» → 1965.',
+      },
+      duracion_maxima: {
+        type: 'integer',
+        description: 'En minutos, solo si pide algo corto: «menos de hora y media» → 90; «que no sea muy larga» → 120.',
+      },
+      idiomas: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Idioma original (ISO 639-1), solo si pide cine de un país o idioma: «coreano» → ["ko"], «español» → ["es"], «anime» → ["ja"], «francés» → ["fr"].',
+      },
+      persona: {
+        type: 'string',
+        description: 'Un director, directora, actor o actriz que pida, con su nombre completo: «Wes Anderson».',
+      },
+      popularidad: {
+        type: 'string',
+        enum: ['conocida', 'menos_conocida', 'cualquiera'],
+        description: '«conocida» si quiere algo que casi todo el mundo ha visto; «menos_conocida» si quiere una joya escondida o algo que no salga en todas las listas; si no lo ha dicho, «cualquiera».',
       },
     },
     required: ['resumen'],
@@ -241,7 +330,7 @@ export const SEARCH_TOOL: ToolDefinition = {
 export const TITLE_SEARCH_TOOL: ToolDefinition = {
   name: 'buscar_por_titulo',
   description:
-    'Comprueba si un título concreto está en el catálogo, en qué plataformas se puede ver, y trae otros parecidos. Llámala en cuanto la persona nombre un título: si lo pide, si pregunta si lo tienes, dónde verlo (o descargarlo) o si quiere algo parecido a él. Puedes usarla en cualquier momento de la conversación. Nunca la uses para buscar por ánimo.',
+    'Comprueba si un título concreto está en el catálogo, en qué plataformas se puede ver, y trae sus parecidos. Llámala en cuanto la persona nombre un título: si lo pide, si pregunta si lo tienes, dónde verlo (o descargarlo), si quiere algo parecido a él o si te cuenta que le encantó o que ya lo ha visto. Si quiere algo parecido pero con otra condición («como El padrino pero más corta»), usa buscar_titulos con sus filtros. Puedes usarla en cualquier momento de la conversación. Nunca la uses para buscar por ánimo.',
   parameters: {
     type: 'object',
     properties: {
@@ -250,10 +339,32 @@ export const TITLE_SEARCH_TOOL: ToolDefinition = {
         description:
           'El título tal como lo nombra la persona y, si lo conoces, también su título en inglés, separados por « / ». Por ejemplo: «Cadena perpetua / The Shawshank Redemption».',
       },
+      intencion: {
+        type: 'string',
+        enum: ['verlo', 'parecido'],
+        description:
+          '«verlo» si quiere ver ese título: lo pide, pregunta si lo tienes o dónde verlo. «parecido» si lo nombra como referencia: quiere algo parecido, o te cuenta que le encantó o que ya lo ha visto. Con «parecido» solo te llegan sus parecidos: ese ya lo conoce.',
+      },
     },
-    required: ['titulo'],
+    required: ['titulo', 'intencion'],
   },
 };
+
+/** Para qué nombra un título: verlo, o como referencia de lo que le gusta. */
+export type TitleIntent = 'watch' | 'similar';
+
+/**
+ * La intención con la que llamó a `buscar_por_titulo`. Sin ella, o ilegible,
+ * «verlo», que era lo que hacía antes de existir el parámetro.
+ */
+export function parseTitleIntent(args: string): TitleIntent {
+  try {
+    const parsed: unknown = JSON.parse(args);
+    return isRecord(parsed) && parsed['intencion'] === 'parecido' ? 'similar' : 'watch';
+  } catch {
+    return 'watch';
+  }
+}
 
 /** Títulos que se piden de una vez, como mucho: «Cadena perpetua / The Shawshank Redemption». */
 const MAX_TITLE_VARIANTS = 4;
@@ -266,8 +377,12 @@ export function parseTitleQuery(args: string, fallback: string): string[] {
   try {
     const parsed: unknown = JSON.parse(args);
     const raw = isRecord(parsed) && typeof parsed['titulo'] === 'string' ? parsed['titulo'] : '';
-    const titles = raw
-      .split('/')
+    // Las variantes van separadas por « / », como pide la herramienta. Una barra
+    // sin espacios puede ser del título (*Face/Off*): va entero y, por si eran
+    // dos títulos pegados, también cada parte.
+    const parts = raw.split(/\s+\/\s+/u);
+    const variants = parts.length === 1 && raw.includes('/') ? [raw, ...raw.split('/')] : parts;
+    const titles = variants
       .map((title) => title.trim())
       .filter((title) => title.length > 0 && title.length <= MAX_SUMMARY_CHARS)
       // «The Godfather / The Godfather»: cuando el título ya es el inglés, lo repite.
@@ -280,20 +395,31 @@ export function parseTitleQuery(args: string, fallback: string): string[] {
   return [fallback.slice(0, MAX_SUMMARY_CHARS)];
 }
 
+export interface SearchCall {
+  readonly summary: string;
+  readonly fromModel: boolean;
+  readonly filters: SearchFilters;
+}
+
 /**
- * El resumen que escribió el modelo al llamar a `buscar_titulos`. Si no se
- * puede leer, o viene vacío o desmesurado, se busca con los últimos mensajes de
- * la persona: una búsqueda peor es mejor que un error.
+ * El resumen y los filtros con los que el modelo llamó a `buscar_titulos`. Si
+ * el resumen no se puede leer, o viene vacío o desmesurado, se busca con los
+ * últimos mensajes de la persona: una búsqueda peor es mejor que un error. Un
+ * filtro que no se entiende se ignora.
  */
-export function parseSearchSummary(args: string, fallback: string): { summary: string; fromModel: boolean } {
+export function parseSearchCall(args: string, fallback: string): SearchCall {
+  let parsed: unknown = null;
   try {
-    const parsed: unknown = JSON.parse(args);
-    const summary = isRecord(parsed) && typeof parsed['resumen'] === 'string' ? parsed['resumen'].trim() : '';
-    if (summary.length > 0 && summary.length <= MAX_SUMMARY_CHARS) return { summary, fromModel: true };
+    parsed = JSON.parse(args);
   } catch {
-    // JSON roto: vale el respaldo.
+    // JSON roto: vale el respaldo, sin filtros.
   }
-  return { summary: fallback.slice(0, MAX_SUMMARY_CHARS), fromModel: false };
+  const record = isRecord(parsed) ? parsed : {};
+  const summary = typeof record['resumen'] === 'string' ? record['resumen'].trim() : '';
+  const filters = isRecord(parsed) ? parseSearchFilters(record, TOOL_FILTER_KEYS) : NO_FILTERS;
+  return summary.length > 0 && summary.length <= MAX_SUMMARY_CHARS
+    ? { summary, fromModel: true, filters }
+    : { summary: fallback.slice(0, MAX_SUMMARY_CHARS), fromModel: false, filters };
 }
 
 // ─── Idioma de la respuesta ──────────────────────────────────────────────────
@@ -321,6 +447,10 @@ export function replyLanguage(
 const LANGUAGE_NAMES: Readonly<Record<Locale, string>> = {
   es: 'español',
   en: 'inglés (English)',
+};
+
+const SPECIALTY_NAMES: Readonly<Record<Specialty, string>> = {
+  autumn: 'Otoño: solo recomiendas títulos de otoño',
 };
 
 // ─── Enriquecimiento con TMDB ────────────────────────────────────────────────
@@ -370,6 +500,22 @@ function withYear(title: string, year: number | null): string {
   return year === null ? title : `${title} (${String(year)})`;
 }
 
+const numberFormat = new Intl.NumberFormat('es-ES');
+
+function duration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return hours === 0 ? `${String(rest)} min` : `${String(hours)} h ${String(rest).padStart(2, '0')} min`;
+}
+
+/** Cuántos votos tiene en TMDB, en palabras: el modelo no sabe qué es mucho. */
+function fameLabel(votes: number): string {
+  if (votes >= 10_000) return 'muy conocida';
+  if (votes >= 2_000) return 'conocida';
+  if (votes >= 700) return 'algo conocida';
+  return 'poco conocida';
+}
+
 /**
  * Formato de cada candidato tal como lo documenta `user-context.md`. Título y
  * sinopsis van en el idioma de la respuesta: el modelo copia el título tal cual,
@@ -381,6 +527,7 @@ function formatCandidate(
   index: number,
   region: string,
   language: Locale,
+  specialty: Specialty | null,
 ): string {
   const head = [withYear(titleIn(candidate, language), candidate.year)];
   if (candidate.director !== null) head.push(`dir. ${candidate.director}`);
@@ -390,7 +537,18 @@ function formatCandidate(
   }
 
   const meta = [`similitud ${candidate.similarity.toFixed(2)}`];
-  if (candidate.autumn_score !== null) meta.push(`otoño ${candidate.autumn_score.toFixed(2)}`);
+  if (candidate.vote_count !== null) {
+    meta.push(`${fameLabel(candidate.vote_count)} (${numberFormat.format(candidate.vote_count)} votos)`);
+  }
+  if (candidate.vote_average !== null) meta.push(`nota ${candidate.vote_average.toFixed(1)}`);
+  if (candidate.runtime !== null && candidate.runtime > 0) meta.push(duration(candidate.runtime));
+  if (candidate.original_language !== null && candidate.original_language !== 'en') {
+    meta.push(`idioma original: ${candidate.original_language}`);
+  }
+  if (candidate.top_cast.length > 0) meta.push(`reparto: ${candidate.top_cast.slice(0, 4).join(', ')}`);
+  if (specialty === 'autumn' && candidate.autumn_score !== null) {
+    meta.push(`otoño ${candidate.autumn_score.toFixed(2)}`);
+  }
   if (candidate.platforms !== null) {
     meta.push(
       `plataformas: ${candidate.platforms.length > 0 ? candidate.platforms.join(', ') : `ninguna de suscripción en ${region}`}`,
@@ -427,6 +585,9 @@ export interface ChatContext {
   readonly recommended: readonly TitleMention[];
   /** Idioma en que responde Umber: ver `replyLanguage`. */
   readonly language: Locale;
+  readonly specialty: Specialty | null;
+  /** Ha pedido que le recomiende ya: ver `wantsToSkipQuestions`. */
+  readonly skipQuestions: boolean;
 }
 
 /**
@@ -434,24 +595,42 @@ export interface ChatContext {
  * este turno ya se lo impide `tool_choice`; esto es para que lo entienda y no
  * lo intente.
  */
-function describeState(state: ConversationState): string {
+function describeState(state: ConversationState, skipQuestions: boolean): string {
   const questions = `Llevas ${String(state.pendingQuestions)} de ${String(MAX_QUESTIONS)} preguntas seguidas.`;
-  const titleOnly = 'Si nombra un título concreto, compruébalo con buscar_por_titulo.';
+  // Va delante de «haz una pregunta»: detrás, el modelo preguntaba primero
+  // aunque le pidieran «algo como Interstellar» (3 de 3 veces, 2026-10-04).
+  const titleFirst =
+    'Si en lo que acaba de escribir nombra un título concreto (lo pide, o quiere algo parecido a él), compruébalo ya con buscar_por_titulo, sin preguntar antes.';
+  // Obligado a buscar solo tiene `buscar_titulos` (ver `turnToolsFor`).
+  const forced = 'Ya no puedes preguntar más: busca ahora con buscar_titulos';
+  const titleInSummary = 'Si nombra un título, ponlo en el resumen.';
   if (state.lastSearch === null) {
+    if (skipQuestions && state.pendingQuestions < MAX_QUESTIONS) {
+      return `Aún no has buscado. Te ha pedido que le recomiendes ya, sin más preguntas: no insistas. ${titleFirst} Si no, busca ahora con buscar_titulos con lo que sabes.`;
+    }
     if (state.pendingQuestions === 0) {
-      return `Aún no has buscado ni preguntado nada. En este turno no puedes buscar por ánimo: haz tu primera pregunta para entenderlo. ${titleOnly}`;
+      return `Aún no has buscado ni preguntado nada. ${titleFirst} Si no, haz tu primera pregunta para entender qué quiere: en este turno no puedes buscar por ánimo.`;
     }
     if (state.pendingQuestions < MIN_QUESTIONS) {
-      return `Aún no has buscado. ${questions} En este turno no puedes buscar por ánimo: haz otra pregunta sobre algo que aún no sepas de lo que le apetece. ${titleOnly}`;
+      return `Aún no has buscado. ${questions} ${titleFirst} Si no, haz otra pregunta sobre algo que aún no sepas: en este turno no puedes buscar por ánimo.`;
     }
     if (state.pendingQuestions >= MAX_QUESTIONS) {
-      return `Aún no has buscado. ${questions} Ya no puedes preguntar más: busca ahora con buscar_titulos, con lo que sabes.`;
+      return `Aún no has buscado. ${questions} ${forced}, con lo que sabes. ${titleInSummary}`;
     }
     return `Aún no has buscado. ${questions} Si ya tienes claro su ánimo, busca con buscar_titulos; si no, haz otra pregunta.`;
   }
-  const last = `Tu última búsqueda fue: «${state.lastSearch.summary}».`;
+  /*
+   * En una sola línea y sin comillas propias: sin sesión, el resumen llega del
+   * navegador con el historial, y un salto de línea con «## …» se haría pasar
+   * por una sección del prompt.
+   */
+  const summary = oneLine(state.lastSearch.summary, MAX_SUMMARY_CHARS).replace(/[«»]/gu, '"');
+  const last = `Tu última búsqueda fue: «${summary}».`;
   if (state.pendingQuestions >= MAX_QUESTIONS) {
-    return `${last} ${questions} Ya no puedes preguntar más: busca ahora con buscar_titulos, con su ánimo actualizado.`;
+    return `${last} ${questions} ${forced}, con su ánimo actualizado. ${titleInSummary}`;
+  }
+  if (state.lastSearch.candidates.length === 0) {
+    return `${last} No encontró nada que encajara: pregúntale por otro ángulo de su ánimo, o busca de nuevo con buscar_titulos con otras palabras.`;
   }
   if (state.remaining.length === 0) {
     return `${last} Ya has recomendado todos sus candidatos: si quiere otra, o si su ánimo ha cambiado, busca de nuevo con buscar_titulos.`;
@@ -478,64 +657,94 @@ function formatCandidates(
   candidates: readonly EnrichedCandidate[],
   region: string,
   language: Locale,
+  specialty: Specialty | null,
 ): string {
-  return candidates.map((candidate, index) => formatCandidate(candidate, index, region, language)).join('\n');
+  return candidates
+    .map((candidate, index) => formatCandidate(candidate, index, region, language, specialty))
+    .join('\n');
 }
 
 /**
  * Lo que devuelve `buscar_titulos` al modelo. Sustituye a los candidatos que le
- * quedaban: si ha buscado, es que esos ya no le valían.
+ * quedaban: si ha buscado, es que esos ya no le valían. Si hubo que quitar
+ * filtros (`relaxed`), se lo dice, para que no presente como «de los 90» algo
+ * que no lo es.
  */
 export function formatSearchResult(
   candidates: readonly EnrichedCandidate[],
   region: string,
   language: Locale,
+  relaxed: readonly string[],
+  specialty: Specialty | null,
 ): string {
   if (candidates.length === 0) {
-    return 'Ningún título del catálogo encaja con esa búsqueda. Díselo con naturalidad y pregúntale por otro ángulo de su ánimo. No nombres ninguna película.';
+    return 'Ningún título del catálogo encaja con esa búsqueda. Díselo con naturalidad y pregúntale por otro ángulo, u ofrécele quitar alguna condición. No nombres ninguna película.';
   }
+  const order =
+    specialty === 'autumn'
+      ? 'Vienen ordenados por parecido, por lo conocidos y por lo otoñales'
+      : 'Vienen ordenados por parecido y por lo conocidos';
   return [
     'Candidatos del catálogo para esa búsqueda. Son los únicos que puedes recomendar ahora; los que te quedaban de antes ya no valen.',
-    'Vienen ordenados por parecido y por cuán otoñales son, pero el orden no es una recomendación: elige el que de verdad encaje.',
+    `${order}, pero el orden no es una recomendación: elige el que de verdad encaje con lo que ha pedido.`,
+    ...(relaxed.length > 0
+      ? [
+          `Con todo lo que pidió no había casi nada, así que se han quitado estas condiciones: ${relaxed.join(', ')}. Si el que recomiendas no cumple alguna, díselo con naturalidad.`,
+        ]
+      : []),
     '',
-    formatCandidates(candidates, region, language),
+    formatCandidates(candidates, region, language, specialty),
     '',
     `Recomienda uno solo, en ${LANGUAGE_NAMES[language]}, con el título tal como viene arriba.`,
   ].join('\n');
 }
 
 /**
- * Lo que devuelve `buscar_por_titulo` al modelo: si está lo que ha pedido, y
- * los parecidos para «otra» o para «algo como esta».
+ * Lo que devuelve `buscar_por_titulo` al modelo. Con intención «verlo», lo que
+ * pidió (recomendable) y sus parecidos. Con «parecido», lo que nombró va solo
+ * como referencia, fuera de los candidatos: ya lo conoce, y si fuera candidato
+ * acababa recomendándoselo (4 de 30 conversaciones simuladas, 2026-10-04).
  */
 export function formatTitleResult(
   exact: readonly EnrichedCandidate[],
   similar: readonly EnrichedCandidate[],
   region: string,
   language: Locale,
+  specialty: Specialty | null,
+  intent: TitleIntent,
 ): string {
   if (exact.length === 0) {
     return 'Ese título no está en el catálogo. Díselo con naturalidad, sin nombrar ningún otro título, y sigue la conversación: si aún no sabes qué le apetece, pregúntale.';
   }
+  if (intent === 'similar') {
+    const reference = exact.map((candidate) => withYear(titleIn(candidate, language), candidate.year)).join(', ');
+    if (similar.length === 0) {
+      return `Ya conoce ${reference}, pero no hay parecidos en el catálogo. Pregúntale por otro ángulo de lo que le gusta. No nombres ninguna otra película.`;
+    }
+    return [
+      `Ya conoce ${reference}: no se lo recomiendes. Te dice algo de sus gustos. Sus parecidos, los únicos que puedes recomendar ahora:`,
+      '',
+      formatCandidates(similar, region, language, specialty),
+      '',
+      `Si ya sabes lo bastante de lo que quiere, recomienda uno solo, en ${LANGUAGE_NAMES[language]}, con el título tal como viene arriba; si te falta algo para elegir bien, pregúntaselo.`,
+    ].join('\n');
+  }
   const lines = [
     'Está en el catálogo. Lo que ha pedido:',
     '',
-    formatCandidates(exact, region, language),
+    formatCandidates(exact, region, language, specialty),
   ];
   if (similar.length > 0) {
     lines.push(
       '',
-      'Otros parecidos, por si quiere algo como esa o pide otra. Junto con lo de arriba, son los únicos que puedes recomendar ahora:',
+      'Otros parecidos, por si pide otra. Junto con lo de arriba, son los únicos que puedes recomendar ahora:',
       '',
       similar
-        .map((candidate, index) => formatCandidate(candidate, exact.length + index, region, language))
+        .map((candidate, index) => formatCandidate(candidate, exact.length + index, region, language, specialty))
         .join('\n'),
     );
   }
-  lines.push(
-    '',
-    `Si lo ha pedido, recomiéndaselo; si quería algo parecido, elige uno de los parecidos. Uno solo, en ${LANGUAGE_NAMES[language]}, con el título tal como viene arriba.`,
-  );
+  lines.push('', `Recomiéndaselo, en ${LANGUAGE_NAMES[language]}, con el título tal como viene arriba.`);
   return lines.join('\n');
 }
 
@@ -552,17 +761,18 @@ function historyWindow(history: readonly ChatMessage[]): ChatMessage[] {
 
 /** system.md + historial reciente + la plantilla rellena como último mensaje. */
 export function buildChatMessages(context: ChatContext): ChatMessage[] {
-  const { request, state, candidates, recommended, language } = context;
+  const { request, state, candidates, recommended, language, specialty } = context;
   const definition = CHAT_MODE_DEFINITIONS[request.mode];
 
   const userContext = renderUserContext({
     mode: request.mode,
     mode_label: request.locale === 'en' ? definition.labelEn : definition.label,
     reply_language: LANGUAGE_NAMES[language],
+    specialty: specialty === null ? 'ninguna: recomiendas de todo' : SPECIALTY_NAMES[specialty],
     region: request.region,
     today: new Date().toISOString().slice(0, 10),
     user_message: quote(request.message),
-    conversation_state: [describeState(state), describeEnding(context.history.length)]
+    conversation_state: [describeState(state, context.skipQuestions), describeEnding(context.history.length)]
       .filter((part) => part !== null)
       .join(' '),
     candidates:
@@ -570,7 +780,7 @@ export function buildChatMessages(context: ChatContext): ChatMessage[] {
         ? '(aún no has buscado)'
         : candidates.length === 0
           ? '(no te queda ninguno)'
-          : formatCandidates(candidates, request.region, language),
+          : formatCandidates(candidates, request.region, language, specialty),
     already_recommended:
       recommended.length === 0
         ? '(ninguno)'
@@ -578,7 +788,7 @@ export function buildChatMessages(context: ChatContext): ChatMessage[] {
   });
 
   return [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt(specialty) },
     ...historyWindow(context.history),
     { role: 'user', content: userContext },
   ];

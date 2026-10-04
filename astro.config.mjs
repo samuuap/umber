@@ -84,22 +84,40 @@ export default defineConfig({
 
   // Fuentes autoalojadas y optimizadas en build. Se exponen como variables CSS
   // que consume el tema de Tailwind en `src/styles/global.css`.
+  //
+  // Newsreader en dos cortes fijos de su eje óptico (`opsz`): el de titular (72),
+  // fino y con cursiva, y el de lectura (16), para lo que dicen Umber y las
+  // sinopsis. Con el eje entero eran 272 kB; así, 45 + 56. El de lectura no se
+  // precarga: solo lo descargan las páginas que lo usan. `latin` cubre el
+  // español entero (tildes, ñ, ¿¡); un nombre con otra letra sale con la de respaldo.
   fonts: [
     {
       provider: fontProviders.google(),
-      name: 'Playfair Display',
-      cssVariable: '--font-playfair',
-      weights: [400, 500, 600, 700],
+      name: 'Newsreader',
+      cssVariable: '--font-newsreader-display',
+      weights: [300],
       styles: ['normal', 'italic'],
-      subsets: ['latin', 'latin-ext'],
+      subsets: ['latin'],
       fallbacks: ['Georgia', 'serif'],
+      options: { experimental: { variableAxis: { opsz: ['72'] } } },
     },
     {
       provider: fontProviders.google(),
-      name: 'Inter',
-      cssVariable: '--font-inter',
-      weights: [400, 500, 600],
-      subsets: ['latin', 'latin-ext'],
+      name: 'Newsreader',
+      cssVariable: '--font-newsreader-text',
+      weights: [400, 600],
+      styles: ['normal'],
+      subsets: ['latin'],
+      fallbacks: ['Georgia', 'serif'],
+      options: { experimental: { variableAxis: { opsz: ['16'] } } },
+    },
+    {
+      provider: fontProviders.google(),
+      name: 'Schibsted Grotesk',
+      cssVariable: '--font-schibsted',
+      weights: ['400 600'],
+      styles: ['normal'],
+      subsets: ['latin'],
       fallbacks: ['system-ui', 'sans-serif'],
     },
   ],

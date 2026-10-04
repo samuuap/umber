@@ -3,9 +3,10 @@
  * preguntas lleva, qué buscó la última vez y qué candidatos le quedan.
  *
  * Cómo conversa (decisión de producto, ver `docs/fase-4-api-chat.md`):
- *  1. Antes de buscar pregunta para entender el ánimo: al menos dos veces y como
- *     mucho cuatro. Si la persona se enrolla, cierra con una pregunta que lleve a
- *     buscar.
+ *  1. Antes de buscar pregunta para entender qué quiere: al menos tres veces y
+ *     como mucho cinco (Fase 8; antes, de dos a cuatro). Si la persona se
+ *     enrolla, cierra con una pregunta que lleve a buscar. Si pide que le
+ *     recomiende ya, no insiste (`wantsToSkipQuestions`).
  *  2. Busca con un resumen del ánimo que escribe él (`buscar_titulos`).
  *  3. Si le piden otra, saca la siguiente de esos candidatos sin volver a
  *     buscar, hasta agotarlos. Cuando se acaban, o si el ánimo cambia, busca de
@@ -26,8 +27,13 @@ import type {
   TurnSearch,
 } from '@/lib/types';
 
-export const MIN_QUESTIONS = 2;
-export const MAX_QUESTIONS = 4;
+/**
+ * Decisión de producto (2026-10-04, Fase 8): un experto pregunta más que dos
+ * cosas. Con 3–5 frente a 2–4, medido con `scripts/eval-dialogue.mjs` (ver
+ * docs/fase-8). Preguntar por gustos (algo que le encantó) es lo que más afina.
+ */
+export const MIN_QUESTIONS = 3;
+export const MAX_QUESTIONS = 5;
 /** Un resumen del ánimo son una o dos frases; más es que el modelo se ha ido de madre. */
 export const MAX_SUMMARY_CHARS = 500;
 /** Los que se pasan al modelo en cada búsqueda: `DEFAULT_CANDIDATE_COUNT`. */
@@ -113,21 +119,39 @@ export function conversationState(history: readonly ChatHistoryMessage[]): Conve
   };
 }
 
+/**
+ * Pide que le recomiende ya, sin más preguntas: «recomiéndame ya», «sin
+ * preguntas», «sorpréndeme», «tú eliges». Preguntar cinco veces a quien tiene
+ * prisa es peor que preguntar poco.
+ */
+const SKIP_QUESTIONS_PATTERN =
+  /\b(sin (m[aá]s )?preguntas|no me (hagas m[aá]s preguntas|preguntes m[aá]s)|recomi[eé]nd(ame|a) (algo )?(ya|directamente)|dime (una|algo|cu[aá]l) ya|sorpr[eé]ndeme|t[uú] (eliges|decides)|elige t[uú]|lo que t[uú] (veas|quieras)|just (recommend|pick)|surprise me|no (more )?questions|you (choose|decide|pick))\b/iu;
+
+export function wantsToSkipQuestions(message: string): boolean {
+  return SKIP_QUESTIONS_PATTERN.test(message);
+}
+
 export interface TurnTools {
-  /** Si puede buscar por ánimo (`buscar_titulos`). Por título puede siempre. */
+  /** Si puede buscar por ánimo (`buscar_titulos`). */
   readonly moodSearch: boolean;
+  /** Si puede comprobar un título (`buscar_por_titulo`). */
+  readonly titleSearch: boolean;
   readonly choice: ToolChoice;
 }
 
 /**
  * Qué puede hacer Umber en este turno. Antes de la primera búsqueda no puede
  * buscar por ánimo hasta haber preguntado `MIN_QUESTIONS` veces; con
- * `MAX_QUESTIONS` preguntas seguidas, está obligado a buscar.
+ * `MAX_QUESTIONS` preguntas seguidas, está obligado a buscar, y solo por ánimo:
+ * un título que no está no cuenta como búsqueda, y si pudiera elegir esa
+ * herramienta seguiría obligado al turno siguiente, una y otra vez.
  */
-export function turnToolsFor(state: ConversationState): TurnTools {
-  if (state.lastSearch === null && state.pendingQuestions < MIN_QUESTIONS) {
-    return { moodSearch: false, choice: 'auto' };
+export function turnToolsFor(state: ConversationState, skipQuestions = false): TurnTools {
+  if (state.lastSearch === null && state.pendingQuestions < MIN_QUESTIONS && !skipQuestions) {
+    return { moodSearch: false, titleSearch: true, choice: 'auto' };
   }
-  if (state.pendingQuestions >= MAX_QUESTIONS) return { moodSearch: true, choice: 'required' };
-  return { moodSearch: true, choice: 'auto' };
+  if (state.pendingQuestions >= MAX_QUESTIONS) {
+    return { moodSearch: true, titleSearch: false, choice: 'required' };
+  }
+  return { moodSearch: true, titleSearch: true, choice: 'auto' };
 }

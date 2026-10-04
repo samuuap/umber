@@ -50,6 +50,11 @@ export type ContentCandidate = Omit<
   | 'genres'
   | 'autumn_score'
   | 'poster_path'
+  | 'vote_count'
+  | 'vote_average'
+  | 'runtime'
+  | 'original_language'
+  | 'top_cast'
 > & {
   type: ContentType;
   title_en: string | null;
@@ -60,6 +65,11 @@ export type ContentCandidate = Omit<
   genres: string[] | null;
   autumn_score: number | null;
   poster_path: string | null;
+  vote_count: number | null;
+  vote_average: number | null;
+  runtime: number | null;
+  original_language: string | null;
+  top_cast: string[];
 };
 
 /** Una fila del listado de `/explorar`; `total_count` es el total con esos filtros. */
@@ -74,8 +84,73 @@ export type ExploreItem = Omit<
   autumn_score: number | null;
 };
 
-export type Conversation = Omit<ConversationRow, 'mode'> & { mode: ChatMode };
+export type Conversation = Omit<ConversationRow, 'mode' | 'specialty'> & {
+  mode: ChatMode;
+  specialty: Specialty | null;
+};
 export type Favorite = Database['public']['Tables']['users_favorites']['Row'];
+
+// ─── Especialidades ──────────────────────────────────────────────────────────
+
+/**
+ * Umber es un experto general; una especialidad cambia su catálogo (solo lo de
+ * esa época), su voz y cómo ordena (Fase 8). Hoy, solo otoño; Navidad, después.
+ */
+export const SPECIALTIES = ['autumn'] as const;
+export type Specialty = (typeof SPECIALTIES)[number];
+
+export function isSpecialty(value: unknown): value is Specialty {
+  return typeof value === 'string' && (SPECIALTIES as readonly string[]).includes(value);
+}
+
+// ─── Filtros de búsqueda ─────────────────────────────────────────────────────
+
+/** Lo conocido que quiere que sea: lo saca el modelo de la conversación. */
+export const POPULARITY_PREFERENCES = ['known', 'lesser', 'any'] as const;
+export type PopularityPreference = (typeof POPULARITY_PREFERENCES)[number];
+
+/**
+ * Lo que la persona ha pedido de forma explícita: no el ánimo, que va en el
+ * resumen, sino lo que se puede comprobar en la ficha. Lo valida
+ * `parseSearchFilters` en `src/lib/search.ts`.
+ */
+export interface SearchFilters {
+  /** Al menos uno de estos géneros, con los nombres de las películas (`MOVIE_GENRES`). */
+  readonly genresAny: readonly string[];
+  readonly genresNone: readonly string[];
+  readonly yearFrom: number | null;
+  readonly yearTo: number | null;
+  /** Minutos; en series, los de un episodio. */
+  readonly maxRuntime: number | null;
+  /** Idioma original, ISO 639-1. */
+  readonly languages: readonly string[];
+  /** En la dirección o el reparto. */
+  readonly person: string | null;
+  readonly popularity: PopularityPreference;
+}
+
+export const NO_FILTERS: SearchFilters = {
+  genresAny: [],
+  genresNone: [],
+  yearFrom: null,
+  yearTo: null,
+  maxRuntime: null,
+  languages: [],
+  person: null,
+  popularity: 'any',
+};
+
+/** Los filtros en el JSON de `/api/search`. */
+export interface SearchFiltersBody {
+  readonly genres_any?: readonly string[];
+  readonly genres_none?: readonly string[];
+  readonly year_from?: number;
+  readonly year_to?: number;
+  readonly max_runtime?: number;
+  readonly languages?: readonly string[];
+  readonly person?: string;
+  readonly popularity?: PopularityPreference;
+}
 
 // ─── Modos ───────────────────────────────────────────────────────────────────
 
@@ -125,8 +200,8 @@ export const CHAT_MODE_DEFINITIONS: Readonly<Record<ChatMode, ChatModeDefinition
   },
   month: {
     id: 'month',
-    label: 'Mes otoñal',
-    labelEn: 'Autumn month',
+    label: 'Un mes de cine',
+    labelEn: 'A month of films',
     description: 'Un calendario cinematográfico para todo el mes.',
     contentType: null,
     available: false,
@@ -224,6 +299,11 @@ export interface ChatRequestBody {
   readonly locale?: Locale;
   /** Región de plataformas, ISO 3166-1 alfa-2 (`ES`, `MX`…). */
   readonly region?: string;
+  /**
+   * Especialidad de una conversación nueva. Con `conversation_id` manda la que
+   * se guardó con ella.
+   */
+  readonly specialty?: Specialty;
 }
 
 /** Título que Umber ha recomendado, con lo que necesita la ficha de contenido. */
@@ -288,6 +368,9 @@ export interface SearchRequestBody {
   readonly type?: ContentType;
   /** De 1 a `MAX_SEARCH_RESULTS`. Por defecto, los mismos que ve el modelo en el chat. */
   readonly limit?: number;
+  /** Los mismos filtros que saca el chat de la conversación. */
+  readonly filters?: SearchFiltersBody;
+  readonly specialty?: Specialty;
 }
 
 /** Un resultado de `/api/search`, con las puntuaciones que deciden su orden. */
@@ -305,12 +388,15 @@ export interface SearchResult {
   readonly poster_url: string | null;
   readonly similarity: number;
   readonly autumn_score: number | null;
-  /** `similarity + AUTUMN_WEIGHT × autumn_score`: el orden del chat. */
+  readonly vote_count: number | null;
+  /** Similitud más popularidad (y otoño, en la especialidad): el orden del chat. Ver `rankScore`. */
   readonly rank_score: number;
 }
 
 export interface SearchResponse {
   readonly results: readonly SearchResult[];
+  /** Filtros que hubo que quitar porque con todos no salía casi nada. */
+  readonly relaxed: readonly string[];
 }
 
 /** Respuesta de `GET /api/tmdb?content_id=…&region=…`. */

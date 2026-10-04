@@ -111,6 +111,18 @@ export function safeRedirectPath(value: string | null, fallback = '/'): string {
   return value;
 }
 
+/**
+ * La página actual como destino de vuelta (`?next=`), sin `q`: el chat envía
+ * ese mensaje al abrirse, y al volver tras entrar lo mandaría otra vez y abriría
+ * otra conversación.
+ */
+export function returnPath(url: URL): string {
+  const params = new URLSearchParams(url.search);
+  params.delete('q');
+  const search = params.toString();
+  return search === '' ? url.pathname : `${url.pathname}?${search}`;
+}
+
 /** Códigos de error de Supabase Auth que la persona puede resolver por sí misma. */
 const AUTH_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   invalid_credentials: 'El email o la contraseña no son correctos.',

@@ -8,6 +8,7 @@
  * donde es único: si está cogido, Supabase rechaza el alta entera.
  */
 import AuthForm from '@/components/AuthForm.astro';
+import AuthScene from '@/components/AuthScene.astro';
 import Layout from '@/layouts/Layout.astro';
 import {
   MAX_PASSWORD_CHARS,
@@ -86,35 +87,39 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title="Crear cuenta — Umber">
-  <main class="mx-auto w-full max-w-sm flex-1 px-5 py-16">
-    <h1 class="text-3xl font-semibold">Crear cuenta</h1>
+  <AuthScene>
     {
       sentTo === null ? (
         <>
-          <p class="text-umber-ash mt-2 text-sm leading-relaxed">
-            Para guardar tus conversaciones y tus favoritos. Sin cuenta también puedes chatear, pero
-            se pierde al recargar.
+          <p class="eyebrow eyebrow-rule rise">Gratis</p>
+          <h1 class="display-1 rise mt-7 [animation-delay:80ms]">
+            Crear <em>cuenta</em>
+          </h1>
+          <p class="lead rise mt-5 [animation-delay:160ms]">
+            Guarda tus conversaciones y tus favoritos, y habla con Umber todos los días.
           </p>
-          <AuthForm kind="signup" email={email} username={username} error={error} />
-          <p class="text-umber-ash mt-6 text-sm">
+          <div class="rise [animation-delay:240ms]">
+            <AuthForm kind="signup" email={email} username={username} error={error} />
+          </div>
+          <p class="border-umber-line text-umber-ash mt-12 border-t pt-6 text-sm">
             ¿Ya tienes cuenta?{' '}
-            <a
-              href={`/entrar?next=${encodeURIComponent(next)}`}
-              class="text-umber-cream underline underline-offset-4"
-            >
+            <a href={`/entrar?next=${encodeURIComponent(next)}`} class="link">
               Entra
             </a>
           </p>
         </>
       ) : (
-        <div role="status" class="border-umber-sienna/60 bg-umber-surface mt-8 space-y-3 rounded-xl border p-5">
-          <p class="font-display text-xl">Revisa tu correo</p>
-          <p class="text-umber-cream/85 text-sm leading-relaxed">
-            Si <strong>{sentTo}</strong> no tenía cuenta, te hemos enviado un enlace para activarla.
-            Ábrelo en este mismo navegador y entrarás directamente.
+        <div role="status" class="rise">
+          <p class="eyebrow eyebrow-rule">Un paso más</p>
+          <p class="display-1 mt-7">
+            Revisa tu <em>correo</em>
+          </p>
+          <p class="lead mt-6">
+            Si <strong class="text-umber-cream font-medium">{sentTo}</strong> no tenía cuenta, te hemos enviado un enlace
+            para activarla. Ábrelo en este mismo navegador y entrarás directamente.
           </p>
         </div>
       )
     }
-  </main>
+  </AuthScene>
 </Layout>

@@ -54,7 +54,7 @@ console.log(`\nProyecto: ${env.SUPABASE_URL}\n`);
 
 // ─── Estructura ──────────────────────────────────────────────────────────────
 console.log('Estructura');
-for (const table of ['content', 'content_similar', 'users_favorites', 'conversations', 'profiles', 'platforms_cache', 'rate_limits']) {
+for (const table of ['content', 'content_similar', 'users_favorites', 'conversations', 'profiles', 'platforms_cache', 'rate_limits', 'chat_traces', 'llm_calls', 'usage_daily', 'request_daily']) {
   const { status, body } = await call(`/${table}?select=*&limit=0`, { key: SECRET });
   record(status === 200, `tabla ${table} existe`, status === 200 ? '' : JSON.stringify(body));
 }
@@ -100,10 +100,17 @@ for (const table of ['conversations', 'users_favorites', 'profiles']) {
   record(blocked || status === 401 || status === 403,
     `anon NO ve ${table}`, status === 200 ? 'conjunto vacío por RLS' : `HTTP ${status}`);
 }
-// Estas dos no tienen políticas y además se les retiran los permisos: ni vacío, error.
-for (const table of ['platforms_cache', 'rate_limits']) {
+// Estas no tienen políticas y además se les retiran los permisos: ni vacío, error.
+for (const table of ['platforms_cache', 'rate_limits', 'chat_traces', 'llm_calls', 'usage_daily', 'request_daily']) {
   const { status } = await call(`/${table}?select=*&limit=1`);
   record(status === 401 || status === 403, `anon NO puede leer ${table}`, `HTTP ${status}`);
+}
+for (const fn of ['record_trace', 'prune_traces']) {
+  const { status } = await call(`/rpc/${fn}`, {
+    method: 'POST', body: fn === 'record_trace' ? { p_trace: {}, p_calls: [] } : {},
+  });
+  record(status === 401 || status === 403 || status === 404,
+    `anon NO puede llamar a ${fn}`, `HTTP ${status}`);
 }
 {
   const { status } = await call('/rpc/hit_rate_limit', {
@@ -298,6 +305,41 @@ console.log('\nCaché de plataformas y rate limiting');
   record(mismatched.status >= 400, 'hit_rate_limit rechaza ventanas sin su límite', `HTTP ${mismatched.status}`);
 }
 
+{
+  // Trazas: una rechazada solo cuenta; una admitida deja traza y llamadas, y
+  // suma en el consumo diario. El estado 599 no lo da nunca la app: se borra después.
+  const rejectedId = crypto.randomUUID();
+  const admittedId = crypto.randomUUID();
+  const base = { endpoint: 'search', status: 599, duration_ms: 12, message: '__verify__' };
+  const rejected = await call('/rpc/record_trace', {
+    method: 'POST', key: SECRET, body: { p_trace: { ...base, id: rejectedId, admitted: false }, p_calls: [] },
+  });
+  const notStored = await call(`/chat_traces?id=eq.${rejectedId}&select=id`, { key: SECRET });
+  record(rejected.status < 300 && Array.isArray(notStored.body) && notStored.body.length === 0,
+    'record_trace: una petición rechazada no deja traza', `HTTP ${rejected.status}`);
+
+  const call1 = {
+    provider: '__verify__', model: '__verify__', purpose: 'turn', status: 'ok', input_tokens: 100,
+    output_tokens: 20, cache_hit_tokens: 60, cache_miss_tokens: 40, cost_usd: 0.000123, started_ms: 3, duration_ms: 9,
+    tool_name: 'buscar_titulos', tool_args: { resumen: 'x' },
+  };
+  const admitted = await call('/rpc/record_trace', {
+    method: 'POST', key: SECRET,
+    body: { p_trace: { ...base, id: admittedId, admitted: true, recommendation_ids: [], steps: [{ name: 'search', startedMs: 1, durationMs: 5, ok: true }] }, p_calls: [call1, call1] },
+  });
+  const stored = await call(`/chat_traces?id=eq.${admittedId}&select=id,message,steps,llm_calls(tokens:input_tokens,cost_usd,tool_args)`, { key: SECRET });
+  const row = Array.isArray(stored.body) ? stored.body[0] : null;
+  record(admitted.status < 300 && row?.llm_calls?.length === 2 && row.steps?.length === 1,
+    'record_trace: una admitida deja traza, pasos y llamadas', JSON.stringify(row ?? stored.body).slice(0, 160));
+  const today = new Date().toISOString().slice(0, 10);
+  const usage = await call(`/usage_daily?day=eq.${today}&provider=eq.__verify__&select=calls,input_tokens,cost_usd`, { key: SECRET });
+  const counted = await call(`/request_daily?day=eq.${today}&status=eq.599&select=requests`, { key: SECRET });
+  record(usage.body?.[0]?.calls >= 2 && Number(usage.body?.[0]?.cost_usd) > 0,
+    'record_trace suma en usage_daily', JSON.stringify(usage.body));
+  record(counted.body?.[0]?.requests >= 2,
+    'record_trace cuenta las dos, admitida y rechazada, en request_daily', JSON.stringify(counted.body));
+}
+
 // ─── Limpieza ────────────────────────────────────────────────────────────────
 console.log('\nLimpieza');
 {
@@ -310,8 +352,12 @@ console.log('\nLimpieza');
         method: 'DELETE', headers: { apikey: SECRET, Authorization: `Bearer ${SECRET}` },
       });
   const c = await call(`/rate_limits?key=like.__verify__*`, { method: 'DELETE', key: SECRET });
-  record(a.status < 300 && b.status < 300 && c.status < 300, 'datos de prueba borrados',
-    `HTTP ${a.status}/${b.status}/${c.status}`);
+  // Las llamadas caen en cascada con su traza.
+  const d = await call('/chat_traces?message=eq.__verify__', { method: 'DELETE', key: SECRET });
+  const e = await call('/usage_daily?provider=eq.__verify__', { method: 'DELETE', key: SECRET });
+  const f = await call('/request_daily?status=eq.599', { method: 'DELETE', key: SECRET });
+  const statuses = [a.status, b.status, c.status, d.status, e.status, f.status];
+  record(statuses.every((status) => status < 300), 'datos de prueba borrados', `HTTP ${statuses.join('/')}`);
 }
 
 const failed = results.filter((r) => !r.ok);

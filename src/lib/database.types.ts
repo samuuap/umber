@@ -39,16 +39,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_traces: {
+        Row: {
+          client_hash: string | null
+          conversation_id: string | null
+          created_at: string
+          duration_ms: number
+          endpoint: string
+          error_code: string | null
+          first_byte_ms: number | null
+          id: string
+          language: string | null
+          message: string | null
+          meta: Json
+          mode: string | null
+          recommendation_ids: string[]
+          reply: string | null
+          search: Json | null
+          status: number
+          steps: Json
+          unknown_titles: string[]
+          user_id: string | null
+        }
+        Insert: {
+          client_hash?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          duration_ms: number
+          endpoint: string
+          error_code?: string | null
+          first_byte_ms?: number | null
+          id: string
+          language?: string | null
+          message?: string | null
+          meta?: Json
+          mode?: string | null
+          recommendation_ids?: string[]
+          reply?: string | null
+          search?: Json | null
+          status: number
+          steps?: Json
+          unknown_titles?: string[]
+          user_id?: string | null
+        }
+        Update: {
+          client_hash?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          duration_ms?: number
+          endpoint?: string
+          error_code?: string | null
+          first_byte_ms?: number | null
+          id?: string
+          language?: string | null
+          message?: string | null
+          meta?: Json
+          mode?: string | null
+          recommendation_ids?: string[]
+          reply?: string | null
+          search?: Json | null
+          status?: number
+          steps?: Json
+          unknown_titles?: string[]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_traces_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content: {
         Row: {
           autumn_score: number | null
           backdrop_path: string | null
+          collection_id: number | null
           created_at: string
           director: string | null
-          embedding: string | null
+          embedding: unknown
           genres: string[] | null
           id: string
           keywords: string[] | null
+          original_language: string | null
+          popularity: number | null
           poster_path: string | null
           runtime: number | null
           seasons: number | null
@@ -58,18 +135,24 @@ export type Database = {
           title: string
           title_en: string | null
           tmdb_id: number
+          top_cast: string[]
           type: string
+          vote_average: number | null
+          vote_count: number | null
           year: number | null
         }
         Insert: {
           autumn_score?: number | null
           backdrop_path?: string | null
+          collection_id?: number | null
           created_at?: string
           director?: string | null
-          embedding?: string | null
+          embedding?: unknown
           genres?: string[] | null
           id?: string
           keywords?: string[] | null
+          original_language?: string | null
+          popularity?: number | null
           poster_path?: string | null
           runtime?: number | null
           seasons?: number | null
@@ -79,18 +162,24 @@ export type Database = {
           title: string
           title_en?: string | null
           tmdb_id: number
+          top_cast?: string[]
           type: string
+          vote_average?: number | null
+          vote_count?: number | null
           year?: number | null
         }
         Update: {
           autumn_score?: number | null
           backdrop_path?: string | null
+          collection_id?: number | null
           created_at?: string
           director?: string | null
-          embedding?: string | null
+          embedding?: unknown
           genres?: string[] | null
           id?: string
           keywords?: string[] | null
+          original_language?: string | null
+          popularity?: number | null
           poster_path?: string | null
           runtime?: number | null
           seasons?: number | null
@@ -100,7 +189,10 @@ export type Database = {
           title?: string
           title_en?: string | null
           tmdb_id?: number
+          top_cast?: string[]
           type?: string
+          vote_average?: number | null
+          vote_count?: number | null
           year?: number | null
         }
         Relationships: []
@@ -147,6 +239,7 @@ export type Database = {
           id: string
           messages: Json
           mode: string
+          specialty: string | null
           updated_at: string
           user_id: string
         }
@@ -155,6 +248,7 @@ export type Database = {
           id?: string
           messages?: Json
           mode: string
+          specialty?: string | null
           updated_at?: string
           user_id: string
         }
@@ -163,10 +257,88 @@ export type Database = {
           id?: string
           messages?: Json
           mode?: string
+          specialty?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      llm_calls: {
+        Row: {
+          cache_hit_tokens: number | null
+          cache_miss_tokens: number | null
+          cost_usd: number
+          created_at: string
+          duration_ms: number
+          error: string | null
+          finish_reason: string | null
+          first_token_ms: number | null
+          id: string
+          input_tokens: number | null
+          model: string
+          output_tokens: number | null
+          prompt_version: string | null
+          provider: string
+          purpose: string
+          started_ms: number
+          status: string
+          tool_args: Json | null
+          tool_name: string | null
+          trace_id: string
+        }
+        Insert: {
+          cache_hit_tokens?: number | null
+          cache_miss_tokens?: number | null
+          cost_usd?: number
+          created_at?: string
+          duration_ms: number
+          error?: string | null
+          finish_reason?: string | null
+          first_token_ms?: number | null
+          id?: string
+          input_tokens?: number | null
+          model: string
+          output_tokens?: number | null
+          prompt_version?: string | null
+          provider: string
+          purpose: string
+          started_ms: number
+          status: string
+          tool_args?: Json | null
+          tool_name?: string | null
+          trace_id: string
+        }
+        Update: {
+          cache_hit_tokens?: number | null
+          cache_miss_tokens?: number | null
+          cost_usd?: number
+          created_at?: string
+          duration_ms?: number
+          error?: string | null
+          finish_reason?: string | null
+          first_token_ms?: number | null
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          output_tokens?: number | null
+          prompt_version?: string | null
+          provider?: string
+          purpose?: string
+          started_ms?: number
+          status?: string
+          tool_args?: Json | null
+          tool_name?: string | null
+          trace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "llm_calls_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "chat_traces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platforms_cache: {
         Row: {
@@ -233,6 +405,69 @@ export type Database = {
           key?: string
           window_seconds?: number
           window_start?: string
+        }
+        Relationships: []
+      }
+      request_daily: {
+        Row: {
+          day: string
+          endpoint: string
+          requests: number
+          signed_in: boolean
+          status: number
+        }
+        Insert: {
+          day: string
+          endpoint: string
+          requests?: number
+          signed_in: boolean
+          status: number
+        }
+        Update: {
+          day?: string
+          endpoint?: string
+          requests?: number
+          signed_in?: boolean
+          status?: number
+        }
+        Relationships: []
+      }
+      usage_daily: {
+        Row: {
+          cache_hit_tokens: number
+          calls: number
+          cost_usd: number
+          day: string
+          errors: number
+          input_tokens: number
+          model: string
+          output_tokens: number
+          provider: string
+          purpose: string
+        }
+        Insert: {
+          cache_hit_tokens?: number
+          calls?: number
+          cost_usd?: number
+          day: string
+          errors?: number
+          input_tokens?: number
+          model: string
+          output_tokens?: number
+          provider: string
+          purpose: string
+        }
+        Update: {
+          cache_hit_tokens?: number
+          calls?: number
+          cost_usd?: number
+          day?: string
+          errors?: number
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          provider?: string
+          purpose?: string
         }
         Relationships: []
       }
@@ -307,26 +542,46 @@ export type Database = {
         Returns: number
       }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      prune_traces: { Args: never; Returns: undefined }
+      record_trace: {
+        Args: { p_calls: Json; p_trace: Json }
+        Returns: undefined
+      }
       search_content: {
         Args: {
           content_type?: string
+          genres_any?: string[]
+          genres_none?: string[]
+          languages?: string[]
           match_count?: number
+          max_runtime?: number
+          max_votes?: number
+          min_autumn?: number
           min_score?: number
+          min_votes?: number
+          person?: string
           query_embedding: string
+          year_from?: number
+          year_to?: number
         }
         Returns: {
           autumn_score: number
           director: string
           genres: string[]
           id: string
+          original_language: string
           poster_path: string
+          runtime: number
           similarity: number
           synopsis: string
           synopsis_en: string
           title: string
           title_en: string
           tmdb_id: number
+          top_cast: string[]
           type: string
+          vote_average: number
+          vote_count: number
           year: number
         }[]
       }

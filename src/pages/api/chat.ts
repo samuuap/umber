@@ -16,6 +16,10 @@
  * para que la persona sepa qué está esperando: un fallo del buscador llega como
  * evento `error`. Lo de antes de DeepSeek (validar, rate limit, historial) sigue
  * fallando con su código HTTP. Los eventos están tipados en `ChatStreamEvent`.
+ *
+ * Cada petición deja una traza (`src/lib/trace.ts`): sus pasos con lo que tardó
+ * cada uno, la búsqueda, lo recomendado y las llamadas a modelos. Se guarda
+ * justo antes de cerrar el stream, o antes de responder con un error.
  */
 import type { APIContext, APIRoute } from 'astro';
 
@@ -28,15 +32,16 @@ import {
   buildSearchQuery,
   enrichCandidates,
   extractRecommended,
-  extractTitleMentions,
   findRecommendations,
   formatSearchResult,
   formatTitleResult,
   isAlreadyRecommended,
   parseChatRequest,
-  parseSearchSummary,
+  parseSearchCall,
+  parseTitleIntent,
   parseTitleQuery,
   replyLanguage,
+  unknownTitleMentions,
   type ChatRequest,
   type EnrichedCandidate,
 } from '@/lib/chat';
@@ -54,16 +59,21 @@ import {
 } from '@/lib/deepseek';
 import { AuthError, ConversationFullError, DeepSeekError, ValidationError } from '@/lib/errors';
 import { readPlatformsCache } from '@/lib/platforms';
+import { PROMPT_VERSION } from '@/lib/prompts';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import {
   DEFAULT_CANDIDATE_COUNT,
+  describeFilters,
   loadCandidates,
+  normalizeTitle,
   searchCandidates,
   searchTitles,
   toCandidateRefs,
+  traceCandidates,
   type RankedCandidate,
 } from '@/lib/search';
-import { MAX_SUMMARY_CHARS, conversationState, turnToolsFor } from '@/lib/turns';
+import { RequestTrace, hashClient, type TraceOutcome } from '@/lib/trace';
+import { MAX_SUMMARY_CHARS, conversationState, turnToolsFor, wantsToSkipQuestions } from '@/lib/turns';
 import {
   CHAT_MODE_DEFINITIONS,
   MAX_CONVERSATION_MESSAGES,
@@ -72,6 +82,7 @@ import {
   type ChatStreamEvent,
   type Locale,
   type Recommendation,
+  type Specialty,
   type StoredChatMessage,
   type TurnSearch,
 } from '@/lib/types';
@@ -84,6 +95,17 @@ interface TurnOutcome {
   candidates: readonly EnrichedCandidate[];
   /** La búsqueda de este turno, si la hubo. */
   search: TurnSearch | null;
+  /**
+   * Los títulos que nombró la persona, si comprobó uno (`buscar_por_titulo`).
+   * Si quería algo parecido, Umber los nombra como referencia: no son la
+   * recomendación. Ver `streamReply`.
+   */
+  referenceIds: ReadonlySet<string>;
+  /**
+   * Los que nombró como referencia («parecido»): no son candidatos, pero Umber
+   * puede mencionarlos, y no son títulos inventados.
+   */
+  references: readonly ContentCandidate[];
 }
 
 interface PreparedChat {
@@ -95,6 +117,8 @@ interface PreparedChat {
   readonly history: readonly ChatHistoryMessage[];
   /** Idioma de la respuesta: el de las fichas tiene que ser el mismo. */
   readonly language: Locale;
+  /** La de la conversación guardada o, si es nueva, la que pidió. */
+  readonly specialty: Specialty | null;
   /** La respuesta de Umber según llega. La primera llamada a DeepSeek ya está abierta. */
   readonly parts: AsyncIterable<ReplyPart>;
   readonly outcome: TurnOutcome;
@@ -169,10 +193,19 @@ async function* continueText(
   }
 }
 
-async function prepareChat(context: APIContext, signal: AbortSignal): Promise<PreparedChat> {
+async function prepareChat(
+  context: APIContext,
+  signal: AbortSignal,
+  trace: RequestTrace,
+): Promise<PreparedChat> {
   const { request, locals } = context;
   const chat = parseChatRequest(await readJson(request), request.headers.get('accept-language'));
+  trace.mode = chat.mode;
+  trace.message = chat.message;
   const user = await getRequestUser({ request, locals });
+  const clientAddress = readClientAddress(context);
+  trace.userId = user?.id ?? null;
+  trace.clientHash = await hashClient(clientAddress);
   if (chat.conversationId !== null && user === null) {
     throw new AuthError('Para seguir una conversación guardada hay que iniciar sesión.');
   }
@@ -180,10 +213,18 @@ async function prepareChat(context: APIContext, signal: AbortSignal): Promise<Pr
   // El límite va antes de cualquier llamada que cueste (embeddings, TMDB y
   // DeepSeek). Leer la conversación no cuesta, así que va a la vez: son dos
   // viajes a Supabase de unos 120 ms cada uno, medidos desde local.
-  const [, conversation] = await Promise.all([
-    enforceRateLimit('chat', { userId: user?.id ?? null, clientAddress: readClientAddress(context) }),
-    loadRequestedConversation(chat, user),
-  ]);
+  const [, conversation] = await trace.time(
+    'limits_history',
+    Promise.all([
+      enforceRateLimit('chat', { userId: user?.id ?? null, clientAddress }).then(() => {
+        // Ha gastado cupo: deja traza completa aunque luego falle otra cosa.
+        trace.admitted = true;
+      }),
+      loadRequestedConversation(chat, user),
+    ]),
+  );
+  trace.conversationId = conversation?.id ?? null;
+  const specialty = conversation === null ? chat.specialty : conversation.specialty;
 
   // Con conversación guardada manda Supabase; sin ella, lo que el cliente tiene en memoria.
   const history = conversation?.messages ?? chat.history;
@@ -198,16 +239,63 @@ async function prepareChat(context: APIContext, signal: AbortSignal): Promise<Pr
   const state = conversationState(history);
   const recommended = extractRecommended(history);
   const language = replyLanguage(chat.message, history, chat.locale);
+  trace.language = language;
 
+  /*
+   * Lo que la persona ha nombrado («me encantó True Detective») ya lo ha visto:
+   * no se le recomienda. El prompt ya se lo pide al modelo, pero con una
+   * búsqueda por ánimo el título le llegaba como candidato y lo recomendaba (1
+   * de 30 conversaciones simuladas). Solo nombres de 5 letras o más: «Up» o
+   * «Her» saldrían en cualquier mensaje. Lo que pide para verlo no pasa por
+   * aquí: `searchTitles` no excluye lo que coincide con el título pedido.
+   */
+  const userText = ` ${[...history, { role: 'user', content: chat.message }]
+    .filter((message) => message.role === 'user')
+    .map((message) => normalizeTitle(message.content))
+    .join(' ')} `;
+  const namedByUser = (candidate: ContentCandidate): boolean =>
+    [candidate.title, candidate.title_en].some((title) => {
+      const normalized = title === null ? '' : normalizeTitle(title);
+      return normalized.length >= 5 && userText.includes(` ${normalized} `);
+    });
   // Los que le quedan de la última búsqueda, para «otra»: de la base, sin
   // vectorizar. Su caché de plataformas solo necesita los ids: se lee a la vez.
   const cache = readPlatformsCache(
     state.remaining.map((ref) => ref.id),
     signal,
   );
-  const remaining = await enrichCandidates(await loadCandidates(state.remaining), chat.region, signal, cache);
-  const outcome: TurnOutcome = { candidates: remaining.candidates, search: null };
-  const tools = turnToolsFor(state);
+  const remaining = await trace.time(
+    'remaining',
+    loadCandidates(state.remaining, specialty).then((loaded) =>
+      enrichCandidates(
+        loaded.filter((candidate) => !namedByUser(candidate)),
+        chat.region,
+        signal,
+        cache,
+      ),
+    ),
+  );
+  const outcome: TurnOutcome = {
+    candidates: remaining.candidates,
+    search: null,
+    referenceIds: new Set(),
+    references: [],
+  };
+  const skipQuestions = wantsToSkipQuestions(chat.message);
+  const tools = turnToolsFor(state, skipQuestions);
+  // Lo que explica por qué el turno hizo lo que hizo.
+  trace.meta['tools'] = [
+    ...(tools.moodSearch ? [SEARCH_TOOL.name] : []),
+    ...(tools.titleSearch ? [TITLE_SEARCH_TOOL.name] : []),
+  ];
+  trace.meta['tool_choice'] = tools.choice;
+  trace.meta['pending_questions'] = state.pendingQuestions;
+  trace.meta['had_search'] = state.lastSearch !== null;
+  trace.meta['remaining'] = remaining.candidates.length;
+  trace.meta['region'] = chat.region;
+  trace.meta['history_messages'] = history.length;
+  trace.meta['specialty'] = specialty;
+  trace.meta['skip_questions'] = skipQuestions;
   const base: ChatRequestOptions = {
     messages: buildChatMessages({
       request: chat,
@@ -216,14 +304,21 @@ async function prepareChat(context: APIContext, signal: AbortSignal): Promise<Pr
       candidates: remaining.candidates,
       recommended,
       language,
+      specialty,
+      skipQuestions,
     }),
-    tools: tools.moodSearch ? [SEARCH_TOOL, TITLE_SEARCH_TOOL] : [TITLE_SEARCH_TOOL],
+    tools: [...(tools.moodSearch ? [SEARCH_TOOL] : []), ...(tools.titleSearch ? [TITLE_SEARCH_TOOL] : [])],
     signal,
+    trace,
+    purpose: 'turn',
+    promptVersion: PROMPT_VERSION,
   };
   const searchOptions = {
     contentType: CHAT_MODE_DEFINITIONS[chat.mode].contentType,
     exclude: (candidate: ContentCandidate) =>
-      state.recommendedIds.has(candidate.id) || isAlreadyRecommended(candidate, recommended),
+      state.recommendedIds.has(candidate.id) || isAlreadyRecommended(candidate, recommended) || namedByUser(candidate),
+    trace,
+    specialty,
   };
 
   /**
@@ -237,42 +332,85 @@ async function prepareChat(context: APIContext, signal: AbortSignal): Promise<Pr
     let summary: string | null;
     let describe: (candidates: readonly EnrichedCandidate[]) => string;
 
-    if (call.name === TITLE_SEARCH_TOOL.name) {
+    // Solo cuenta como búsqueda por título si en este turno se le ofreció: el
+    // prompt nombra las dos herramientas, y obligado a buscar por ánimo llegó a
+    // llamar a `buscar_por_titulo` igualmente (DeepSeek no lo impide). Entonces
+    // va por ánimo, con los últimos mensajes de la persona.
+    if (call.name === TITLE_SEARCH_TOOL.name && tools.titleSearch) {
       const titles = parseTitleQuery(call.arguments, chat.message);
-      const { exact, similar } = await searchTitles(titles, searchOptions);
+      const intent = parseTitleIntent(call.arguments);
+      const { exact, similar } = await trace.time('search', searchTitles(titles, searchOptions));
       const exactCount = Math.min(exact.length, DEFAULT_CANDIDATE_COUNT);
-      found = exactCount === 0 ? [] : [...exact, ...similar].slice(0, DEFAULT_CANDIDATE_COUNT);
-      // Un título que no está no es una búsqueda: no le ahorra preguntas.
-      summary = exactCount === 0 ? null : `Título: ${titles.join(' / ')}`.slice(0, MAX_SUMMARY_CHARS);
-      describe = (candidates) =>
-        formatTitleResult(candidates.slice(0, exactCount), candidates.slice(exactCount), chat.region, language);
+      outcome.referenceIds = new Set(exact.map((candidate) => candidate.id));
+      if (intent === 'similar') {
+        // Lo que nombró ya lo conoce: fuera de los candidatos, solo de referencia.
+        found = exactCount === 0 ? [] : similar.slice(0, DEFAULT_CANDIDATE_COUNT);
+        outcome.references = exact;
+        summary = found.length === 0 ? null : `Parecidos a: ${titles.join(' / ')}`.slice(0, MAX_SUMMARY_CHARS);
+        // De la referencia solo se usa el nombre: sin plataformas.
+        const reference = exact.slice(0, exactCount).map((candidate) => ({ ...candidate, platforms: null }));
+        describe = (candidates) => formatTitleResult(reference, candidates, chat.region, language, specialty, intent);
+      } else {
+        found = exactCount === 0 ? [] : [...exact, ...similar].slice(0, DEFAULT_CANDIDATE_COUNT);
+        // Un título que no está no es una búsqueda: no le ahorra preguntas.
+        summary = exactCount === 0 ? null : `Título: ${titles.join(' / ')}`.slice(0, MAX_SUMMARY_CHARS);
+        describe = (candidates) =>
+          formatTitleResult(
+            candidates.slice(0, exactCount),
+            candidates.slice(exactCount),
+            chat.region,
+            language,
+            specialty,
+            intent,
+          );
+      }
+      trace.search = {
+        kind: 'title',
+        intent,
+        query: titles.join(' / '),
+        found_exact: exactCount,
+        candidates: traceCandidates(found),
+      };
     } else {
-      summary = parseSearchSummary(call.arguments, buildSearchQuery(history, chat.message)).summary;
-      found = await searchCandidates(summary, searchOptions);
-      describe = (candidates) => formatSearchResult(candidates, chat.region, language);
+      const search = parseSearchCall(call.arguments, buildSearchQuery(history, chat.message));
+      summary = search.summary;
+      const result = await trace.time('search', searchCandidates(summary, { ...searchOptions, filters: search.filters }));
+      found = result.candidates;
+      describe = (candidates) => formatSearchResult(candidates, chat.region, language, result.relaxed, specialty);
+      trace.search = {
+        kind: 'mood',
+        query: summary,
+        filters: describeFilters(search.filters),
+        relaxed: [...result.relaxed],
+        candidates: traceCandidates(found),
+      };
     }
 
-    const enriched = await enrichCandidates(found, chat.region, signal);
+    const enriched = await trace.time('platforms', enrichCandidates(found, chat.region, signal));
     if (summary !== null) {
       outcome.candidates = enriched.candidates;
       outcome.search = { summary, candidates: toCandidateRefs(found) };
     }
     // La caché de plataformas se escribe mientras DeepSeek abre el stream: no retrasa nada.
-    const [stream] = await Promise.all([
-      streamChat({
-        ...base,
-        toolChoice: 'none',
-        toolRound: { call, result: describe(enriched.candidates) },
-      }),
-      enriched.saved,
-    ]);
+    const [stream] = await trace.time(
+      'second_call',
+      Promise.all([
+        streamChat({
+          ...base,
+          purpose: 'recommend',
+          toolChoice: 'none',
+          toolRound: { call, result: describe(enriched.candidates) },
+        }),
+        enriched.saved,
+      ]),
+    );
     yield* textOf(turnEvents(stream));
   }
 
-  const [stream] = await Promise.all([
-    streamChat({ ...base, toolChoice: tools.choice }),
-    remaining.saved,
-  ]);
+  const [stream] = await trace.time(
+    'first_call',
+    Promise.all([streamChat({ ...base, toolChoice: tools.choice }), remaining.saved]),
+  );
   // Lo primero que hace se mira antes de responder: un stream vacío de DeepSeek
   // todavía llega con su código HTTP.
   const events = turnEvents(stream)[Symbol.asyncIterator]();
@@ -283,7 +421,7 @@ async function prepareChat(context: APIContext, signal: AbortSignal): Promise<Pr
       ? runSearch(head.value.call)
       : continueText(head.value.text, events, runSearch);
 
-  return { request: chat, user, conversation, history, language, parts, outcome };
+  return { request: chat, user, conversation, history, language, specialty, parts, outcome };
 }
 
 // ─── Guardado ────────────────────────────────────────────────────────────────
@@ -316,6 +454,7 @@ async function persist(
       id,
       userId: user.id,
       mode: request.mode,
+      specialty: prepared.specialty,
       existing: conversation,
       messages: [
         ...earlier,
@@ -349,14 +488,22 @@ const SSE_HEADERS = {
 
 const encoder = new TextEncoder();
 
+/** La persona cerró el chat antes de acabar: como el 499 de nginx. */
+const CLIENT_CLOSED: TraceOutcome = { status: 499, errorCode: 'client_closed' };
+
 function encodeEvent(event: ChatStreamEvent): Uint8Array {
   return encoder.encode(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
 }
 
-function streamReply(prepared: PreparedChat, abort: AbortController): ReadableStream<Uint8Array> {
+function streamReply(
+  prepared: PreparedChat,
+  abort: AbortController,
+  trace: RequestTrace,
+): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
       let reply = '';
+      let outcome: TraceOutcome = { status: 200, errorCode: null };
       try {
         for await (const part of prepared.parts) {
           if (part.type === 'searching') {
@@ -364,21 +511,31 @@ function streamReply(prepared: PreparedChat, abort: AbortController): ReadableSt
             continue;
           }
           reply += part.text;
+          trace.markFirstByte();
           controller.enqueue(encodeEvent({ event: 'delta', data: { text: part.text } }));
         }
         if (reply.trim().length === 0) {
           throw new DeepSeekError('DeepSeek cerró el stream sin texto.');
         }
 
-        const { candidates, search } = prepared.outcome;
-        const recommendations = findRecommendations(reply, candidates, prepared.language);
+        const { candidates, search, referenceIds } = prepared.outcome;
+        const mentioned = findRecommendations(reply, candidates, prepared.language);
+        // «Algo como Interstellar»: nombra Interstellar y recomienda otra. Si
+        // recomienda alguna además de lo que pidió, lo pedido era la referencia
+        // (sin esto salía su ficha la primera). Si solo nombra lo pedido, es que lo pidió.
+        const beyond = mentioned.filter((item) => !referenceIds.has(item.id));
+        const recommendations = beyond.length > 0 ? beyond : mentioned;
         // Un título en negrita que no sale de ninguna búsqueda es uno inventado.
-        // Ya se ha escrito: al menos, que se vea en el log.
-        const unknown = extractTitleMentions(reply).length - recommendations.length;
-        if (unknown > 0) {
-          console.warn(`[api/chat] Umber nombró ${String(unknown)} título(s) que no venían de una búsqueda.`);
+        // Ya se ha escrito: al menos, que se vea en el log, con cuáles.
+        const unknown = unknownTitleMentions(reply, [...candidates, ...prepared.outcome.references]);
+        if (unknown.length > 0) {
+          const titles = unknown.map((m) => (m.year === null ? m.title : `${m.title} (${String(m.year)})`));
+          console.warn(`[api/chat] Umber nombró títulos que no venían de una búsqueda: ${titles.join(' · ')}`);
+          trace.unknownTitles = titles;
         }
-        const conversationId = await persist(prepared, reply, recommendations);
+        trace.recommendationIds = recommendations.map((item) => item.id);
+        const conversationId = await trace.time('save', persist(prepared, reply, recommendations));
+        trace.conversationId = conversationId;
         controller.enqueue(
           encodeEvent({
             event: 'done',
@@ -387,10 +544,18 @@ function streamReply(prepared: PreparedChat, abort: AbortController): ReadableSt
         );
       } catch (error: unknown) {
         // Si el cliente se ha ido no hay a quién avisar, ni una respuesta entera que guardar.
-        if (abort.signal.aborted) return;
-        console.error('[api/chat] Fallo durante el stream:', error);
-        controller.enqueue(encodeEvent({ event: 'error', data: publicError(error).body.error }));
+        if (abort.signal.aborted) {
+          outcome = CLIENT_CLOSED;
+        } else {
+          console.error('[api/chat] Fallo durante el stream:', error);
+          const { status, body } = publicError(error);
+          outcome = { status, errorCode: body.error.code };
+          controller.enqueue(encodeEvent({ event: 'error', data: body.error }));
+        }
       } finally {
+        trace.reply = reply.length > 0 ? reply : null;
+        // Antes de cerrar: en Vercel, lo que sigue en marcha tras responder puede no terminar.
+        await trace.save(outcome);
         try {
           controller.close();
         } catch {
@@ -412,16 +577,18 @@ export const POST: APIRoute = async (context) => {
   context.request.signal.addEventListener('abort', () => {
     abort.abort();
   });
+  const trace = new RequestTrace('chat');
 
   let prepared: PreparedChat;
   try {
-    prepared = await prepareChat(context, abort.signal);
+    prepared = await prepareChat(context, abort.signal, trace);
   } catch (error: unknown) {
     const { status, body, headers } = publicError(error);
     // Si el cliente se fue mientras se preparaba, el fallo es la propia cancelación.
     if (status >= 500 && !abort.signal.aborted) console.error('[api/chat]', error);
+    await trace.save(abort.signal.aborted ? CLIENT_CLOSED : { status, errorCode: body.error.code });
     return Response.json(body, { status, headers });
   }
 
-  return new Response(streamReply(prepared, abort), { headers: SSE_HEADERS });
+  return new Response(streamReply(prepared, abort, trace), { headers: SSE_HEADERS });
 };

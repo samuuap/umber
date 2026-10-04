@@ -7,7 +7,10 @@ Descarga de TMDB el universo de candidatos al corpus.
    `/discover` no pasa de 500 páginas por consulta.
 2. Trae el detalle de cada uno (keywords, créditos y traducciones en una sola
    llamada) y lo guarda recortado en `data/details-{tipo}.jsonl`.
-3. Lo normaliza al formato del esquema en `data/universe.jsonl`.
+3. Trae lo que hace falta para recomendar como un experto (Fase 8): el reparto
+   principal, las recomendaciones de TMDB y la saga, en `data/extras-{tipo}.jsonl`.
+   Va aparte del detalle para no volver a descargar lo que ya estaba.
+4. Lo normaliza al formato del esquema en `data/universe.jsonl`.
 
 El universo es más grande que el corpus: qué entra lo decide `score.py`. Todo lo
 descargado queda en caché. Un corte a mitad se reanuda donde se quedó, y
@@ -233,7 +236,66 @@ def fetch_details(content_type: str, ids: list[int]) -> dict[int, dict[str, Any]
     return cached
 
 
-# ─── 4. Normalización ────────────────────────────────────────────────────────
+# ─── 4. Reparto, recomendaciones y saga ──────────────────────────────────────
+
+# Los primeros del reparto: los que alguien nombra al pedir «algo con…».
+CAST_SIZE = 6
+
+
+def fetch_extra(content_type: str, tmdb_id: int) -> dict[str, Any]:
+    """Reparto, recomendaciones y saga. En series, el reparto de todas las temporadas.
+
+    Las recomendaciones de TMDB salen de lo que vio la gente que vio este título:
+    no se parecen por el argumento, sino por el público. `load-db.py` las mezcla
+    con el parecido de argumento para «Más como esta».
+    """
+    credits = "credits" if content_type == "movie" else "aggregate_credits"
+    try:
+        data = get(f"/{content_type}/{tmdb_id}", append_to_response=f"{credits},recommendations")
+    except requests.HTTPError as error:
+        if error.response is not None and error.response.status_code == 404:
+            return {"id": tmdb_id, "missing": True}
+        raise
+    cast = sorted(data.get(credits, {}).get("cast", []), key=lambda person: person.get("order", 999))
+    collection = data.get("belongs_to_collection") or {}
+    return {
+        "id": tmdb_id,
+        "cast": [person["name"] for person in cast[:CAST_SIZE]],
+        "recommendations": [item["id"] for item in data.get("recommendations", {}).get("results", [])],
+        "collection_id": collection.get("id"),
+        "popularity": data.get("popularity"),
+        "vote_count": data.get("vote_count"),
+        "vote_average": data.get("vote_average"),
+    }
+
+
+def fetch_extras(content_type: str, ids: list[int]) -> dict[int, dict[str, Any]]:
+    path = DATA_DIR / f"extras-{content_type}.jsonl"
+    cached = {row["id"]: row for row in read_jsonl(path)}
+    pending = [tmdb_id for tmdb_id in ids if tmdb_id not in cached]
+    print(f"  {content_type}: extras {len(cached)} en caché, {len(pending)} por descargar")
+
+    failures = 0
+    with ThreadPoolExecutor(WORKERS) as pool:
+        futures = {pool.submit(fetch_extra, content_type, tmdb_id): tmdb_id for tmdb_id in pending}
+        for done, future in enumerate(as_completed(futures), start=1):
+            try:
+                row = future.result()
+            except requests.RequestException as error:
+                failures += 1
+                print(f"  ✗ {content_type} {futures[future]}: {error}", file=sys.stderr)
+                continue
+            append_jsonl(path, [row])
+            cached[row["id"]] = row
+            if done % 1000 == 0:
+                print(f"    {done}/{len(pending)}", flush=True)
+
+    if failures:
+        raise SystemExit(f"{failures} descargas fallidas en {content_type}. Reejecuta para reintentarlas.")
+    return cached
+
+
+# ─── 5. Normalización ────────────────────────────────────────────────────────
 
 
 def translated(detail: dict[str, Any], lang: str, field: str) -> str | None:
@@ -253,7 +315,7 @@ def translated(detail: dict[str, Any], lang: str, field: str) -> str | None:
 
 
 def normalize(
-    content_type: str, detail: dict[str, Any], genres: dict[int, dict[str, str]]
+    content_type: str, detail: dict[str, Any], extra: dict[str, Any], genres: dict[int, dict[str, str]]
 ) -> dict[str, Any] | None:
     """Fila del universo, o `None` si el título no se puede recomendar."""
     status = TMDB_STATUS[content_type].get(detail["status"] or "")
@@ -288,8 +350,14 @@ def normalize(
         "status": status,
         "release_month": int(release[5:7]) if release[5:7].isdigit() else None,
         "original_language": detail["original_language"],
-        "vote_count": detail["vote_count"],
-        "vote_average": detail["vote_average"],
+        # Votos, nota y popularidad de la segunda descarga: son más recientes.
+        "vote_count": extra.get("vote_count") or detail["vote_count"],
+        "vote_average": extra.get("vote_average") or detail["vote_average"],
+        "popularity": extra.get("popularity") or detail.get("popularity"),
+        "cast": extra.get("cast", []),
+        "collection_id": extra.get("collection_id"),
+        # Ids de TMDB del mismo tipo: `load-db.py` se queda con los que estén en el corpus.
+        "tmdb_recommendations": extra.get("recommendations", []),
     }
 
 
@@ -300,11 +368,13 @@ def main() -> None:
         print(f"\n{content_type}")
         ids = discover(content_type)
         details = fetch_details(content_type, ids)
+        extras = fetch_extras(content_type, ids)
         rows = [
             row
             for tmdb_id in ids
             if not (detail := details[tmdb_id]).get("missing")
-            and (row := normalize(content_type, detail, genres[content_type])) is not None
+            and not (extra := extras[tmdb_id]).get("missing")
+            and (row := normalize(content_type, detail, extra, genres[content_type])) is not None
         ]
         print(f"  {len(rows)} recomendables de {len(ids)} (el resto: sin sinopsis, sin estrenar o borrados)")
         universe += rows

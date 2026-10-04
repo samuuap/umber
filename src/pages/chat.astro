@@ -3,13 +3,16 @@
  * Chat con Umber.
  *
  *   /chat?mode=movie            conversación nueva
+ *   /chat?mode=movie&q=<texto>  conversación nueva que empieza con ese mensaje (la portada)
  *   /chat?conversation=<uuid>   conversación guardada (exige sesión)
+ *   …&especialidad=otono        con la especialidad de otoño (Fase 8)
  *
  * El modo va en la URL para que la página se pueda compartir y recargar. La
  * lógica del navegador está en `src/scripts/chat.ts`.
  */
 import ChatMessage from '@/components/ChatMessage.astro';
 import ContentCard from '@/components/ContentCard.astro';
+import LeafMark from '@/components/LeafMark.astro';
 import Layout from '@/layouts/Layout.astro';
 import { UUID_PATTERN } from '@/lib/api';
 import { loadConversation, type StoredConversation } from '@/lib/conversations';
@@ -47,12 +50,28 @@ if (conversationParam !== null) {
 const modeParam = conversation?.mode ?? Astro.url.searchParams.get('mode');
 if (!isAvailableChatMode(modeParam)) return Astro.redirect('/');
 const mode: ChatMode = modeParam;
+// Una conversación guardada sigue con la suya; una nueva, con la que diga la URL.
+const specialty = conversation?.specialty ?? (Astro.url.searchParams.get('especialidad') === 'otono' ? 'autumn' : null);
 const definition = CHAT_MODE_DEFINITIONS[mode];
 
 const messages = conversation?.messages ?? [];
 // Una conversación guardada que ya llegó al tope se abre cerrada, sin cuadro de texto.
 const ended = remainingTurns(messages.length) === 0;
 const startOver = `/chat?mode=${mode}`;
+/*
+ * El mensaje con el que llega desde la portada: el chat lo envía al abrirse.
+ * Puede venir dos veces `q`: el del cuadro y, si se pulsó una sugerencia, el de
+ * su botón, que va el último. Vale el último con texto: si había algo escrito y
+ * se pulsó la sugerencia, lo que se quería mandar era la sugerencia. Lo valida
+ * el servidor al recibirlo, como cualquier otro.
+ */
+const initialMessage =
+  conversation === null
+    ? (Astro.url.searchParams
+        .getAll('q')
+        .map((value) => value.trim())
+        .findLast((value) => value.length > 0) ?? '').slice(0, MAX_MESSAGE_CHARS)
+    : '';
 const region =
   regionFromAcceptLanguage(Astro.request.headers.get('accept-language')) ?? TMDB_DEFAULT_REGION;
 // Las fichas de la conversación guardada: una consulta para todos sus mensajes.
@@ -90,37 +109,41 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
   <main
     data-chat
     data-mode={mode}
+    data-specialty={specialty ?? ''}
     data-conversation-id={conversation?.id ?? ''}
     data-message-count={messages.length}
+    data-initial-message={initialMessage}
     data-favorites={JSON.stringify(favoriteIds)}
-    class="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5"
+    class="mx-auto flex w-full max-w-[46rem] flex-1 flex-col px-5 sm:px-8"
   >
-    <header class="flex items-end justify-between gap-4 py-6">
+    <header class="border-umber-line flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b pt-8 pb-7 sm:pt-12">
       <div>
-        <p class="text-umber-amber text-xs font-medium tracking-[0.25em] uppercase">Modo</p>
-        <h1 class="text-3xl font-semibold">{definition.label}</h1>
+        <p class="eyebrow eyebrow-rule">{specialty === 'autumn' ? `${definition.label} · Otoño` : definition.label}</p>
+        <h1 class="display-3 mt-4">
+          {mode === 'tv' ? <>Una serie para <em>estos días</em></> : <>Una película para <em>hoy</em></>}
+        </h1>
       </div>
-      <a href="/" class="text-umber-ash hover:text-umber-cream text-sm underline underline-offset-4">
-        Cambiar de modo
-      </a>
+      <a href="/" class="link-quiet text-sm">Nueva conversación <span class="arrow" aria-hidden="true">→</span></a>
     </header>
 
-    <section aria-label="Conversación" class="flex-1 pb-6">
-      <div data-empty-state hidden={messages.length > 0} class="space-y-5 py-6">
-        <p class="font-display text-umber-cream/90 text-2xl leading-snug">
-          ¿Cómo te sientes hoy? Cuéntamelo con tus palabras y te busco algo que encaje.
+    <section aria-label="Conversación" class="flex-1 pt-10 pb-8">
+      <div data-empty-state hidden={messages.length > 0 || initialMessage !== ''} class="rise pb-10">
+        <p class="eyebrow flex items-center gap-2.5">
+          <LeafMark class="text-umber-amber size-3.5" />
+          Umber
         </p>
-        <div class="space-y-2">
-          <p class="text-umber-ash text-xs tracking-[0.15em] uppercase">O empieza por aquí</p>
-          <ul class="flex flex-wrap gap-2">
+        <p class="display-3 mt-5">¿Cómo te <em>sientes</em>?</p>
+        <p class="reading text-umber-ash mt-4 max-w-[34rem]">
+          Cuéntamelo con tus palabras —el tiempo que hace, tu ánimo, con quién la vas a ver— y te busco algo
+          que encaje.
+        </p>
+        <div class="mt-10">
+          <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
+          <ul class="mt-4 flex flex-wrap gap-2" aria-labelledby="sugerencias">
             {
               suggestions.map((suggestion) => (
                 <li>
-                  <button
-                    type="button"
-                    data-suggestion
-                    class="border-umber-sienna/70 hover:border-umber-amber hover:text-umber-cream text-umber-cream/85 rounded-full border px-3.5 py-1.5 text-sm transition-colors"
-                  >
+                  <button type="button" data-suggestion class="chip">
                     {suggestion}
                   </button>
                 </li>
@@ -130,7 +153,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
         </div>
       </div>
 
-      <ol data-messages aria-live="polite" aria-busy="false" class="space-y-8">
+      <ol data-messages aria-live="polite" aria-busy="false" class="space-y-11">
         {
           messages.map((message) => (
             <ChatMessage
@@ -147,11 +170,11 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     <form
       data-composer
       hidden={ended}
-      class="bg-umber-base/95 border-umber-surface sticky bottom-0 -mx-5 border-t px-5 pt-3 pb-4 backdrop-blur supports-[backdrop-filter]:bg-umber-base/80"
+      class="from-umber-base via-umber-base/95 sticky bottom-0 -mx-5 bg-gradient-to-t to-transparent px-5 pt-8 pb-4 sm:-mx-8 sm:px-8 sm:pb-5"
     >
-      <p data-turns-left hidden role="status" class="text-umber-amber/90 pb-2 text-center text-xs"></p>
+      <p data-turns-left hidden role="status" class="text-umber-amber pb-3 text-center text-xs font-medium"></p>
       <label for="mensaje" class="sr-only">Cuéntale a Umber cómo te sientes</label>
-      <div class="border-umber-sienna/60 focus-within:border-umber-amber bg-umber-surface flex items-end gap-2 rounded-2xl border p-2 transition-colors">
+      <div class="composer flex items-end gap-2 p-2.5 pl-4 sm:pl-5">
         <textarea
           id="mensaje"
           name="message"
@@ -159,25 +182,12 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
           maxlength={MAX_MESSAGE_CHARS}
           required
           placeholder="Está lloviendo y me apetece algo que abrace…"
-          class="placeholder:text-umber-ash/80 max-h-48 min-h-12 flex-1 resize-none bg-transparent px-2 py-1.5 leading-relaxed focus:outline-none"
+          class="placeholder:text-umber-ash/70 max-h-48 min-h-12 flex-1 resize-none bg-transparent py-2 font-serif text-[1.08rem] leading-relaxed focus:outline-none"
         ></textarea>
-        <button
-          type="button"
-          data-stop
-          hidden
-          class="border-umber-sienna text-umber-cream hover:border-umber-amber rounded-xl border px-3.5 py-2 text-sm font-medium"
-        >
-          Detener
-        </button>
-        <button
-          type="submit"
-          data-send
-          class="bg-umber-amber text-umber-base hover:bg-umber-amber/90 disabled:bg-umber-sienna/60 disabled:text-umber-cream/60 rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
-        >
-          Enviar
-        </button>
+        <button type="button" data-stop hidden class="btn-secondary px-4 py-2.5">Detener</button>
+        <button type="submit" data-send class="btn-primary px-5 py-2.5">Enviar</button>
       </div>
-      <p class="text-umber-ash mt-2 hidden text-xs sm:block">
+      <p class="text-umber-ash mt-2.5 hidden text-center text-[0.7rem] tracking-[0.02em] sm:block">
         Intro para enviar · Mayúsculas + Intro para un salto de línea
       </p>
     </form>
@@ -186,40 +196,36 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       data-conversation-end
       hidden={!ended}
       role="status"
-      class="bg-umber-base/95 border-umber-surface sticky bottom-0 -mx-5 border-t px-5 py-6 text-center backdrop-blur"
+      class="bg-umber-base/95 border-umber-line sticky bottom-0 -mx-5 border-t px-5 py-10 backdrop-blur sm:-mx-8 sm:px-8"
     >
       {
         user === null ? (
           <>
-            <p class="font-display text-xl">Aquí termina tu conversación de prueba</p>
-            <p class="text-umber-ash mx-auto mt-2 max-w-md text-sm leading-relaxed">
-              Crea una cuenta gratis para seguir hablando con Umber, guardar tus conversaciones y
-              tus favoritos.
+            <p class="eyebrow eyebrow-rule">Fin de la prueba</p>
+            <p class="display-3 mt-4">
+              Aquí termina tu conversación <em>de prueba</em>
             </p>
-            <div class="mt-4 flex flex-wrap justify-center gap-3">
-              <a
-                href={`/registro?next=${encodeURIComponent(startOver)}`}
-                class="bg-umber-amber text-umber-base hover:bg-umber-amber/90 rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
-              >
-                Crear cuenta
+            <p class="text-umber-ash mt-3 max-w-md leading-relaxed">
+              Crea una cuenta gratis para seguir hablando con Umber, guardar tus conversaciones y tus favoritos.
+            </p>
+            <div class="mt-7 flex flex-wrap gap-3">
+              <a href={`/registro?next=${encodeURIComponent(startOver)}`} class="btn-primary">
+                Crear cuenta <span class="arrow" aria-hidden="true">→</span>
               </a>
-              <a
-                href={`/entrar?next=${encodeURIComponent(startOver)}`}
-                class="border-umber-sienna text-umber-cream hover:border-umber-amber rounded-xl border px-4 py-2 text-sm font-medium transition-colors"
-              >
+              <a href={`/entrar?next=${encodeURIComponent(startOver)}`} class="btn-secondary">
                 Ya tengo cuenta
               </a>
             </div>
           </>
         ) : (
           <>
-            <p class="font-display text-xl">Esta conversación ha llegado a su final</p>
-            <p class="text-umber-ash mt-2 text-sm">Tus favoritos siguen guardados.</p>
-            <a
-              href={startOver}
-              class="bg-umber-amber text-umber-base hover:bg-umber-amber/90 mt-4 inline-block rounded-xl px-4 py-2 text-sm font-semibold transition-colors"
-            >
-              Empezar una nueva
+            <p class="eyebrow eyebrow-rule">Fin de la conversación</p>
+            <p class="display-3 mt-4">
+              Esta conversación ha llegado <em>a su final</em>
+            </p>
+            <p class="text-umber-ash mt-3">Tus favoritos siguen guardados.</p>
+            <a href="/" class="btn-primary mt-7">
+              Empezar una nueva <span class="arrow" aria-hidden="true">→</span>
             </a>
           </>
         )

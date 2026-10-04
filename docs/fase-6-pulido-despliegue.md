@@ -1,13 +1,17 @@
-# Fase 6 — Pulido y despliegue
+# Fase 6 — Pulido, producto completo y despliegue
 
-**Estado:** ⏳ Pendiente
-**Depende de:** [Fase 5](fase-5-frontend.md) 🔄
-**Actualizado:** 2026-09-30
+**Estado:** 🔄 En curso
+**Depende de:** [Fase 5](fase-5-frontend.md) ✅
+**Actualizado:** 2026-10-04
 
 ## Objetivo
 
-Dejar Umber en producción, en dos idiomas, usable en cualquier pantalla y con el
-coste bajo control.
+Dejar Umber en producción como **proyecto completo y sin fallos**, no como MVP:
+cuenta completa, legal, operación vigilada, en dos idiomas, usable en cualquier
+pantalla y con el coste bajo control. Sin cobrar nada: premium es la
+[Fase 7](fase-7-premium.md), para más adelante. Solo se paga DeepSeek, por uso:
+nada de gastos fijos, ni servidores que mantener ni dominio (ver «Correo de la
+cuenta»).
 
 ## Hecho
 
@@ -19,16 +23,192 @@ coste bajo control.
 
 ## Pendiente
 
+### Producto completo (añadido el 2026-10-04)
+
+Lo que falta para que no sea un MVP. Orden propuesto: lo que bloquea el
+lanzamiento primero.
+
+**Cuenta**
+- [ ] Recuperar la contraseña («¿La has olvidado?»): hoy no existe
+- [ ] `/cuenta`: cambiar nombre de usuario, email y contraseña
+- [ ] Borrar la cuenta y descargar tus datos (RGPD: supresión y portabilidad)
+- [ ] Entrar con Google (ver la [Fase 5](fase-5-frontend.md))
+- [ ] Límite propio en `/entrar` y `/registro` por IP, además del de Supabase,
+      con `hit_rate_limit` como el chat. Protege también el cupo de correos
+- [ ] **Reenviar el correo de confirmación**: un botón en «Revisa tu correo»
+      (`registro.astro`) y en el aviso de enlace caducado de `/entrar`
+      (`?error=enlace`), con `auth.resend({ type: 'signup', email })` y límite
+      propio. Hoy, quien deja caducar el enlace (una hora) no puede activar la
+      cuenta
+- [ ] Mensajes en español para los errores de envío que hoy caen en el genérico
+      de `authErrorMessage` (`src/lib/auth.ts`): `email_address_not_authorized`
+      y los que salgan al probar con el SMTP de producción
+
+**Legal**
+- [ ] Aviso legal, política de privacidad, cookies (solo técnicas: sin banner)
+      y condiciones de uso, enlazados desde el pie. Borradores para que los
+      revise alguien
+
+**Operación**
+- [ ] **Correo de la cuenta sin coste**: el de Supabase no envía a gente real.
+      Ver «Correo de la cuenta», más abajo. El dominio propio (10–15 €/año) no
+      está aprobado: solo si algún día se decide pagarlo
+- [ ] Errores en producción con Sentry (plan gratuito) y aviso si la web cae
+      (UptimeRobot o similar, gratis)
+- [ ] **Supabase gratuito pausa el proyecto tras 7 días sin actividad** y no
+      tiene copias descargables: tarea semanal en GitHub Actions que lo mantenga
+      vivo y guarde una copia de la base
+- [ ] Aviso cuando el saldo de DeepSeek baje de un umbral (`/user/balance`)
+
+**Calidad**
+- [ ] Tests automáticos de la lógica pura (`turns`, `rate-limit`, `chat`,
+      `locale`, `markdown`) y de los flujos clave en el navegador, en el repo
+- [ ] GitHub Actions en cada push: typecheck, build y tests
+- [ ] `npm run check:guardrails` antes de cada cambio en `system.md`
+
+**SEO y difusión**
+- [ ] Metadatos y vista previa al compartir (Open Graph con el cartel) en cada
+      ficha: 5.000 páginas «Dónde ver…»
+- [ ] `sitemap.xml` y `robots.txt`
+- [ ] Analítica sin cookies (Cloudflare Web Analytics): exige añadirla al CSP
+
+**Producto**
+- [ ] «Ya la he visto»: Umber no la vuelve a recomendar
+- [ ] Compartir una recomendación
+- [ ] Explorar: que la vista inicial no sea una pared de terror (decidir cómo)
+- [ ] Instalable en el móvil (PWA)
+
+### Diseño y rendimiento (2026-10-04)
+
+- [x] **Rediseño «Noche de otoño»**, elegido frente a una versión clara con una
+      maqueta de las dos. Misma identidad oscura, menos negra, con ámbar para la
+      acción y musgo y mostaza de acento; piezas comunes en `global.css`. Ver
+      «Estética» en `CLAUDE.md`
+- [x] **Portada nueva, la acción primero**: «¿Qué te apetece ver hoy?» con el
+      cuadro de texto, Película/Serie y sugerencias; envía a
+      `/chat?mode=…&q=…` (sin JavaScript también) y el chat arranca con ese
+      mensaje. «Cómo funciona» en tres pasos y una fila del catálogo. Antes no
+      había ninguna acción visible sin bajar, la mitad de los modos eran
+      «Próximamente» y el fondo aleatorio sacó una escena de miedo detrás de
+      «Cuéntale cómo te sientes»: ahora tres carteles en abanico, de dramas y
+      romances otoñales (sin terror, fantasía, misterio ni infantil)
+- [x] Chat, explorar, ficha, favoritos, conversaciones, entrar y registro con
+      el mismo lenguaje: Umber con avatar de hoja, controles segmentados,
+      tarjetas, estados vacíos con una acción
+- [x] **Peso**, medido sobre el build con Chromium y sin caché:
+
+      | | Antes | Después |
+      |---|---|---|
+      | Fuentes, en cada página | 391 kB, 8 archivos | 70 kB, 2 |
+      | Carteles de `/explorar` | 1.272 kB | 475 kB |
+      | `/entrar` entero | 449 kB | 119 kB |
+      | Portada entera | 551 kB | 338 kB |
+
+      Fuentes solo en `latin` y con los pesos que se usan; carteles con
+      `srcset` (`w185`/`w342`); sin backdrop `original`. LCP más bajo en todas
+      y CLS 0. Probado sin violaciones de CSP, y con los tests del chat, los
+      límites y el borrado de conversaciones
+
+### Fallos de la revisión (2026-10-04)
+
+Revisión del proyecto entero; arreglados los fallos de lógica y de interfaz y lo
+que era de una o dos líneas. Lo demás queda en sus secciones.
+
+- [x] **Turno forzado sin salida**: con 4 preguntas seguidas, DeepSeek llamaba a
+      veces a `buscar_por_titulo` en vez de buscar por ánimo; no contaba como
+      búsqueda y el turno siguiente volvía a forzarse. Ahora ese turno solo
+      ofrece `buscar_titulos` (`turnToolsFor` en `src/lib/turns.ts`) y, como
+      DeepSeek puede llamar a una herramienta que no se le ofreció, el servidor
+      la trata como búsqueda por ánimo. Probado dos veces: guarda la búsqueda y
+      recomienda
+- [x] **Una búsqueda sin resultados** ya no se le presenta al modelo como «quedan
+      0 candidatos, saca otra»: le pide otro ángulo o buscar con otras palabras
+- [x] El resumen de la búsqueda va entrecomillado y sin `«»` en el contexto del
+      modelo: lo escribió el propio modelo a partir de lo que dijo la persona
+- [x] `buscar_por_titulo` con «Título/Otro título» (barra sin espacios) prueba
+      las dos variantes además del texto entero
+- [x] El log de títulos que no vienen de una búsqueda dice cuáles son
+- [x] **Sugerencia de la portada**: con texto escrito, pulsar una sugerencia
+      enviaba lo escrito. Ahora el chat toma el último `q` no vacío, que es el
+      del botón
+- [x] **«Entrar» desde el chat** llevaba el `q` en `next` y, al volver, reenviaba
+      el primer mensaje: `returnPath()` en `src/lib/auth.ts` lo quita
+- [x] **Errores del chat con salida** (`recoveryFor` en `src/scripts/chat.ts`):
+      «Reintentar» solo si repetir puede servir; con la sesión caducada,
+      «Entrar de nuevo» de vuelta a la conversación; con una conversación que ya
+      no existe, «Empezar una nueva». Al mandar otro mensaje, el «Reintentar» de
+      antes desaparece
+- [x] **`load-db.py --prune`** borraba en cascada favoritos de usuarios. Ahora se
+      para sin borrar nada y dice qué títulos guardó alguien; hace falta
+      `--drop-favorites`
+- [x] Foco visible en el cuadro de la portada; anillo en la opción elegida del
+      control segmentado (después, con el rediseño, pestañas con línea)
+- [x] Probado sobre el build: sugerencia frente a texto escrito, sin conexión,
+      mensaje nuevo tras un error y sesión caducada, en Chromium; la parada de
+      `--prune` con un favorito de un usuario temporal; y sin regresiones en
+      CSP, chat, límites y los 17 casos de `check:guardrails`
+
+### Rediseño editorial (2026-10-04)
+
+Pedido: que no parezca una plantilla generada, con paleta madura y un solo
+acento, asimetría y ritmo editorial, tipografías cuidadas, transiciones suaves,
+responsive y otoñal sin ser infantil. Detalle en «Estética» de `CLAUDE.md`.
+
+- [x] **Tipografía**: Newsreader (titular fino con cursiva, y un corte de
+      lectura para lo que dice Umber) y Schibsted Grotesk para la interfaz, en
+      vez de Playfair e Inter, que son las de cualquier plantilla. Elegidas
+      comparando cinco parejas renderizadas sobre el fondo oscuro
+- [x] **Un solo acento**: fuera el musgo y la mostaza. El ámbar queda para la
+      acción, lo elegido y los títulos que recomienda Umber
+- [x] **Portada**: titular grande, el cuadro, un fotograma etalonado con su
+      cartel montado encima; «Cómo funciona» en dos columnas con numeración
+      romana; una frase de Umber como cita; y un índice tipográfico de seis
+      títulos cuyo cartel cambia al señalarlos. El escaparate son películas de
+      drama y romance otoñales (`src/lib/showcase.ts`): las series y las
+      comedias sacaban carteles chillones
+- [x] **Chat**: Umber escribe en serif de lectura y sin burbuja, como una carta;
+      fichas a todo el ancho, con las plataformas en una línea; el cuadro fijo
+      se funde con el fondo
+- [x] **Explorar, ficha, favoritos, conversaciones y cuenta** con la misma
+      composición: cabecera asimétrica, filetes, campos de línea, pestañas con
+      línea ámbar. La ficha, con el fotograma a sangre y la ficha técnica como
+      unos créditos; entrar y registrarse, con un fotograma al lado
+- [x] **Movimiento**: entradas escalonadas, fotogramas que se revelan,
+      secciones que aparecen al hacer scroll (CSS, sin JavaScript), fundido
+      entre páginas y el cartel que viaja de la rejilla a la ficha. Todo se
+      apaga con «reducir movimiento»
+- [x] Grano de película, favicon con la hoja (era el de Astro)
+- [x] Probado sobre el build: sin violaciones de CSP en ninguna página; chat,
+      errores del chat y límites sin regresiones; transición del cartel, índice
+      de la portada con ratón y teclado, y movimiento reducido. Capturas a 390 y
+      1280 px de todas las pantallas
+- [x] **Peso**, sin caché: fuentes 149 kB en las páginas con texto de lectura
+      (eran 70; la de lectura no se baja en entrar ni registro, 92 kB). Imágenes
+      de `/explorar`, 492 kB, como antes; portada, unos 340 kB, con el
+      fotograma. LCP en local entre 0,04 y 0,4 s
+- [ ] **Explorar, vista inicial**: con «Más otoñales» la primera página es
+      Halloween, Scooby-Doo y Halloweentown, justo lo infantil que el diseño
+      evita. Decidir cómo (ver «Producto completo»)
+
 ### Responsive y accesibilidad
 
 - [ ] Repasar las tres pantallas en móvil, tablet y escritorio
-- [ ] Contraste de la paleta contra WCAG AA. El punto a vigilar es el texto
-      secundario `#8A7B6E` sobre el fondo `#0D0B08`: en tamaños pequeños puede
-      quedarse corto
+- [x] Contraste de la paleta contra WCAG AA (calculado, 2026-10-04, tras el
+      rediseño): crema 15:1, ceniza 7:1, ámbar 6,8:1. La pestaña elegida se
+      distingue por color y por una línea ámbar (6,8:1); con colores forzados,
+      subrayada
+- [x] **Bordes de los campos**: eran `umber-line`, a 1,3:1. Ahora los campos
+      llevan solo la línea de abajo, en `umber-rule` (3,4:1); WCAG 1.4.11 pide
+      3:1 en lo que identifica un control
 - [ ] Navegación completa por teclado y lector de pantalla. Ya hay enlace
-      «Saltar al contenido», y la lista del chat lleva `aria-live="polite"` con
-      `aria-busy` mientras llega el stream (Fase 5); falta probarlo con VoiceOver o
-      NVDA, que anuncian los fragmentos de forma distinta
+      «Saltar al contenido». **Revisión del 2026-10-04**: la lista entera del
+      chat es región `aria-live` y su HTML se rehace en cada fotograma, así que
+      NVDA o JAWS pueden releer la respuesta; mejor una región aparte que anuncie
+      el estado y la respuesta final una vez. Además: el foco se pierde al
+      ocultarse «Detener», «Reintentar» o el cuadro de texto; en `/explorar`,
+      las flechas de un desplegable navegan; el cuadro fijo del chat tapa lo que
+      recibe el foco; las respuestas en inglés no llevan `lang`. Falta probarlo
+      con VoiceOver o NVDA
 - [x] Textos alternativos: los carteles llevan «Cartel de <título>». El backdrop
       de la portada es decorativo (`alt=""`) y su título va escrito al pie
 
@@ -66,6 +246,54 @@ coste bajo control.
       subió al 94 %, y `ef_search` 100 en `search_content`, al 97,5 %; las
       búsquedas por ánimo, al 100 %. Medido en 20 consultas
 
+### Correo de la cuenta (2026-10-04)
+
+A raíz de una pregunta del usuario («¿la confirmación por correo no tiene un
+límite?»). Tiene varios, y uno bloquea el lanzamiento:
+
+- **El correo que trae Supabase es solo para pruebas**: 2 correos por hora en
+  todo el proyecto (no por persona), sin forma de subirlo, y **solo entrega a
+  las direcciones del equipo del proyecto**. A cualquier otra falla con
+  `email_address_not_authorized`: hoy, alguien de fuera que se registre no
+  recibe el enlace y ve «No se ha podido completar»
+- **El enlace caduca a la hora** (*Email OTP Expiration*, en Authentication →
+  Sign In / Providers → Email; se puede subir hasta 24 horas). Abierto caducado
+  o ya usado, `/auth/confirm` manda a `/entrar?error=enlace`, pero no hay forma
+  de pedir otro
+- **Límites de Supabase por IP y por persona**, que se quedan como están: 30
+  registros o entradas cada 5 minutos por IP, 30 verificaciones cada 5 minutos
+  por IP y 60 s entre dos correos a la misma persona
+  (`over_email_send_rate_limit`, que ya tiene mensaje). Con un SMTP propio, el
+  tope por hora pasa a 30 y se cambia en Authentication → Rate Limits
+- `supabase/config.toml` solo vale para el Supabase local: nada de lo de arriba
+  sale de ahí. No usar `supabase config push`, que pisaría la configuración de
+  Auth del proyecto remoto
+
+**Sin servidores ni gastos fijos** (el usuario, el 2026-10-04: «eso tiene un
+coste y dijimos que no»). Un «SMTP propio» no es un servidor: es darle a
+Supabase el usuario y la contraseña de un servicio de correo que ya existe, para
+que envíe con él. Propuesta, **pendiente de que el usuario la apruebe**:
+
+- [ ] **Una cuenta de Gmail solo para Umber como SMTP** (Authentication →
+      Emails → SMTP Settings): verificación en dos pasos, una contraseña de
+      aplicación, `smtp.gmail.com`, puerto 465, y de remitente la propia
+      dirección (Gmail cambia cualquier otra). Llega bien porque sale de Google;
+      tope de unos 500 correos al día, de sobra para empezar. Lo menos bonito: el
+      remitente es una `@gmail.com`
+- [ ] Reenviar el correo, mensajes de envío en español y límite propio en
+      `/entrar` y `/registro`: en «Cuenta», arriba. Son código y no cuestan nada
+- [ ] Más adelante, **entrar con Google**: no necesita correo de confirmación,
+      porque Google ya ha comprobado el email. Completa lo de Gmail, no lo
+      sustituye: recuperar la contraseña también envía un correo
+
+Descartado:
+
+- **Resend o Brevo sin dominio**: Resend solo envía a tu propia dirección, y con
+  Brevo los correos suelen acabar en spam
+- **Quitar la confirmación**: cualquiera podría registrarse con un email ajeno, y
+  recuperar la contraseña seguiría necesitando correo
+- **Dominio propio** (10–15 €/año): es un gasto fijo. Solo si el usuario lo decide
+
 ### Despliegue
 
 - [ ] Proyecto de Vercel conectado al repositorio
@@ -83,8 +311,8 @@ coste bajo control.
       de por defecto (`?code=`), el enlace solo funciona en el navegador del
       registro
 - [ ] **SMTP propio** (Authentication → Emails → SMTP Settings). El correo por
-      defecto de Supabase es para pruebas: limita mucho los envíos y no sirve para
-      que se registre gente real
+      defecto de Supabase es para pruebas: 2 correos por hora y solo al equipo
+      del proyecto. Con qué, en «Correo de la cuenta»
 - [ ] Probar un registro de punta a punta con un email real, ya en producción
 - [x] **Servicio de embeddings en producción: Cloudflare Workers AI**
       (`@cf/qwen/qwen3-embedding-0.6b`), por su API compatible con la de OpenAI.
@@ -143,10 +371,15 @@ coste bajo control.
       rechazado, una sola IP insistiendo agotaría el cupo de todos. Por persona,
       50 al día con cuenta y una conversación de prueba (20) sin ella: ninguna
       sola agota el cupo global (ver la Fase 4)
+- [x] **Tope global de `/api/search`** (2026-10-04): 5.000 búsquedas al día entre
+      todos. No gasta DeepSeek, pero sí la cuota gratuita de Cloudflare que
+      comparte con el chat: sin tope, muchas IPs buscando podían dejar el chat
+      sin embeddings
 - [ ] Vigilar el gasto de DeepSeek. `deepseek-flash` es barato, pero el coste va
       por conversación. El endpoint
       `/user/balance` de DeepSeek sirve para consultarlo por API. A 2026-09-30 la
-      cuenta tiene 9,58 USD, tras recargar. Repuntuar el corpus entero (3 pasadas)
+      cuenta tiene 9,58 USD, tras recargar; el 2026-10-04, tras el corpus general de la Fase 8, 7,48 USD,
+      y tras las pruebas del recomendador (bloque C), 6,91 USD. Repuntuar el corpus entero (3 pasadas)
       costó unos 1,20 USD
 
 ## Decisiones tomadas
@@ -156,17 +389,25 @@ coste bajo control.
 | `output: 'server'` con adaptador de Vercel | El chat necesita streaming en servidor. La portada podría prerenderizarse más adelante si interesa |
 | Fuentes autoalojadas | Sin terceros, sin salto de fuente y una petición externa menos |
 | **Sin gastos fijos**: Vercel Hobby, Supabase Free, subdominio `vercel.app` y un SMTP con plan gratuito. Solo se paga DeepSeek, por uso | Decisión de producto. El plan Hobby de Vercel es para uso no comercial |
+| **Ni servidores ni dominio de pago, tampoco para el correo** (2026-10-04) | Decisión de producto, reafirmada al hablar del correo de la cuenta. El correo, con un servicio gratuito sin dominio (propuesta: Gmail, ver «Correo de la cuenta»). Si un día hace falta pagar algo, se dice y se deja para después |
 | **Embeddings en Cloudflare Workers AI**, gratis, aceptando su latencia | El mismo modelo, con vectores idénticos a los del corpus: no hay que reindexar ni mantener un servidor, no se duerme y al pasarse del límite gratuito falla en vez de cobrar. Descartados: un servicio de pago (decisión de producto); un Space de Hugging Face, que desde julio de 2026 exige PRO (9 $/mes) para Docker y Gradio en CPU; el modelo que Supabase ejecuta gratis (gte-small), que solo entiende inglés y obligaría a reindexar. Se acepta la latencia (mediana de 1,2 s por consulta, picos de varios segundos) a cambio de no mantener nada. Si algún día molesta, dos alternativas gratuitas, en este orden: **`@cf/baai/bge-m3` en el mismo Cloudflare** (99 ms de mediana y 186 de máximo en 12 muestras; multilingüe y de 1024 dimensiones, pero obliga a revectorizar el corpus y recalibrar la búsqueda), o una **VM de Oracle Cloud «Always Free»** en Madrid con `server.py` (2 CPU ARM y 12 GB; se estima entre 0,3 y 1 s por consulta en CPU, sin medir; pide tarjeta, que no se cobra sin pasar a pago, y Oracle recupera las máquinas inactivas 7 días) |
 
 ## Preguntas abiertas
 
 **1. ~~¿Dónde corre el servicio de embeddings en producción?~~** Resuelta el
-2026-09-30: en un Space de Hugging Face con CPU gratuita (ver Decisiones).
+2026-09-30 con un Space de Hugging Face y cambiada después: en Cloudflare Workers
+AI, gratis (ver Decisiones).
 
 **2. ¿Región de despliegue?**
 El público objetivo es España. Conviene que la función de Vercel, el proyecto de
 Supabase y el servicio de embeddings estén en la misma región europea: cada salto
 transatlántico se suma antes del primer token que ve el usuario.
+
+**3. ¿Correo de la cuenta con una cuenta de Gmail como SMTP?** (2026-10-04)
+Es la propuesta de «Correo de la cuenta», la única vía de 0 € que encontramos
+para enviar a cualquiera sin acabar en spam. Pendiente de que el usuario diga
+que sí; bloquea el lanzamiento, porque sin ella nadie de fuera puede activar su
+cuenta.
 
 ## Verificación
 

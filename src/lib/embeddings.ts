@@ -17,6 +17,7 @@ import OpenAI from 'openai';
 
 import { env } from '@/lib/env';
 import { EmbeddingError, ValidationError, toError } from '@/lib/errors';
+import type { RequestTrace } from '@/lib/trace';
 
 /**
  * El modelo que indexó el corpus. Cada servicio lo llama a su manera
@@ -40,7 +41,7 @@ export const EMBEDDING_MAX_CHARS = 8000;
  * recuperación según el propio modelo. La instrucción va en inglés aunque el
  * corpus esté en español: es como está entrenado el modelo.
  *
- * No dice «autumnal» a propósito: todo el corpus ya es otoñal, así que la
+ * No dice «autumnal» a propósito (cuando el corpus era solo otoñal): la
  * palabra no filtraba nada y arrastraba hacia títulos con «otoño» en el nombre
  * (14 de 120 resultados en 12 consultas de control; con esta, 0). También separa
  * mejor los mensajes ajenos al cine. Medidas en `docs/fase-4-api-chat.md`.
@@ -85,7 +86,12 @@ function assertDimensions(vector: readonly number[]): void {
   }
 }
 
-async function embed(inputs: readonly string[]): Promise<number[][]> {
+/**
+ * Vectoriza y registra la llamada en la traza: es la otra mitad de la pasarela
+ * (la de DeepSeek está en `deepseek.ts`). Cloudflare no cobra hasta su límite
+ * diario, así que cuenta como 0 USD; los tokens, si el servicio los da.
+ */
+async function embed(inputs: readonly string[], trace: RequestTrace): Promise<number[][]> {
   if (inputs.length === 0) {
     throw new ValidationError('No hay textos que vectorizar.');
   }
@@ -93,11 +99,15 @@ async function embed(inputs: readonly string[]): Promise<number[][]> {
     throw new ValidationError('No se puede vectorizar un texto vacío.');
   }
 
+  const startedMs = trace.elapsed();
+  let inputTokens: number | null = null;
+  let failure: unknown = null;
   try {
     const response = await getEmbeddingsClient().embeddings.create({
       model: env.embeddings.model,
       input: [...inputs],
     });
+    inputTokens = typeof response.usage?.prompt_tokens === 'number' ? response.usage.prompt_tokens : null;
 
     // El servidor no garantiza el orden de salida: ordenamos por `index`.
     const vectors = [...response.data]
@@ -107,11 +117,34 @@ async function embed(inputs: readonly string[]): Promise<number[][]> {
     vectors.forEach(assertDimensions);
     return vectors;
   } catch (error: unknown) {
+    failure = error;
     if (error instanceof EmbeddingError || error instanceof ValidationError) throw error;
     throw new EmbeddingError(
       `Fallo al generar embeddings contra ${env.embeddings.url}: ${toError(error).message}`,
       error,
     );
+  } finally {
+    const durationMs = trace.elapsed() - startedMs;
+    trace.addCall({
+      provider: 'embeddings',
+      model: env.embeddings.model,
+      purpose: 'query_embedding',
+      promptVersion: null,
+      status: failure === null ? 'ok' : 'error',
+      error: failure === null ? null : toError(failure).message.slice(0, 500),
+      inputTokens,
+      outputTokens: null,
+      cacheHitTokens: null,
+      cacheMissTokens: null,
+      costUsd: 0,
+      startedMs,
+      // Un embedding llega de una vez: el primer «token» es la respuesta entera.
+      firstTokenMs: failure === null ? startedMs + durationMs : null,
+      durationMs,
+      finishReason: null,
+      toolName: null,
+      toolArgs: null,
+    });
   }
 }
 
@@ -119,9 +152,9 @@ async function embed(inputs: readonly string[]): Promise<number[][]> {
  * Vectoriza el mensaje del usuario para buscar en el corpus, con la instrucción
  * de tarea. El corpus se vectoriza sin ella, en `scripts/seed/embed.py`.
  */
-export async function embedQuery(text: string): Promise<number[]> {
+export async function embedQuery(text: string, trace: RequestTrace): Promise<number[]> {
   const normalized = normalizeForEmbedding(text);
-  const [vector] = await embed([formatQuery(normalized)]);
+  const [vector] = await embed([formatQuery(normalized)], trace);
   if (vector === undefined) {
     throw new EmbeddingError('El servicio de embeddings no devolvió ningún vector.');
   }

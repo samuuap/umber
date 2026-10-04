@@ -9,6 +9,7 @@
  * Dentro de un `<template>`, el `<script>` de abajo sale inerte (Astro lo pinta
  * junto al componente): quien use la plantilla llama él a `initFavoriteButtons()`.
  */
+import { returnPath } from '@/lib/auth';
 import { describeCard, similarHref } from '@/scripts/content-card';
 import type { Recommendation } from '@/lib/types';
 
@@ -22,21 +23,23 @@ const description = item === undefined ? null : describeCard(item);
 const posterUrl = item?.poster_url ?? null;
 const platforms = item?.platforms ?? null;
 const signedIn = Astro.locals.user !== null;
-const loginHref = `/entrar?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`;
+const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
 ---
 
 <article
   data-content-card
   data-content-id={item?.id}
-  class="border-umber-surface bg-umber-surface/50 flex gap-4 rounded-xl border p-3 sm:p-4"
+  class="border-umber-line bg-umber-surface/70 grid grid-cols-[6.25rem_1fr] gap-5 rounded-xl border p-4 sm:grid-cols-[8rem_1fr] sm:gap-6 sm:p-5"
 >
-  <div class="bg-umber-base relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-md sm:w-28">
+  <div
+    class="bg-umber-raised relative aspect-[2/3] self-start overflow-hidden rounded-[3px] shadow-[0_20px_40px_-20px_rgb(0_0_0/0.9)]"
+  >
     <img
       data-field="poster"
       src={posterUrl ?? undefined}
       alt={description?.posterAlt ?? ''}
-      width="500"
-      height="750"
+      width="342"
+      height="513"
       loading="lazy"
       decoding="async"
       hidden={posterUrl === null}
@@ -45,45 +48,45 @@ const loginHref = `/entrar?next=${encodeURIComponent(Astro.url.pathname + Astro.
     <div
       data-field="no-poster"
       hidden={posterUrl !== null}
-      class="text-umber-ash flex h-full items-center justify-center p-2 text-center text-xs"
+      class="text-umber-ash flex h-full items-center justify-center p-2 text-center font-serif text-sm italic"
     >
       Sin cartel
     </div>
   </div>
 
-  <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-    <p data-field="kind" class="text-umber-amber text-[0.7rem] font-medium tracking-[0.2em] uppercase">
+  <div class="flex min-w-0 flex-col">
+    <p data-field="kind" class="eyebrow">
       {description?.kind}
     </p>
-    <h3 class="font-display text-lg leading-snug">
+    <h3 class="mt-2 text-[1.55rem] leading-[1.1] sm:text-[1.8rem]">
       <span data-field="title">{description?.title}</span>{' '}
-      <span data-field="year" hidden={description?.year == null} class="text-umber-ash font-sans text-sm">
+      <span
+        data-field="year"
+        hidden={description?.year == null}
+        class="text-umber-ash font-sans text-sm tracking-normal whitespace-nowrap"
+      >
         {description?.year}
       </span>
     </h3>
-    <p data-field="credit" hidden={description?.credit == null} class="text-umber-ash text-sm">
+    <p data-field="credit" hidden={description?.credit == null} class="text-umber-ash mt-2 text-sm">
       {description?.credit}
     </p>
-    <p data-field="genres" hidden={description?.genres == null} class="text-umber-ash text-xs">
+    <p data-field="genres" hidden={description?.genres == null} class="text-umber-ash/85 mt-0.5 text-xs">
       {description?.genres}
     </p>
 
-    <div data-field="platforms-block" hidden={platforms === null} class="mt-1">
-      <p class="text-umber-ash text-[0.7rem] tracking-[0.15em] uppercase">Dónde verla</p>
-      <ul
-        data-field="platforms"
-        hidden={platforms !== null && platforms.length === 0}
-        class="[&>li]:border-umber-sienna/70 mt-1.5 flex flex-wrap gap-1.5 [&>li]:rounded-full [&>li]:border [&>li]:px-2 [&>li]:py-0.5 [&>li]:text-xs"
-      >
-        {/* El estilo va en el padre: así vale también para los `<li>` que crea el chat. */}
+    <div data-field="platforms-block" hidden={platforms === null} class="border-umber-line mt-4 border-t pt-3.5">
+      <p class="field-label">Dónde verla</p>
+      {/* El estilo va en el padre: así vale también para los `<li>` que crea el chat. */}
+      <ul data-field="platforms" hidden={platforms !== null && platforms.length === 0} class="dot-list mt-1.5 text-sm">
         {platforms?.map((name) => <li>{name}</li>)}
       </ul>
-      <p data-field="no-platforms" hidden={platforms?.length !== 0} class="text-umber-ash mt-1 text-xs">
+      <p data-field="no-platforms" hidden={platforms?.length !== 0} class="text-umber-ash mt-1.5 text-sm">
         No está en plataformas de suscripción ahora mismo.
       </p>
     </div>
 
-    <div class="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-2">
+    <div class="mt-auto flex flex-wrap items-center gap-x-5 gap-y-2 pt-4">
       {
         signedIn ? (
           <button
@@ -91,17 +94,20 @@ const loginHref = `/entrar?next=${encodeURIComponent(Astro.url.pathname + Astro.
             data-favorite-button
             data-content-id={item?.id}
             aria-pressed={favorite ? 'true' : 'false'}
-            class="group border-umber-amber/50 text-umber-amber hover:bg-umber-amber/10 aria-pressed:bg-umber-amber aria-pressed:text-umber-base rounded-full border px-3 py-1 text-sm font-medium transition-colors"
+            class="group/fav border-umber-rule/70 text-umber-cream hover:border-umber-amber aria-pressed:border-umber-amber aria-pressed:text-umber-amber inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors duration-300"
           >
-            <span class="group-aria-pressed:hidden">Guardar</span>
-            <span class="hidden group-aria-pressed:inline">Guardada</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="size-3.5 fill-transparent transition-colors group-aria-pressed/fav:fill-current">
+              <path d="M6 4h12v17l-6-4-6 4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+            </svg>
+            <span class="group-aria-pressed/fav:hidden">Guardar</span>
+            <span class="hidden group-aria-pressed/fav:inline">Guardada</span>
           </button>
         ) : (
           <a
             href={loginHref}
             target="_blank"
             rel="noopener"
-            class="text-umber-ash hover:text-umber-cream text-sm underline underline-offset-4"
+            class="link-quiet text-sm underline decoration-1 underline-offset-4"
           >
             Entra para guardarla<span class="sr-only"> (se abre en otra pestaña)</span>
           </a>
@@ -113,9 +119,9 @@ const loginHref = `/entrar?next=${encodeURIComponent(Astro.url.pathname + Astro.
         href={item === undefined ? undefined : similarHref(item.id)}
         target="_blank"
         rel="noopener"
-        class="text-umber-ash hover:text-umber-cream text-sm underline underline-offset-4"
+        class="link-quiet text-sm"
       >
-        Más como esta<span class="sr-only"> (se abre en otra pestaña)</span>
+        Más como esta <span class="arrow" aria-hidden="true">→</span><span class="sr-only"> (se abre en otra pestaña)</span>
       </a>
       <p data-field="favorite-status" role="status" hidden class="text-umber-amber w-full text-xs"></p>
     </div>

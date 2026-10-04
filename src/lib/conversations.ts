@@ -8,11 +8,20 @@ import { isRecord } from '@/lib/api';
 import { NotFoundError, SupabaseError } from '@/lib/errors';
 import { unwrap, type UmberSupabaseClient } from '@/lib/supabase';
 import { parseTurnMeta } from '@/lib/turns';
-import { isChatMode, isLocale, type ChatMode, type StoredChatMessage } from '@/lib/types';
+import {
+  isChatMode,
+  isLocale,
+  isSpecialty,
+  type ChatMode,
+  type Specialty,
+  type StoredChatMessage,
+} from '@/lib/types';
 
 export interface StoredConversation {
   readonly id: string;
   readonly mode: ChatMode;
+  /** La especialidad con la que empezó (otoño), o `null`. */
+  readonly specialty: Specialty | null;
   readonly messages: readonly StoredChatMessage[];
 }
 
@@ -53,7 +62,7 @@ export async function loadConversation(
 ): Promise<StoredConversation> {
   const { data, error } = await client
     .from('conversations')
-    .select('id, mode, messages')
+    .select('id, mode, specialty, messages')
     .eq('id', id)
     .maybeSingle();
   if (error !== null) throw new SupabaseError(error.message, error);
@@ -61,7 +70,12 @@ export async function loadConversation(
   if (!isChatMode(data.mode)) {
     throw new SupabaseError(`La conversación ${id} tiene un modo desconocido: ${data.mode}.`);
   }
-  return { id: data.id, mode: data.mode, messages: parseMessages(data.messages) };
+  return {
+    id: data.id,
+    mode: data.mode,
+    specialty: isSpecialty(data.specialty) ? data.specialty : null,
+    messages: parseMessages(data.messages),
+  };
 }
 
 export interface ConversationSummary {
@@ -110,6 +124,8 @@ export interface SaveTurnOptions {
   readonly id: string;
   readonly userId: string;
   readonly mode: ChatMode;
+  /** Solo cuenta al crearla: una conversación no cambia de especialidad. */
+  readonly specialty: Specialty | null;
   /** La conversación tal como se leyó, o `null` si es nueva. */
   readonly existing: StoredConversation | null;
   /** Mensajes que se añaden al final. */
@@ -154,6 +170,7 @@ export async function saveConversationTurn(
           id: options.id,
           user_id: options.userId,
           mode: options.mode,
+          specialty: options.specialty,
           messages: toJson(options.messages),
         })
         .select('id'),

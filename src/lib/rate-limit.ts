@@ -68,7 +68,9 @@ export const RATE_LIMITS: Readonly<Record<RateLimitScope, ScopeLimits>> = {
   },
   /*
    * Sin DeepSeek: un embedding y una consulta. Más alto que el chat, pero con
-   * techo, porque el servicio de embeddings es nuestro y se puede saturar.
+   * techo. El global protege la cuota gratuita de Cloudflare (unas 90.000
+   * consultas al día), que comparte con el chat: sin él, muchas IPs podían
+   * gastarla buscando y dejar el chat sin embeddings.
    */
   search: {
     user: [
@@ -79,6 +81,7 @@ export const RATE_LIMITS: Readonly<Record<RateLimitScope, ScopeLimits>> = {
       { windowSeconds: MINUTE, limit: 20 },
       { windowSeconds: DAY, limit: 300 },
     ],
+    global: [{ windowSeconds: DAY, limit: 5000 }],
     noun: 'búsquedas',
   },
 };

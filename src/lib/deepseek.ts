@@ -7,6 +7,10 @@
  * Los embeddings NO salen de aquí: DeepSeek no expone endpoint de embeddings.
  * Viven en `src/lib/embeddings.ts`, contra un modelo Qwen3 servido aparte.
  *
+ * Es también la pasarela de DeepSeek: toda llamada exige una traza
+ * (`src/lib/trace.ts`) y queda registrada con sus tokens, su coste estimado, el
+ * tiempo hasta el primer token y la herramienta que llamó.
+ *
  * Reglas del proyecto:
  *  - El chat va SIEMPRE en streaming (mejor percepción de latencia).
  *  - Temperatura 0.8 para conversar, 0.1 para clasificar o extraer.
@@ -15,8 +19,11 @@
  */
 import OpenAI from 'openai';
 
+import type { Json } from '@/lib/database.types';
 import { env } from '@/lib/env';
 import { DeepSeekError, toError } from '@/lib/errors';
+import { deepSeekCost } from '@/lib/llm-pricing';
+import type { CallPurpose, RequestTrace } from '@/lib/trace';
 import type { ChatMessage } from '@/lib/types';
 
 export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
@@ -104,6 +111,11 @@ export interface ChatRequestOptions {
   readonly maxTokens?: number;
   /** Para cortar la generación si el cliente abandona la petición. */
   readonly signal?: AbortSignal;
+  /** Dónde queda registrada la llamada. Obligatoria: no hay llamadas sin registrar. */
+  readonly trace: RequestTrace;
+  readonly purpose: CallPurpose;
+  /** Versión de los prompts (`PROMPT_VERSION`), para comparar versiones en el panel. */
+  readonly promptVersion?: string;
 }
 
 export type ChunkStream = AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
@@ -141,6 +153,148 @@ function toSdkTools(
   }));
 }
 
+/** Lo que DeepSeek manda en `usage`, con sus dos campos de caché, que el SDK no tipa. */
+interface DeepSeekUsage {
+  readonly promptTokens: number;
+  readonly completionTokens: number;
+  readonly cacheHitTokens: number;
+  readonly cacheMissTokens: number;
+}
+
+function readUsage(usage: unknown): DeepSeekUsage | null {
+  if (typeof usage !== 'object' || usage === null) return null;
+  const number = (key: string): number | null => {
+    const value: unknown = (usage as Record<string, unknown>)[key];
+    return typeof value === 'number' ? value : null;
+  };
+  const promptTokens = number('prompt_tokens');
+  const completionTokens = number('completion_tokens');
+  if (promptTokens === null || completionTokens === null) return null;
+  const cacheHitTokens = number('prompt_cache_hit_tokens') ?? 0;
+  return {
+    promptTokens,
+    completionTokens,
+    cacheHitTokens,
+    // Sin el desglose, todo cuenta como fuera de caché: el coste sale por arriba, no por abajo.
+    cacheMissTokens: number('prompt_cache_miss_tokens') ?? promptTokens - cacheHitTokens,
+  };
+}
+
+/** Los argumentos de una herramienta como JSON, o tal cual si no lo son. */
+function toolArgsJson(raw: string): Json {
+  try {
+    return JSON.parse(raw) as Json;
+  } catch {
+    return { raw };
+  }
+}
+
+/** Una llamada en curso: se va completando con lo que llega y se registra al acabar. */
+class CallRecorder {
+  private readonly startedAt = new Date();
+  private readonly startedMs: number;
+  private firstTokenMs: number | null = null;
+  private usage: DeepSeekUsage | null = null;
+  private finishReason: string | null = null;
+  private toolName = '';
+  private toolArgs = '';
+  private finished = false;
+  private readonly options: ChatRequestOptions;
+
+  constructor(options: ChatRequestOptions) {
+    this.options = options;
+    this.startedMs = options.trace.elapsed();
+  }
+
+  observe(chunk: OpenAI.Chat.Completions.ChatCompletionChunk): void {
+    const choice = chunk.choices[0];
+    const delta = choice?.delta;
+    const hasContent = typeof delta?.content === 'string' && delta.content.length > 0;
+    const toolParts = delta?.tool_calls ?? [];
+    if (this.firstTokenMs === null && (hasContent || toolParts.length > 0)) {
+      this.firstTokenMs = this.options.trace.elapsed();
+    }
+    // Se registra la primera herramienta: el chat solo hace una llamada por turno.
+    for (const part of toolParts.filter((item) => item.index === 0)) {
+      this.toolName += part.function?.name ?? '';
+      this.toolArgs += part.function?.arguments ?? '';
+    }
+    if (choice?.finish_reason != null) this.finishReason = choice.finish_reason;
+    this.usage = readUsage(chunk.usage) ?? this.usage;
+  }
+
+  /** Una respuesta entera, sin streaming. */
+  observeCompletion(response: OpenAI.Chat.Completions.ChatCompletion): void {
+    this.firstTokenMs = this.options.trace.elapsed();
+    this.finishReason = response.choices[0]?.finish_reason ?? null;
+    this.usage = readUsage(response.usage);
+  }
+
+  finish(status: 'ok' | 'error' | 'aborted', error: unknown): void {
+    if (this.finished) return;
+    this.finished = true;
+    const { trace, purpose, promptVersion } = this.options;
+    const usage = this.usage;
+    trace.addCall({
+      provider: 'deepseek',
+      model: DEEPSEEK_MODELS.chat,
+      purpose,
+      promptVersion: promptVersion ?? null,
+      status,
+      error: error === null ? null : toError(error).message.slice(0, 500),
+      inputTokens: usage?.promptTokens ?? null,
+      outputTokens: usage?.completionTokens ?? null,
+      cacheHitTokens: usage?.cacheHitTokens ?? null,
+      cacheMissTokens: usage?.cacheMissTokens ?? null,
+      costUsd:
+        usage === null
+          ? 0
+          : deepSeekCost(
+              DEEPSEEK_MODELS.chat,
+              {
+                cacheHitTokens: usage.cacheHitTokens,
+                cacheMissTokens: usage.cacheMissTokens,
+                outputTokens: usage.completionTokens,
+              },
+              this.startedAt,
+            ),
+      startedMs: this.startedMs,
+      firstTokenMs: this.firstTokenMs,
+      durationMs: trace.elapsed() - this.startedMs,
+      finishReason: this.finishReason,
+      toolName: this.toolName.length > 0 ? this.toolName : null,
+      toolArgs: this.toolName.length > 0 ? toolArgsJson(this.toolArgs) : null,
+    });
+  }
+
+  /** Cortada por la persona (cerró el chat) o fallo de verdad. */
+  statusOf(): 'error' | 'aborted' {
+    return this.options.signal?.aborted === true ? 'aborted' : 'error';
+  }
+}
+
+/**
+ * Pasa los chunks tal cual y, al acabar el stream (entero, cortado o con error),
+ * registra la llamada. Si quien lo lee deja de leer, cuenta como cortada.
+ */
+async function* recorded(stream: ChunkStream, recorder: CallRecorder): ChunkStream {
+  let status: 'ok' | 'error' | 'aborted' = 'aborted';
+  let failure: unknown = null;
+  try {
+    for await (const chunk of stream) {
+      recorder.observe(chunk);
+      yield chunk;
+    }
+    status = 'ok';
+  } catch (error: unknown) {
+    status = recorder.statusOf();
+    failure = error;
+    throw error;
+  } finally {
+    recorder.finish(status, failure);
+  }
+}
+
 /**
  * Llamada de chat en streaming. Devuelve los chunks crudos del SDK, por si el
  * endpoint necesita leer `usage` o `finish_reason`.
@@ -148,6 +302,9 @@ function toSdkTools(
  * La promesa se resuelve al llegar las cabeceras de la respuesta, así que los
  * errores del proveedor (clave, saldo, límite de peticiones) saltan aquí y no a
  * mitad del stream: el endpoint aún puede responder con un código HTTP.
+ *
+ * `include_usage`: DeepSeek manda los tokens en un último chunk sin `choices`,
+ * con los de caché aparte.
  */
 export async function streamChat(options: ChatRequestOptions): Promise<ChunkStream> {
   const tools = toSdkTools(options.tools);
@@ -157,15 +314,19 @@ export async function streamChat(options: ChatRequestOptions): Promise<ChunkStre
     temperature: options.temperature ?? DEEPSEEK_TEMPERATURE.chat,
     max_tokens: options.maxTokens ?? DEEPSEEK_MAX_TOKENS,
     stream: true,
+    stream_options: { include_usage: true },
     thinking: THINKING_DISABLED,
     ...(tools === undefined ? {} : { tools, tool_choice: options.toolChoice ?? 'auto' }),
   };
+  const recorder = new CallRecorder(options);
   try {
-    return await getDeepSeekClient().chat.completions.create(
+    const stream = await getDeepSeekClient().chat.completions.create(
       body,
       options.signal === undefined ? undefined : { signal: options.signal },
     );
+    return recorded(stream, recorder);
   } catch (error: unknown) {
+    recorder.finish(recorder.statusOf(), error);
     throw new DeepSeekError(`Fallo al abrir el stream de chat: ${toError(error).message}`, error);
   }
 }
@@ -217,18 +378,22 @@ export async function complete(options: ChatRequestOptions): Promise<string> {
     stream: false,
     thinking: THINKING_DISABLED,
   };
+  const recorder = new CallRecorder(options);
   try {
     const response = await getDeepSeekClient().chat.completions.create(
       body,
       options.signal === undefined ? undefined : { signal: options.signal },
     );
+    recorder.observeCompletion(response);
 
     const content = response.choices[0]?.message.content;
     if (content === undefined || content === null) {
       throw new DeepSeekError('DeepSeek devolvió una respuesta sin contenido.');
     }
+    recorder.finish('ok', null);
     return content;
   } catch (error: unknown) {
+    recorder.finish(recorder.statusOf(), error);
     if (error instanceof DeepSeekError) throw error;
     throw new DeepSeekError(`Fallo en la llamada a DeepSeek: ${toError(error).message}`, error);
   }

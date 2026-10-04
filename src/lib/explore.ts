@@ -14,12 +14,17 @@ export const EXPLORE_PAGE_SIZE = 36;
 const MAX_QUERY_CHARS = 100;
 
 export const EXPLORE_SORTS = {
+  popular: 'Más conocidas',
   autumn: 'Más otoñales',
   recent: 'Más recientes',
   title: 'Título (A–Z)',
 } as const;
 export type ExploreSort = keyof typeof EXPLORE_SORTS;
-const DEFAULT_SORT: ExploreSort = 'autumn';
+/**
+ * Por votos de TMDB. Con el corpus general (Fase 8), «más otoñales» abría con una
+ * pared de Halloween y dibujos animados; sigue como opción, para la especialidad.
+ */
+const DEFAULT_SORT: ExploreSort = 'popular';
 
 export interface ExploreFilters {
   readonly type: ContentType | null;
