@@ -1,0 +1,76 @@
+---
+/**
+ * El final de una partida de los juegos del día: la película, qué hacer con
+ * ella (su ficha, pedirle a Umber algo parecido), compartir el resultado, tus
+ * números y cuánto falta para el siguiente.
+ *
+ * Llega oculto y vacío: lo rellena `showResult()` de `src/scripts/games.ts`
+ * cuando el servidor da la partida por terminada, que es cuando manda la
+ * solución.
+ */
+interface Props {
+  /** El otro juego, para seguir jugando. */
+  other: { href: string; label: string };
+  /** Con el cartel de la película: en el título, que no lo ha enseñado nítido. */
+  poster?: boolean;
+}
+
+const { other, poster = false } = Astro.props;
+---
+
+<section data-game-result hidden aria-labelledby="resultado" class="border-umber-line mt-12 border-t pt-10">
+  <div class:list={[poster && 'grid grid-cols-[6.5rem_1fr] items-end gap-6 sm:grid-cols-[8rem_1fr]']}>
+    {
+      poster && (
+        <img
+          data-result-poster
+          alt=""
+          width="342"
+          height="513"
+          class="result-poster aspect-[2/3] w-full rounded-[3px] object-cover shadow-[0_30px_60px_-24px_rgb(0_0_0/0.95)]"
+        />
+      )
+    }
+    <div>
+      <p class="eyebrow eyebrow-rule" data-result-verdict></p>
+      <h2 id="resultado" class="display-3 mt-5">
+        <a data-result-title class="text-umber-amber hover:text-umber-amber-hover transition-colors" href="/explorar"></a>
+      </h2>
+      <p data-result-meta class="text-umber-ash mt-2 text-sm"></p>
+    </div>
+  </div>
+
+  <div class="mt-8 flex flex-wrap items-center gap-3">
+    <button type="button" data-result-share class="btn-primary">
+      Compartir resultado <span class="arrow" aria-hidden="true">→</span>
+    </button>
+    <a data-result-similar class="btn-secondary" href="/chat?mode=movie">Pídele a Umber algo parecido</a>
+  </div>
+  <p data-result-share-status role="status" class="text-umber-ash mt-3 min-h-[1.25rem] text-sm"></p>
+
+  <dl class="border-umber-line mt-8 grid max-w-md grid-cols-4 gap-4 border-t pt-6 text-center">
+    <div>
+      <dt class="field-label">Jugadas</dt>
+      <dd data-stat="played" class="font-display mt-2 text-3xl">0</dd>
+    </div>
+    <div>
+      <dt class="field-label">Ganadas</dt>
+      <dd data-stat="won" class="font-display mt-2 text-3xl">0 %</dd>
+    </div>
+    <div>
+      <dt class="field-label">Racha</dt>
+      <dd data-stat="streak" class="font-display mt-2 text-3xl">0</dd>
+    </div>
+    <div>
+      <dt class="field-label">Mejor</dt>
+      <dd data-stat="best" class="font-display mt-2 text-3xl">0</dd>
+    </div>
+  </dl>
+
+  <p class="text-umber-ash mt-8 text-sm">
+    Mañana, otra película. <span data-result-countdown></span>
+  </p>
+  <p class="mt-3 text-sm">
+    <a href={other.href} class="link">{other.label} <span class="arrow" aria-hidden="true">→</span></a>
+  </p>
+</section>

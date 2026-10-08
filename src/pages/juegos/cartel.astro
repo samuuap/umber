@@ -1,0 +1,147 @@
+---
+/**
+ * «El cartel del día»: adivinar la película por su cartel, que empieza muy
+ * desenfocado y se ve un poco más con cada intento. Seis intentos; se puede
+ * pasar para ver más.
+ *
+ * El cartel es uno sin texto (lo elige `scripts/seed/games.py`), para que el
+ * título no se lea al desenfocarlo menos, y el desenfoque lo hace el servidor:
+ * aquí llega la ruta firmada del primer nivel, y cada fallo trae la del
+ * siguiente (`/api/games/poster`, `src/scripts/game-poster.ts`).
+ */
+import GameResult from '@/components/GameResult.astro';
+import LeafMark from '@/components/LeafMark.astro';
+import Layout from '@/layouts/Layout.astro';
+import { gameDay, loadDailyGame, posterImagePath } from '@/lib/games';
+import { POSTER_MAX_ATTEMPTS } from '@/lib/types';
+
+const day = gameDay();
+const daily = await loadDailyGame('poster', day);
+const firstImage = daily === null ? null : await posterImagePath('poster', day, 0);
+---
+
+<Layout
+  title="El cartel del día — Umber"
+  description="Adivina la película por su cartel, que se ve un poco más con cada intento. Uno nuevo cada día."
+>
+  <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 pb-20 sm:px-8">
+    <header class="grid gap-x-10 gap-y-6 pt-10 pb-10 sm:pt-14 lg:grid-cols-12 lg:items-end">
+      <div class="rise lg:col-span-7">
+        <p class="eyebrow eyebrow-rule">
+          <a href="/juegos" class="link-quiet">Juegos</a>
+          {daily !== null && <span class="ml-2">· N.º {daily.number}</span>}
+        </p>
+        <h1 class="display-1 mt-7">El cartel <em>del día</em></h1>
+      </div>
+      <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
+        Un cartel sin título y muy desenfocado. Con cada intento, o si pasas, se ve un poco más. Tienes seis.
+      </p>
+    </header>
+
+    {
+      daily === null || firstImage === null ? (
+        <section class="border-umber-line rise border-t py-20 [animation-delay:150ms] lg:grid lg:grid-cols-12 lg:gap-x-10">
+          <p class="display-2 lg:col-span-6">
+            Hoy no hay <em>cartel</em>
+          </p>
+          <div class="mt-6 lg:col-span-5 lg:col-start-8 lg:mt-3">
+            <p class="lead">Se nos ha acabado la lista de películas. Vuelve mañana, o prueba con el título del día.</p>
+            <a href="/juegos/titulo" class="btn-primary mt-8">
+              El título del día <span class="arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </section>
+      ) : (
+        <section
+          data-poster-game
+          data-day={day}
+          data-number={String(daily.number)}
+          aria-label="Partida"
+          class="border-umber-line grid gap-x-10 gap-y-12 border-t pt-10 lg:grid-cols-12"
+        >
+          <div class="rise [animation-delay:150ms] lg:col-span-5">
+            <div class="relative mx-auto w-full max-w-[19rem]">
+              <div class="poster-frame w-full">
+                <img
+                  data-poster-image
+                  src={firstImage}
+                  alt={`El cartel del día, desenfocado: intento 1 de ${String(POSTER_MAX_ATTEMPTS)}`}
+                  width="500"
+                  height="750"
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              </div>
+              {/* Al acertar, las hojas salen de aquí. */}
+              <div data-burst aria-hidden="true" class="pointer-events-none absolute inset-0" />
+            </div>
+            <div data-attempt-bars aria-hidden="true" class="mx-auto mt-5 flex w-full max-w-[19rem] gap-1.5">
+              {Array.from({ length: POSTER_MAX_ATTEMPTS }, (_, index) => (
+                <span class="attempt-bar" data-state={index === 0 ? 'current' : undefined} />
+              ))}
+            </div>
+          </div>
+
+          <div class="lg:col-span-6 lg:col-start-7">
+            <form data-guess-form class="max-w-xl" autocomplete="off">
+              <label for="guess" class="field-label" data-attempt-label>
+                Intento 1 de {POSTER_MAX_ATTEMPTS}
+              </label>
+              <div class="relative mt-3">
+                <input
+                  id="guess"
+                  type="text"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-controls="guess-options"
+                  aria-describedby="guess-help"
+                  placeholder="Escribe el título o el director…"
+                  spellcheck="false"
+                  autocapitalize="off"
+                  class="field font-serif text-xl"
+                />
+                <ul
+                  id="guess-options"
+                  role="listbox"
+                  aria-label="Películas"
+                  data-options
+                  hidden
+                  class="bg-umber-surface border-umber-line absolute inset-x-0 top-full z-20 mt-2 max-h-80 overflow-y-auto rounded-[3px] border py-1 shadow-[0_30px_60px_-24px_rgb(0_0_0/0.95)]"
+                />
+              </div>
+              <p id="guess-help" class="text-umber-ash mt-3 text-xs">
+                Elige una película de la lista. Vale en español o en inglés.
+              </p>
+              <div class="mt-6 flex flex-wrap items-center gap-3">
+                <button type="submit" data-guess-submit class="btn-primary" disabled>
+                  Probar <span class="arrow" aria-hidden="true">→</span>
+                </button>
+                <button type="button" data-guess-skip class="btn-secondary">Pasar</button>
+              </div>
+            </form>
+
+            <p data-game-status role="status" class="text-umber-ash mt-5 min-h-[1.5rem] text-sm" />
+
+            <ol data-guess-list aria-label="Tus intentos" class="border-umber-line mt-4 max-w-xl divide-y divide-umber-line" />
+            <noscript>
+              <p class="text-umber-ash mt-6 text-sm">Para jugar hace falta JavaScript.</p>
+            </noscript>
+
+            <div class="max-w-xl">
+              <GameResult other={{ href: '/juegos/titulo', label: 'Juega también a El título del día' }} />
+            </div>
+          </div>
+
+          <template data-leaf>
+            <LeafMark class="burst-leaf text-umber-amber" />
+          </template>
+        </section>
+      )
+    }
+  </main>
+</Layout>
+
+<script>
+  import '@/scripts/game-poster';
+</script>

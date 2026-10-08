@@ -1,0 +1,74 @@
+---
+/**
+ * Los juegos del día: «El cartel del día» y «El título del día». Uno nuevo de
+ * cada uno a medianoche de Madrid, sin cuenta (la partida y la racha se guardan
+ * en el navegador).
+ *
+ * Como muestra, el cartel de hoy en su primer nivel de desenfoque: es lo mismo
+ * que se ve al empezar, así que no adelanta nada.
+ */
+import Layout from '@/layouts/Layout.astro';
+import { gameDay, loadDailyGame, posterImagePath } from '@/lib/games';
+
+const day = gameDay();
+const [poster, title] = await Promise.all([loadDailyGame('poster', day), loadDailyGame('title', day)]);
+const posterTeaser = poster === null ? null : await posterImagePath('poster', day, 0);
+
+/** Un título con dos de las cuatro letras destapadas: lo que se ve tras elegirlas. */
+const SAMPLE = ['', 'A', '', 'E', '', 'A', ''] as const;
+---
+
+<Layout
+  title="Juegos — Umber"
+  description="Dos juegos de cine cada día, con películas que conoce todo el mundo: adivínala por su cartel o por su título."
+>
+  <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 pb-24 sm:px-8">
+    <header class="grid gap-x-10 gap-y-6 pt-10 pb-12 sm:pt-14 lg:grid-cols-12 lg:items-end">
+      <div class="rise lg:col-span-7">
+        <p class="eyebrow eyebrow-rule">Juegos</p>
+        <h1 class="display-1 mt-7">Una película <em>cada día</em></h1>
+      </div>
+      <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
+        Dos juegos con películas que conoce todo el mundo, nuevos a medianoche. Sin cuenta: tu racha se guarda en
+        este navegador.
+      </p>
+    </header>
+
+    <div class="border-umber-line grid gap-x-10 gap-y-16 border-t pt-12 lg:grid-cols-12">
+      <section aria-labelledby="cartel" class="rise grid gap-8 [animation-delay:150ms] sm:grid-cols-[minmax(0,13rem)_1fr] lg:col-span-7">
+        <a href="/juegos/cartel" class="poster-frame block w-full max-w-[13rem]" tabindex="-1" aria-hidden="true">
+          {posterTeaser !== null && <img src={posterTeaser} alt="" width="500" height="750" loading="lazy" />}
+        </a>
+        <div class="sm:pt-4">
+          <h2 id="cartel" class="display-2">El cartel <em>del día</em></h2>
+          <p class="lead mt-5 max-w-sm">
+            Un cartel sin título, muy desenfocado. Con cada intento se ve un poco más: seis para acertar.
+          </p>
+          <a href="/juegos/cartel" class="btn-primary mt-8">
+            {poster === null ? 'Ver el juego' : `Jugar al n.º ${String(poster.number)}`}
+            <span class="arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </section>
+
+      <section aria-labelledby="titulo" class="rise [animation-delay:240ms] lg:col-span-5">
+        <div class="title-board" aria-hidden="true">
+          <div class="title-row !justify-start">
+            <span class="title-word">
+              {SAMPLE.map((letter) => <span class="tile" data-state={letter === '' ? undefined : 'revealed'}>{letter}</span>)}
+            </span>
+          </div>
+        </div>
+        <h2 id="titulo" class="display-2 mt-9">El título <em>del día</em></h2>
+        <p class="lead mt-5 max-w-sm">
+          Elige cuatro letras y mira dónde salen en el título. Si no lo sacas, te ayudan el año, el director, la
+          sinopsis y, al final, el cartel.
+        </p>
+        <a href="/juegos/titulo" class="btn-primary mt-8">
+          {title === null ? 'Ver el juego' : `Jugar al n.º ${String(title.number)}`}
+          <span class="arrow" aria-hidden="true">→</span>
+        </a>
+      </section>
+    </div>
+  </main>
+</Layout>

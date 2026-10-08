@@ -333,6 +333,19 @@ Sugerencias sobre los tres puntos pedidos (el 4):
       Explorar (que pasa a ordenarse por popularidad), y la accesibilidad del
       chat (región `aria-live`, foco)
 
+### Encontrado al hacer los juegos (2026-10-08)
+
+- [ ] **Títulos latinoamericanos en el corpus**: 1.249 de 17.000 títulos
+      descargados. Cuando TMDB deja vacío el título de España (porque allí se
+      estrenó con el original), `translated()` en `fetch-tmdb.py` coge el de otra
+      región: *Joker* sale como «Guasón», *Pulp Fiction* como «Tiempos
+      violentos», *John Wick* como «Otro día para matar», *Interstellar* como
+      «Interestelar». Lo ve quien chatea en español y quien explora. El arreglo:
+      vacío en España es el título original si es inglés o español (como
+      `spain_title()` en `scripts/seed/games.py`); después, revectorizar esos
+      títulos (llevan el título español en el texto), recargar y reconstruir el
+      índice HNSW. Los juegos ya no dependen de esto
+
 ### Después: perfil de gustos — tamaño M (opcional)
 
 - [ ] «Elige 5 películas que te encanten» al registrarse, «Ya la he visto» y

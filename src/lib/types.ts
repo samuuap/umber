@@ -407,6 +407,115 @@ export interface PlatformsResponse {
   readonly platforms: readonly string[] | null;
 }
 
+// ─── Juegos del día ──────────────────────────────────────────────────────────
+/*
+ * «El cartel del día» y «El título del día» (Fase 9). La solución no llega nunca
+ * al navegador antes de acabar: el servidor corrige cada intento. No guarda
+ * partidas: el navegador manda todos los intentos cada vez y el servidor los
+ * vuelve a corregir, así que no hay estado que se pueda desincronizar.
+ */
+
+/** `poster`: el cartel cada vez menos desenfocado. `title`: el título, con letras y pistas. */
+export const GAME_KINDS = ['poster', 'title'] as const;
+export type GameKind = (typeof GAME_KINDS)[number];
+
+export const POSTER_MAX_ATTEMPTS = 6;
+
+/** Las letras que se eligen al empezar «El título del día», distintas. */
+export const TITLE_LETTER_PICKS = 4;
+/** Las pistas del título, en orden: cada fallo (o pedir pista) destapa la siguiente. */
+export const TITLE_CLUES = ['year', 'director', 'synopsis', 'poster'] as const;
+export type TitleClueKind = (typeof TITLE_CLUES)[number];
+/** Uno con las letras y uno más con cada pista. */
+export const TITLE_MAX_ATTEMPTS = TITLE_CLUES.length + 1;
+
+/** Cómo se dibuja el título: una casilla por letra, un hueco entre palabras y la puntuación, fija. */
+export type TitleToken =
+  | { readonly kind: 'letter' }
+  | { readonly kind: 'space' }
+  /** Guion, apóstrofo, punto, ¡!¿?…: se ve, pero no se escribe. */
+  | { readonly kind: 'mark'; readonly char: string };
+
+/** `skip`: se pidió la pista sin intentarlo. */
+export type GuessResult = 'correct' | 'miss' | 'skip';
+
+/** La solución, cuando la partida ha terminado. */
+export interface GameAnswer {
+  readonly content_id: string;
+  /** En el idioma de la partida. */
+  readonly title: string;
+  readonly year: number | null;
+  readonly director: string | null;
+  /** El cartel de siempre, con su título: el que se ve al acabar. */
+  readonly poster_url: string | null;
+}
+
+/** Cuerpo de `POST /api/games/title`. */
+export interface TitleGameRequestBody {
+  /** `YYYY-MM-DD`, el día de Madrid de la partida: hoy o uno anterior. */
+  readonly day: string;
+  readonly language: Locale;
+  /** `TITLE_LETTER_PICKS` letras distintas, en mayúscula y sin tilde (la Ñ es una letra). */
+  readonly letters: readonly string[];
+  /**
+   * El título entero en cada intento, con las mismas letras (las destapadas
+   * también), o `null` si se pidió la pista. Vacío: solo destapar las letras.
+   */
+  readonly guesses: readonly (string | null)[];
+}
+
+/** Una pista destapada. En `poster`, `value` es la ruta del cartel desenfocado. */
+export interface TitleClue {
+  readonly kind: TitleClueKind;
+  /** `null` si no se sabe (alguna película no tiene director en TMDB). */
+  readonly value: string | null;
+}
+
+export interface TitleGameResponse {
+  /** Una por casilla: la letra si es de las elegidas, o `null`. */
+  readonly revealed: readonly (string | null)[];
+  /** Las elegidas que no están en el título. */
+  readonly absent: readonly string[];
+  readonly results: readonly GuessResult[];
+  /** Las destapadas hasta ahora, en orden. */
+  readonly clues: readonly TitleClue[];
+  readonly solved: boolean;
+  readonly finished: boolean;
+  readonly answer: GameAnswer | null;
+}
+
+/** Cuerpo de `POST /api/games/poster`. */
+export interface PosterGameRequestBody {
+  readonly day: string;
+  /** El `content.id` de cada intento, o `null` si se pasó. */
+  readonly guesses: readonly (string | null)[];
+}
+
+/** `saga`: no es, pero es de la misma saga (`collection_id`). */
+export type PosterGuessResult = GuessResult | 'saga';
+
+export interface PosterGameResponse {
+  readonly results: readonly PosterGuessResult[];
+  readonly solved: boolean;
+  readonly finished: boolean;
+  /** El cartel del intento que toca, con su desenfoque. Al acabar, `answer.poster_url`. */
+  readonly image_url: string | null;
+  readonly answer: GameAnswer | null;
+}
+
+/** Una película del buscador de «El cartel del día». */
+export interface GameTitleOption {
+  readonly id: string;
+  readonly title: string;
+  readonly title_en: string | null;
+  readonly year: number | null;
+}
+
+/** Respuesta de `GET /api/games/titles?q=…`. */
+export interface GameTitleSearchResponse {
+  readonly results: readonly GameTitleOption[];
+}
+
 // ─── Localización ────────────────────────────────────────────────────────────
 
 export const LOCALES = ['es', 'en'] as const;

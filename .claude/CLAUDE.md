@@ -1,6 +1,6 @@
 # CLAUDE.md — Proyecto Umber 🍂
 
-Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una especialidad). Chat conversacional que recomienda películas y series según el ánimo y los gustos del usuario, usando DeepSeek + búsqueda semántica sobre un corpus de ~16.000 títulos conocidos vectorizados en Supabase pgvector. Plan y estado en `docs/fase-8-experto-general.md`.
+Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una especialidad). Chat conversacional que recomienda películas y series según el ánimo y los gustos del usuario, usando DeepSeek + búsqueda semántica sobre un corpus de ~16.000 títulos conocidos vectorizados en Supabase pgvector. Y dos juegos diarios con películas muy conocidas (`/juegos`). Plan y estado en `docs/fase-8-experto-general.md` y `docs/fase-9-juegos.md`.
 
 ---
 
@@ -23,13 +23,13 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 ```
 /
 ├── src/
-│   ├── components/          # SiteHeader, SiteFooter, LeafMark, ContentCard, PosterCard, ChatMessage, AuthForm, AuthScene
+│   ├── components/          # SiteHeader, SiteFooter, LeafMark, ContentCard, PosterCard, ChatMessage, AuthForm, AuthScene, GameResult
 │   ├── layouts/
 │   │   └── Layout.astro     # Layout base: tema, tipografías, metadatos, cabecera y pie
 │   ├── middleware.ts        # Sesión de Supabase (cookies) en Astro.locals, en cada petición
 │   ├── env.d.ts             # Tipos de Astro.locals
 │   ├── pages/
-│   │   ├── index.astro      # Portada: el cuadro para empezar (GET a /chat?mode=…&q=…), cómo funciona, «Si te gustó…», el apartado de otoño
+│   │   ├── index.astro      # Portada: el cuadro para empezar (GET a /chat?mode=…&q=…), cómo funciona, «Si te gustó…», el apartado de otoño y el de juegos
 │   │   ├── chat.astro       # Chat: ?mode=movie para empezar (&q= lo envía al abrir), ?conversation=<id> para retomar
 │   │   ├── entrar.astro     # Login (formulario sin JS)
 │   │   ├── registro.astro   # Registro: usuario, email y contraseña dos veces; exige confirmar el email
@@ -39,13 +39,18 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── explorar/
 │   │   │   ├── index.astro  # El corpus en carteles: búsqueda, tipo, género, orden, páginas
 │   │   │   └── [id].astro   # Ficha de un título: sinopsis, plataformas, favorito, «Más como esta»
+│   │   ├── juegos/
+│   │   │   ├── index.astro  # Los dos juegos del día
+│   │   │   ├── cartel.astro # El cartel del día: cada intento, menos desenfocado
+│   │   │   └── titulo.astro # El título del día: ?idioma=es|en, cuatro letras y pistas
 │   │   ├── auth/
 │   │   │   └── confirm.ts   # Vuelta del enlace del email (code o token_hash)
 │   │   └── api/
 │   │       ├── chat.ts      # Endpoint principal — orquesta búsqueda, DeepSeek y SSE
 │   │       ├── favorites.ts # POST / DELETE de favoritos
 │   │       ├── search.ts    # POST: la búsqueda del chat sin el modelo (depurar, buscador)
-│   │       └── tmdb.ts      # GET: plataformas de un título del corpus, con caché
+│   │       ├── tmdb.ts      # GET: plataformas de un título del corpus, con caché
+│   │       └── games/       # title, poster (POST: corrigen), poster-image y titles (GET)
 │   ├── lib/
 │   │   ├── env.ts           # Único acceso a variables de entorno (servidor)
 │   │   ├── env.client.ts    # Variables públicas para el navegador
@@ -62,6 +67,8 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── recommendations.ts # Fichas por id, para las conversaciones retomadas
 │   │   ├── explore.ts       # Filtros de /explorar en la URL, listado, géneros y ficha
 │   │   ├── showcase.ts      # Escaparate: muy conocidas y sus parecidos, y el de otoño; con caché
+│   │   ├── games.ts         # Juegos del día: el día de Madrid, la partida, el cartel desenfocado y firmado
+│   │   ├── game-rules.ts    # Reglas puras del título (letras, casillas, sinopsis tachada): servidor y navegador
 │   │   ├── embeddings.ts    # Generación de embeddings (Qwen3 autoalojado)
 │   │   ├── search.ts        # Búsqueda semántica: suelo de similitud y reordenado
 │   │   ├── chat.ts          # Validación del chat, contexto del modelo y fichas
@@ -81,7 +88,10 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── home.ts          # Intro envía en el cuadro de la portada; el índice cambia de cartel
 │   │   ├── transitions.ts   # El cartel pulsado viaja a la ficha (View Transitions)
 │   │   ├── auth-form.ts     # Mostrar la contraseña y avisar si las dos no coinciden
-│   │   └── conversations.ts # Confirmar antes de borrar una conversación
+│   │   ├── conversations.ts # Confirmar antes de borrar una conversación
+│   │   ├── games.ts         # Juegos: partida y racha en localStorage, compartir, final, hojas al acertar
+│   │   ├── game-title.ts    # El título del día: letras, teclado, pistas
+│   │   └── game-poster.ts   # El cartel del día: buscador (combobox) y carteles
 │   ├── prompts/
 │   │   ├── system.md        # System prompt de Umber (identidad, tono, reglas)
 │   │   ├── specialty-autumn.md  # Capa de la especialidad de otoño
@@ -102,7 +112,8 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │       ├── embed.py         # Vectoriza el corpus con Qwen3: búsqueda y «sin nombre»
 │       ├── load-db.py       # Upsert del corpus en Supabase pgvector y sus parecidos
 │       ├── search.py        # Búsquedas de control contra el corpus cargado
-│       └── check-embeddings.py  # ¿Da un servicio los mismos vectores que el corpus?
+│       ├── check-embeddings.py  # ¿Da un servicio los mismos vectores que el corpus?
+│       └── games.py         # Calendario de los juegos del día (daily_games), por adelantado
 ├── supabase/
 │   ├── config.toml          # Configuración del CLI
 │   └── migrations/          # Esquema versionado, en orden de aplicación
@@ -190,6 +201,7 @@ npx supabase db query --linked "reindex index public.content_embedding_hnsw_idx"
 python scripts/seed/search.py "tarde de lluvia"   # búsquedas de control
 python scripts/seed/eval-similar.py                # «Más como esta», puntuado por un juez (céntimos)
 python scripts/seed/check-embeddings.py            # ¿da el servicio de .env.local los vectores del corpus?
+python scripts/seed/games.py                       # juegos del día: hasta tener los próximos 365 (--dry-run, --min-votes)
 ```
 
 Todos los pasos cachean en `scripts/seed/data/` (ignorado en git): se reanudan
@@ -449,6 +461,41 @@ CREATE TABLE content_similar (
   numpy, en bloques: exacto y en unos segundos
 - Lectura pública, como el corpus; sin políticas de escritura
 
+### `daily_games` — los juegos del día, solo servidor
+
+```sql
+CREATE TABLE daily_games (
+  game        TEXT NOT NULL CHECK (game IN ('poster', 'title')),
+  day         DATE NOT NULL,             -- el de Madrid: cambia a medianoche de allí
+  number      INTEGER NOT NULL,          -- el que se comparte: «#12»
+  content_id  UUID NOT NULL REFERENCES content(id) ON DELETE RESTRICT,
+  title_es    TEXT NOT NULL,             -- el de su estreno en España, limpio
+  title_en    TEXT NOT NULL,
+  poster_path TEXT NOT NULL,             -- cartel SIN texto de TMDB
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (game, day),
+  UNIQUE (game, number),
+  UNIQUE (game, content_id)
+);
+```
+
+- Son las soluciones, también las de mañana: RLS sin políticas y sin permisos
+  para `anon` ni `authenticated`. Las lee `src/lib/games.ts` con la secret key
+- La rellena por adelantado `scripts/seed/games.py`: películas de 10.000 votos o
+  más, con cartel sin texto, y para el título, con un título jugable. Solo añade
+  días después del último: los de antes no se tocan (el número compartido tiene
+  que seguir siendo el mismo)
+- `title_es` **no es `content.title`**: el corpus da a veces el título
+  latinoamericano (ver la Fase 8). `games.py` lo saca de las traducciones de TMDB
+- Borrar del corpus una película con día asignado falla (`ON DELETE RESTRICT`):
+  `load-db.py --prune` se para con el error de la clave ajena
+- Los juegos no guardan partidas: el navegador manda la partida entera en cada
+  petición y el servidor la corrige. El cartel desenfocado lo hace el servidor
+  (`sharp`), con rutas firmadas por HMAC: sin firma se pediría el nivel nítido
+- `sharp` lleva binarios nativos: desplegar construyendo en Vercel (desde el
+  repositorio), no con `vercel deploy --prebuilt` desde el Mac, que empaquetaría
+  los de macOS
+
 ### `platforms_cache` y `rate_limits` — solo servidor
 
 ```sql
@@ -633,6 +680,14 @@ Los otros dos endpoints, con el mismo formato de error:
   `relaxed`: los filtros que hubo que quitar. Sesión opcional; rate limit
   propio (20/min y 300/día por IP, 30/min y 1.000/día con sesión, 5.000/día
   entre todos: protege la cuota gratuita de Cloudflare, que comparte con el chat)
+- **Juegos del día** (contratos en `src/lib/types.ts`), sin sesión ni rate
+  limit, como `/explorar`: no llaman a ningún modelo. `POST /api/games/title`
+  (`{ day, language, letters, guesses }`: las cuatro letras destapan casillas y
+  cada fallo, una pista) y `POST /api/games/poster` (`{ day, guesses }`: ids del
+  corpus o `null` para pasar) corrigen la partida entera; la solución, solo al
+  acabar. `GET /api/games/poster-image?game&day&level&sig`, el cartel
+  desenfocado (firmado, una semana en la CDN), y `GET /api/games/titles?q=`, el
+  buscador del cartel (`explore_content`)
 - **`GET /api/tmdb?content_id=<uuid>&region=ES`** (`PlatformsResponse`):
   plataformas de un título del corpus, por `lookupPlatforms`. Sin `region`, la de
   `Accept-Language`. `Cache-Control` público de un día en la CDN. No acepta rutas
@@ -705,7 +760,7 @@ Los modos `weekend` y `month` están diseñados. No eliminar sus tipos ni consta
 - Streaming activado siempre en las llamadas al chat de DeepSeek
 - JavaScript del navegador en `src/scripts/`, sin framework. Solo puede importar
   de `src/lib/` los módulos que no tocan servidor: `types.ts`, `markdown.ts`,
-  `chat-stream.ts`
+  `chat-stream.ts`, `game-rules.ts`
 - Astro pinta el `<script>` de un componente donde se pinta el componente. Si el
   componente va dentro de un `<template>` (como `ContentCard` en el chat), su
   script queda inerte: quien clona la plantilla tiene que inicializarlo
@@ -886,7 +941,8 @@ Interfaz:          Schibsted Grotesk 400–600                        font-sans
 
 ## Lo que NO hacer
 
-- No usar `localStorage` para historial de chat — va a Supabase
+- No usar `localStorage` para historial de chat — va a Supabase (las partidas
+  de los juegos sí van ahí: no hace falta cuenta para jugar)
 - No llamar a TMDB directamente desde el cliente — siempre vía `/api/tmdb`
 - No hardcodear IDs de TMDB en el código
 - No recomendar contenido sin pasar por el corpus vectorial — Umber no inventa títulos

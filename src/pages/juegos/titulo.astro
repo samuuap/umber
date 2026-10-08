@@ -1,0 +1,308 @@
+---
+/**
+ * «El título del día»: el título de una película muy conocida, en español (el
+ * de su estreno en España) o en inglés. Se eligen cuatro letras y se destapan
+ * donde salen; después se escribe el título entero. Cada fallo, o pedir pista,
+ * destapa la siguiente: el año, el director, la sinopsis y, al final, el
+ * cartel, poco desenfocado. Cinco intentos.
+ *
+ * Primero se elige el idioma (`?idioma=es|en`), que se recuerda en una cookie:
+ * así el servidor pinta el tablero de ese idioma sin esperar a JavaScript. El
+ * tablero llega vacío, con una casilla por letra; las letras no llegan nunca.
+ * Quien corrige es `/api/games/title` (`src/scripts/game-title.ts`).
+ */
+import GameResult from '@/components/GameResult.astro';
+import LeafMark from '@/components/LeafMark.astro';
+import Layout from '@/layouts/Layout.astro';
+import { titleTokens } from '@/lib/game-rules';
+import { gameDay, loadDailyGame } from '@/lib/games';
+import {
+  TITLE_CLUES,
+  TITLE_LETTER_PICKS,
+  TITLE_MAX_ATTEMPTS,
+  isLocale,
+  type Locale,
+  type TitleClueKind,
+  type TitleToken,
+} from '@/lib/types';
+
+const LANGUAGE_COOKIE = 'umber_juego_idioma';
+const YEAR_SECONDS = 365 * 24 * 60 * 60;
+
+const param = Astro.url.searchParams.get('idioma');
+const chosen: Locale | null = isLocale(param) ? param : null;
+if (chosen !== null) {
+  // Una preferencia que pide la persona: cookie técnica, sin banner.
+  Astro.cookies.set(LANGUAGE_COOKIE, chosen, {
+    path: '/juegos',
+    maxAge: YEAR_SECONDS,
+    sameSite: 'lax',
+    httpOnly: true,
+    secure: Astro.url.protocol === 'https:',
+  });
+}
+const saved = Astro.cookies.get(LANGUAGE_COOKIE)?.value;
+const language: Locale | null = chosen ?? (isLocale(saved) ? saved : null);
+const otherLanguage: Locale = language === 'en' ? 'es' : 'en';
+const LANGUAGE_NAMES: Record<Locale, string> = { es: 'español', en: 'inglés' };
+
+const day = gameDay();
+const daily = language === null ? null : await loadDailyGame('title', day);
+
+// Las palabras del título, cada una con sus casillas y su puntuación.
+const words: TitleToken[][] = [];
+if (daily !== null && language !== null) {
+  let word: TitleToken[] = [];
+  for (const token of titleTokens(daily.titles[language])) {
+    if (token.kind === 'space') {
+      words.push(word);
+      word = [];
+    } else {
+      word.push(token);
+    }
+  }
+  if (word.length > 0) words.push(word);
+}
+const letters = words.flat().filter((token) => token.kind === 'letter').length;
+const longest = Math.min(11, Math.max(0, ...words.map((word) => word.length)));
+const description =
+  words.length === 1 ? `${String(letters)} letras` : `${String(letters)} letras en ${String(words.length)} palabras`;
+
+const CLUE_LABELS: Record<TitleClueKind, string> = {
+  year: 'El año',
+  director: 'Quién la dirige',
+  synopsis: 'De qué va',
+  poster: 'El cartel',
+};
+const ORDINALS = ['primer', 'segundo', 'tercer', 'cuarto'] as const;
+
+const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
+  es: [[...'QWERTYUIOP'], [...'ASDFGHJKLÑ'], ['Enter', ...'ZXCVBNM', 'Backspace']],
+  en: [[...'QWERTYUIOP'], [...'ASDFGHJKL'], ['Enter', ...'ZXCVBNM', 'Backspace']],
+};
+---
+
+<Layout
+  title="El título del día — Umber"
+  description="Adivina el título de una película muy conocida con cuatro letras y unas pistas. Uno nuevo cada día."
+>
+  <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 pb-20 sm:px-8">
+    <header class="grid gap-x-10 gap-y-6 pt-10 pb-10 sm:pt-14 lg:grid-cols-12 lg:items-end">
+      <div class="rise lg:col-span-7">
+        <p class="eyebrow eyebrow-rule">
+          <a href="/juegos" class="link-quiet">Juegos</a>
+          {daily !== null && <span class="ml-2">· N.º {daily.number}</span>}
+        </p>
+        <h1 class="display-1 mt-7">El título <em>del día</em></h1>
+      </div>
+      <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
+        Elige cuatro letras y mira dónde salen. Si no sacas el título, cada fallo trae una pista: el año, el director,
+        la sinopsis y, al final, el cartel.
+      </p>
+    </header>
+
+    {
+      language === null ? (
+        <section
+          aria-labelledby="idioma"
+          class="border-umber-line rise border-t py-14 [animation-delay:150ms] lg:grid lg:grid-cols-12 lg:gap-x-10"
+        >
+          <div class="lg:col-span-5">
+            <h2 id="idioma" class="display-2">
+              ¿En qué <em>idioma</em>?
+            </h2>
+            <p class="lead mt-5 max-w-sm">Es la misma película en los dos. Podrás cambiar cuando quieras.</p>
+          </div>
+          <ul class="mt-10 grid gap-4 sm:grid-cols-2 lg:col-span-6 lg:col-start-7 lg:mt-1">
+            <li>
+              <a
+                href="?idioma=es"
+                class="group border-umber-line hover:border-umber-rule hover:bg-umber-cream/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
+              >
+                <span class="font-display block text-[2rem] leading-none">Español</span>
+                <span class="text-umber-ash mt-3 block text-sm leading-relaxed">
+                  Como se estrenó en España: <i class="font-serif">Cadena perpetua</i>.
+                </span>
+                <span class="text-umber-amber mt-5 inline-flex items-center gap-2 text-sm font-semibold">
+                  Jugar <span class="arrow" aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="?idioma=en"
+                lang="en"
+                class="group border-umber-line hover:border-umber-rule hover:bg-umber-cream/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
+              >
+                <span class="font-display block text-[2rem] leading-none">English</span>
+                <span class="text-umber-ash mt-3 block text-sm leading-relaxed">
+                  The English title: <i class="font-serif">The Shawshank Redemption</i>.
+                </span>
+                <span class="text-umber-amber mt-5 inline-flex items-center gap-2 text-sm font-semibold">
+                  Play <span class="arrow" aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+          </ul>
+        </section>
+      ) : daily === null ? (
+        <section class="border-umber-line rise border-t py-20 [animation-delay:150ms] lg:grid lg:grid-cols-12 lg:gap-x-10">
+          <p class="display-2 lg:col-span-6">
+            Hoy no hay <em>título</em>
+          </p>
+          <div class="mt-6 lg:col-span-5 lg:col-start-8 lg:mt-3">
+            <p class="lead">Se nos ha acabado la lista de películas. Vuelve mañana, o prueba con el cartel del día.</p>
+            <a href="/juegos/cartel" class="btn-primary mt-8">
+              El cartel del día <span class="arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </section>
+      ) : (
+        <section
+          data-title-game
+          data-day={day}
+          data-language={language}
+          data-number={String(daily.number)}
+          data-stage="pick"
+          aria-labelledby="tablero"
+          class="border-umber-line grid gap-x-12 gap-y-10 border-t pt-8 lg:grid-cols-12"
+        >
+          <div class="lg:col-span-8">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+              <h2 id="tablero" class="text-umber-ash text-sm">
+                {description}, en {LANGUAGE_NAMES[language]}
+              </h2>
+              <a href={`?idioma=${otherLanguage}`} class="link-quiet text-sm">
+                Jugar en {LANGUAGE_NAMES[otherLanguage]}
+              </a>
+            </div>
+
+            {/* El tablero: una fila, el título. Al acertar, las hojas salen de aquí. */}
+            <div class="title-board relative mt-10" data-board data-longest={String(longest)}>
+              <div class="title-row" data-row role="group" aria-label="El título">
+                {words.map((word) => (
+                  <span class="title-word" data-word>
+                    {word.map((token) =>
+                      token.kind === 'mark' ? (
+                        <span class="tile-mark" aria-hidden="true">
+                          {token.char}
+                        </span>
+                      ) : (
+                        <span class="tile" data-slot />
+                      ),
+                    )}
+                  </span>
+                ))}
+              </div>
+              <div data-burst aria-hidden="true" class="pointer-events-none absolute inset-0" />
+            </div>
+
+            {/* Paso 1: las cuatro letras. */}
+            <div data-pick-panel class="mt-12 text-center">
+              <p class="field-label">Elige {TITLE_LETTER_PICKS} letras</p>
+              <div class="mt-4 flex justify-center gap-2.5" data-pick-slots>
+                {Array.from({ length: TITLE_LETTER_PICKS }, () => (
+                  <span class="pick-slot" data-pick-slot />
+                ))}
+              </div>
+              <button type="button" data-pick-submit class="btn-primary mt-7" disabled>
+                Destapar <span class="arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+
+            {/* Paso 2: escribir el título. */}
+            <div data-guess-panel hidden class="mt-12 text-center">
+              <div data-attempt-bars aria-hidden="true" class="mx-auto flex max-w-[16rem] gap-1.5">
+                {Array.from({ length: TITLE_MAX_ATTEMPTS }, (_, index) => (
+                  <span class="attempt-bar" data-state={index === 0 ? 'current' : undefined} />
+                ))}
+              </div>
+              <p data-attempt-label class="field-label mt-4">
+                Intento 1 de {TITLE_MAX_ATTEMPTS}
+              </p>
+              <div class="mt-6 flex flex-wrap justify-center gap-3">
+                <button type="button" data-guess-submit class="btn-primary" disabled>
+                  Probar <span class="arrow" aria-hidden="true">→</span>
+                </button>
+                <button type="button" data-guess-clue class="btn-secondary">
+                  Pedir pista
+                </button>
+              </div>
+            </div>
+
+            <p data-game-status role="status" class="text-umber-ash mt-6 min-h-[1.5rem] text-center text-sm" />
+            <ul data-misses aria-label="Lo que has probado" class="mt-2 flex flex-wrap justify-center gap-2" />
+
+            <div data-keyboard role="group" aria-label="Teclado" class="mx-auto mt-8 grid max-w-xl gap-1.5">
+              {KEY_ROWS[language].map((keys) => (
+                <div class="flex gap-1.5">
+                  {keys.map((key) =>
+                    key === 'Enter' ? (
+                      <button type="button" class="key key-wide" data-key="Enter" data-enter-label>
+                        Destapar
+                      </button>
+                    ) : key === 'Backspace' ? (
+                      <button type="button" class="key key-wide" data-key="Backspace" aria-label="Borrar">
+                        ⌫
+                      </button>
+                    ) : (
+                      <button type="button" class="key" data-key={key}>
+                        {key}
+                      </button>
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+            <noscript>
+              <p class="text-umber-ash mt-6 text-center text-sm">Para jugar hace falta JavaScript.</p>
+            </noscript>
+
+            <GameResult other={{ href: '/juegos/cartel', label: 'Juega también a El cartel del día' }} poster />
+          </div>
+
+          {/* Las pistas: se ven desde el principio, tapadas, y se destapan con cada fallo. */}
+          <aside aria-labelledby="pistas" class="lg:col-span-4">
+            <h2 id="pistas" class="eyebrow eyebrow-rule">
+              Pistas
+            </h2>
+            <ol class="border-umber-line mt-6 border-t" data-clues>
+              {TITLE_CLUES.map((kind, index) => (
+                <li class="clue border-umber-line border-b py-5" data-clue={kind}>
+                  <p class="field-label">{CLUE_LABELS[kind]}</p>
+                  <p class="text-umber-ash/70 mt-2 text-sm" data-clue-locked>
+                    Tras el {ORDINALS[index]} fallo
+                  </p>
+                  {kind === 'poster' ? (
+                    <div data-clue-value hidden class="poster-frame mt-4 w-full max-w-[11rem]">
+                      <img alt="El cartel, un poco desenfocado" width="500" height="750" />
+                    </div>
+                  ) : (
+                    <p
+                      data-clue-value
+                      hidden
+                      lang={kind === 'synopsis' ? language : undefined}
+                      class:list={[
+                        'mt-2',
+                        kind === 'synopsis' ? 'reading text-umber-cream/90 text-[1rem]!' : 'font-display text-3xl',
+                      ]}
+                    />
+                  )}
+                </li>
+              ))}
+            </ol>
+
+          </aside>
+
+          <template data-leaf>
+            <LeafMark class="burst-leaf text-umber-amber" />
+          </template>
+        </section>
+      )
+    }
+  </main>
+</Layout>
+
+<script>
+  import '@/scripts/game-title';
+</script>

@@ -1,6 +1,7 @@
 /**
  * Verifica que el esquema esté aplicado y que RLS se comporte: el de la Fase 2
- * lo que añadió la 4 (caché de plataformas y rate limiting), los perfiles y explorar.
+ * lo que añadió la 4 (caché de plataformas y rate limiting), los perfiles, explorar
+ * y los juegos del día.
  *
  *   node scripts/verify-schema.mjs
  *
@@ -54,7 +55,7 @@ console.log(`\nProyecto: ${env.SUPABASE_URL}\n`);
 
 // ─── Estructura ──────────────────────────────────────────────────────────────
 console.log('Estructura');
-for (const table of ['content', 'content_similar', 'users_favorites', 'conversations', 'profiles', 'platforms_cache', 'rate_limits', 'chat_traces', 'llm_calls', 'usage_daily', 'request_daily']) {
+for (const table of ['content', 'content_similar', 'users_favorites', 'conversations', 'profiles', 'platforms_cache', 'rate_limits', 'chat_traces', 'llm_calls', 'usage_daily', 'request_daily', 'daily_games']) {
   const { status, body } = await call(`/${table}?select=*&limit=0`, { key: SECRET });
   record(status === 200, `tabla ${table} existe`, status === 200 ? '' : JSON.stringify(body));
 }
@@ -101,7 +102,8 @@ for (const table of ['conversations', 'users_favorites', 'profiles']) {
     `anon NO ve ${table}`, status === 200 ? 'conjunto vacío por RLS' : `HTTP ${status}`);
 }
 // Estas no tienen políticas y además se les retiran los permisos: ni vacío, error.
-for (const table of ['platforms_cache', 'rate_limits', 'chat_traces', 'llm_calls', 'usage_daily', 'request_daily']) {
+// `daily_games` lleva las soluciones de los juegos, también las de mañana.
+for (const table of ['platforms_cache', 'rate_limits', 'chat_traces', 'llm_calls', 'usage_daily', 'request_daily', 'daily_games']) {
   const { status } = await call(`/${table}?select=*&limit=1`);
   record(status === 401 || status === 403, `anon NO puede leer ${table}`, `HTTP ${status}`);
 }

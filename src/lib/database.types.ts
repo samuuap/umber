@@ -233,6 +233,47 @@ export type Database = {
           },
         ]
       }
+      daily_games: {
+        Row: {
+          content_id: string
+          created_at: string
+          day: string
+          game: string
+          number: number
+          poster_path: string
+          title_en: string
+          title_es: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          day: string
+          game: string
+          number: number
+          poster_path: string
+          title_en: string
+          title_es: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          day?: string
+          game?: string
+          number?: number
+          poster_path?: string
+          title_en?: string
+          title_es?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_games_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string

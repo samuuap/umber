@@ -16,6 +16,7 @@ La documentación **técnica** (stack, esquema, convenciones, estética) está e
 | [6](fase-6-pulido-despliegue.md) | Pulido, producto completo y despliegue | 🔄 En curso |
 | [7](fase-7-premium.md) | Premium: planes de pago | 💤 Futuro: no empezar hasta acabar la 6 |
 | [8](fase-8-experto-general.md) | Umber experto general: pasarela y trazabilidad, corpus, recomendador, panel de admin y diseño | 🔄 En curso |
+| [9](fase-9-juegos.md) | Juegos del día: «El cartel del día» y «El título del día» | 🔄 En curso: falta la migración |
 
 Leyenda: ✅ completada · 🔄 en curso · ⏳ pendiente · ⛔ bloqueada · 💤 futuro
 
@@ -64,6 +65,7 @@ Ordenadas por la fase que las bloquea. El detalle está en cada archivo.
 | 1 | ¿Debe `anon` poder leer la columna `embedding`? | [Fase 2](fase-2-base-de-datos.md) |
 | 2 | ¿Correo de la cuenta con una cuenta de Gmail como SMTP? Sin él, nadie de fuera puede activar su cuenta | [Fase 6](fase-6-pulido-despliegue.md) |
 | 3 | ¿Lo siguiente es el panel (D) o la identidad visual nueva (E)? | [Fase 8](fase-8-experto-general.md) |
+| 4 | ¿Corregir los 1.249 títulos latinoamericanos del corpus (*Joker* → «Guasón»)? Revectoriza esos títulos y recarga | [Fase 8](fase-8-experto-general.md) |
 
 ---
 

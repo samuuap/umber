@@ -395,6 +395,316 @@
   }
 }
 
+/* ─── Juegos ─────────────────────────────────────────────────────────────────
+   «El título del día» y «El cartel del día» (`/juegos`). Con un solo acento,
+   cada estado de una casilla se distingue también por la forma: vacía, con
+   borde; destapada por tus letras, con fondo y letra ámbar; escrita por ti,
+   con borde crema; acertada, rellena de ámbar.
+   -------------------------------------------------------------------------- */
+@layer components {
+  /*
+   * El tablero fija el tamaño de casilla (`--tile`) según la palabra más larga
+   * (`data-longest`, en casillas), para que quepa en una pantalla de 390 px.
+   */
+  .title-board {
+    --tile: 2.85rem;
+    --tile-gap: 0.3rem;
+  }
+
+  .title-board[data-longest='6'] {
+    --tile: min(2.85rem, calc((100vw - 2.5rem - 5 * var(--tile-gap)) / 6));
+  }
+  .title-board[data-longest='7'] {
+    --tile: min(2.85rem, calc((100vw - 2.5rem - 6 * var(--tile-gap)) / 7));
+  }
+  .title-board[data-longest='8'] {
+    --tile: min(2.85rem, calc((100vw - 2.5rem - 7 * var(--tile-gap)) / 8));
+  }
+  .title-board[data-longest='9'] {
+    --tile: min(2.85rem, calc((100vw - 2.5rem - 8 * var(--tile-gap)) / 9));
+  }
+  .title-board[data-longest='10'] {
+    --tile: min(2.85rem, calc((100vw - 2.5rem - 9 * var(--tile-gap)) / 10));
+  }
+  .title-board[data-longest='11'] {
+    --tile: min(2.85rem, calc((100vw - 2.5rem - 10 * var(--tile-gap)) / 11));
+  }
+
+  /* El título: las palabras se parten en líneas, nunca una palabra. */
+  .title-row {
+    @apply flex flex-wrap items-center justify-center;
+    gap: calc(var(--tile) * 0.35) calc(var(--tile) * 0.6);
+  }
+
+  .title-word {
+    @apply inline-flex items-end;
+    gap: var(--tile-gap);
+  }
+
+  .tile {
+    @apply border-umber-rule/45 text-umber-cream relative inline-flex shrink-0 items-center justify-center rounded-[3px] border font-sans leading-none font-semibold uppercase select-none;
+    width: var(--tile);
+    height: calc(var(--tile) * 1.12);
+    font-size: calc(var(--tile) * 0.48);
+    transition:
+      background-color 0.35s,
+      border-color 0.35s,
+      color 0.35s,
+      box-shadow 0.35s;
+  }
+
+  /* Dónde va la próxima letra: una línea ámbar que respira. */
+  .tile[data-cursor]::after {
+    @apply bg-umber-amber absolute inset-x-[22%] bottom-[14%] h-[2px] rounded-full content-[''];
+    animation: breathe 1.6s ease-in-out infinite;
+  }
+
+  .tile[data-state='typed'] {
+    @apply border-umber-cream/75;
+    animation: tile-pop 0.18s var(--ease-soft);
+  }
+
+  /* Destapada por tus letras: fija, no se escribe encima. */
+  .tile[data-state='revealed'] {
+    @apply bg-umber-raised border-umber-amber/45 text-umber-amber;
+  }
+
+  .tile[data-state='solved'] {
+    @apply bg-umber-amber border-umber-amber text-umber-base;
+    box-shadow: 0 0 24px -6px color-mix(in oklab, var(--color-umber-amber) 70%, transparent);
+  }
+
+  /* Al perder, lo que faltaba: apagado, para que se vea qué no salió. */
+  .tile[data-state='answer'] {
+    @apply bg-umber-line border-umber-line text-umber-ash;
+  }
+
+  /* La puntuación del título: se ve, pero no es una casilla. */
+  .tile-mark {
+    @apply text-umber-ash inline-flex items-center justify-center font-sans font-semibold select-none;
+    height: calc(var(--tile) * 1.12);
+    min-width: calc(var(--tile) * 0.3);
+    font-size: calc(var(--tile) * 0.48);
+  }
+
+  .tile[data-turn] {
+    animation: tile-turn 0.55s var(--ease-soft) both;
+  }
+
+  .tile[data-win] {
+    animation: tile-win 0.7s var(--ease-soft) both;
+  }
+
+  [data-shake] {
+    animation: shake 0.42s ease-in-out;
+  }
+
+  /* Las cuatro letras elegidas. */
+  .pick-slot {
+    @apply border-umber-rule/70 text-umber-cream inline-flex size-12 items-center justify-center rounded-[3px] border border-dashed font-sans text-xl font-semibold uppercase transition-[border-color,color,opacity] duration-300;
+  }
+
+  .pick-slot[data-filled] {
+    @apply border-umber-cream/80 border-solid;
+    animation: tile-pop 0.18s var(--ease-soft);
+  }
+
+  .pick-slot[data-mark='present'] {
+    @apply border-umber-amber text-umber-amber border-solid;
+  }
+
+  .pick-slot[data-mark='absent'] {
+    @apply border-umber-line text-umber-ash/60 border-solid line-through decoration-2;
+  }
+
+  /* Las que ya probaste. */
+  .miss-chip {
+    @apply border-umber-line text-umber-ash rounded-full border px-3 py-1 font-sans text-xs tracking-[0.08em] uppercase line-through decoration-1;
+    animation: rise 0.5s var(--ease-soft) both;
+  }
+
+  /* Una pista que se destapa. */
+  .clue[data-open='animate'] [data-clue-value] {
+    animation: clue-in 0.9s var(--ease-soft) both;
+  }
+
+  .clue[data-open] .field-label {
+    @apply text-umber-amber;
+  }
+
+  /* El teclado de la pantalla. */
+  .key {
+    @apply bg-umber-raised text-umber-cream inline-flex h-12 min-w-0 flex-1 items-center justify-center rounded-[4px] font-sans text-[0.95rem] font-semibold uppercase transition-[background-color,color,box-shadow,opacity] duration-300 select-none hover:bg-[#30281f] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 sm:h-13;
+  }
+
+  .key-wide {
+    @apply flex-[1.6] text-[0.7rem] tracking-[0.06em];
+  }
+
+  .key[data-picked] {
+    @apply bg-umber-cream text-umber-base hover:bg-umber-cream;
+  }
+
+  .key[data-mark='present'] {
+    @apply text-umber-amber shadow-[inset_0_0_0_2px_var(--color-umber-amber)];
+  }
+
+  .key[data-mark='absent'] {
+    @apply text-umber-ash/55 bg-umber-surface hover:bg-umber-surface line-through;
+  }
+
+  /* El cartel del día: marco de cartel, con radio de 3 px como los demás. */
+  .poster-frame {
+    @apply bg-umber-surface ring-umber-base relative aspect-[2/3] overflow-hidden rounded-[3px] shadow-[0_40px_80px_-30px_rgb(0_0_0/0.95)] ring-[6px];
+  }
+
+  .poster-frame img {
+    @apply absolute inset-0 size-full object-cover transition-opacity duration-700 ease-(--ease-soft);
+  }
+
+  /* Al acertar, el marco se enciende un momento. */
+  [data-win-glow] {
+    animation: win-glow 2.4s ease-out both;
+  }
+
+  /* El cartel nítido del final se revela como una foto. */
+  [data-develop-in] {
+    animation: poster-develop 1.6s var(--ease-soft) both;
+  }
+
+  /* Los intentos: gastado, el que toca y los que quedan. */
+  .attempt-bar {
+    @apply bg-umber-line h-[3px] flex-1 rounded-full transition-colors duration-500;
+  }
+
+  .attempt-bar[data-state='used'] {
+    @apply bg-umber-rule;
+  }
+
+  .attempt-bar[data-state='current'] {
+    @apply bg-umber-cream;
+  }
+
+  .attempt-bar[data-state='won'] {
+    @apply bg-umber-amber;
+  }
+
+  /*
+   * Las hojas que salen del título al acertar: la marca, en ámbar y pequeña.
+   * Cada una lleva su dirección y su giro en variables (`--dx`, `--dy`, `--spin`)
+   * que pone `src/scripts/games.ts`.
+   */
+  .burst-leaf {
+    @apply absolute top-1/2 left-1/2 size-5 opacity-0;
+    animation: leaf-burst 1.5s cubic-bezier(0.16, 0.84, 0.3, 1) var(--delay, 0ms) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tile[data-state='typed'],
+    .tile[data-turn],
+    .tile[data-win],
+    .tile[data-cursor]::after,
+    .pick-slot[data-filled],
+    .miss-chip,
+    .clue[data-open='animate'] [data-clue-value],
+    [data-win-glow],
+    [data-develop-in],
+    [data-shake] {
+      animation: none;
+    }
+
+    .burst-leaf {
+      display: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .tile[data-state='revealed'],
+    .tile[data-state='solved'] {
+      text-decoration: underline;
+    }
+  }
+}
+
+@keyframes tile-pop {
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes tile-turn {
+  0% {
+    transform: rotateX(0);
+  }
+  50% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0);
+  }
+}
+
+/* Una ola: cada casilla salta un poco, una detrás de otra. */
+@keyframes tile-win {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-14px) scale(1.06);
+  }
+  65% {
+    transform: translateY(3px) scale(0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
+}
+
+@keyframes clue-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+}
+
+@keyframes win-glow {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-umber-amber) 0%, transparent);
+  }
+  20% {
+    box-shadow: 0 0 60px 6px color-mix(in oklab, var(--color-umber-amber) 35%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-umber-amber) 0%, transparent);
+  }
+}
+
+@keyframes leaf-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(1) rotate(var(--spin, 180deg));
+  }
+}
+
 /* ─── Transiciones entre páginas ─────────────────────────────────────────────
    Sin JavaScript: el navegador funde una página con la siguiente (Chrome,
    Edge y Safari; Firefox navega como siempre). La cabecera no se mueve, y el

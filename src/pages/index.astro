@@ -3,7 +3,7 @@
  * Portada: la acción primero. Se escribe cómo te sientes, se elige película o
  * serie, y el chat empieza con ese mensaje (`/chat?mode=…&q=…`, un formulario
  * GET que funciona sin JavaScript). Debajo, cómo funciona, una frase de Umber,
- * «Si te gustó…» y el apartado de la especialidad de otoño.
+ * «Si te gustó…», el apartado de la especialidad de otoño y el de los juegos.
  *
  * Umber es general (Fase 8): el ejemplo es una película muy conocida y sus
  * parecidos, y el otoño tiene su propio apartado.
@@ -330,6 +330,32 @@ const AUTUMN_POSITIONS = [
             </div>
           )
         }
+      </div>
+    </section>
+
+    <section aria-labelledby="juegos" class="border-umber-line border-t">
+      <div class="mx-auto grid max-w-[80rem] gap-10 px-5 py-20 sm:px-8 lg:grid-cols-12 lg:items-end lg:gap-x-10 lg:py-24">
+        <div class="reveal lg:col-span-6">
+          <p class="eyebrow eyebrow-rule">
+            Juegos
+            <span class="border-umber-amber/60 text-umber-amber ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+              Nuevo
+            </span>
+          </p>
+          <h2 id="juegos" class="display-2 mt-7">Una película <em>cada día</em></h2>
+        </div>
+        <div class="reveal lg:col-span-5 lg:col-start-8">
+          <p class="lead max-w-md">
+            Adivínala por su cartel, cada vez menos desenfocado, o por su título: cuatro letras y unas pistas. Cambian a
+            medianoche.
+          </p>
+          <div class="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
+            <a href="/juegos/cartel" class="btn-primary">
+              El cartel del día <span class="arrow" aria-hidden="true">→</span>
+            </a>
+            <a href="/juegos/titulo" class="link-quiet text-sm">El título del día</a>
+          </div>
+        </div>
       </div>
     </section>
 
