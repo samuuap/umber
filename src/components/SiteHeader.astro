@@ -18,6 +18,8 @@ const links = [
     : [
         { href: '/conversaciones', label: 'Conversaciones' },
         { href: '/favoritos', label: 'Favoritos' },
+        { href: '/cuenta', label: 'Cuenta' },
+        ...(user.isAdmin ? [{ href: '/admin', label: 'Admin' }] : []),
       ]),
 ];
 // Una ficha de /explorar/<id> sigue dentro de «Explorar».

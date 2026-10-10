@@ -1,0 +1,101 @@
+---
+/**
+ * Borrar la cuenta (RGPD: supresión). Irreversible: pide escribir el email tal
+ * cual, para no borrarla con un clic (ni con un CSRF, que ya corta el `Origin`
+ * del propio Astro, pero esto es además un error humano caro).
+ *
+ * Primero se borra con la Admin API (por `id`, no depende de que la sesión
+ * siga viva) y solo si sale bien se cierra la sesión de este navegador: si
+ * fallara el borrado, mejor dejar la cuenta intacta y con sesión que a medias.
+ */
+import Layout from '@/layouts/Layout.astro';
+import { type AuthFormError } from '@/lib/auth';
+import { errorMessage } from '@/lib/errors';
+import { getSupabaseAdminClient } from '@/lib/supabase';
+
+if (Astro.locals.user === null) return Astro.redirect('/entrar?next=%2Fcuenta%2Fborrar');
+const user = Astro.locals.user;
+
+let error: AuthFormError | null = null;
+let done = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const value = form.get('confirm_email');
+  const typed = typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+  if (user.email === null || typed !== user.email.toLowerCase()) {
+    error = { message: 'Escribe tu email exactamente para confirmar.', field: null };
+  } else {
+    const { error: deleteError } = await getSupabaseAdminClient().auth.admin.deleteUser(user.id);
+    if (deleteError !== null) {
+      console.warn('[cuenta/borrar] deleteUser:', errorMessage(deleteError));
+      error = { message: 'No se ha podido borrar la cuenta. Prueba otra vez en un momento.', field: null };
+    } else {
+      const { error: signOutError } = await Astro.locals.supabase.auth.signOut({ scope: 'global' });
+      if (signOutError !== null) console.warn('[cuenta/borrar] signOut:', errorMessage(signOutError));
+      done = true;
+    }
+  }
+  if (error !== null) Astro.response.status = 400;
+}
+---
+
+<Layout title="Borrar la cuenta — Umber">
+  <main class="mx-auto w-full max-w-md flex-1 px-5 pt-8 pb-16 sm:px-8 lg:pt-10">
+    {
+      done ? (
+        <div role="status" class="rise">
+          <p class="eyebrow eyebrow-rule">Listo</p>
+          <p class="display-1 mt-7">
+            Cuenta <em>borrada</em>
+          </p>
+          <p class="lead mt-6">
+            Hemos borrado tu cuenta, tus conversaciones y tus favoritos. Gracias por haber probado Umber.
+          </p>
+          <a href="/" class="btn-primary mt-8 inline-flex py-3.5 text-[0.95rem]">
+            Ir a Umber <span class="arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      ) : (
+        <>
+          <p class="eyebrow eyebrow-rule rise">Tu cuenta</p>
+          <h1 class="display-1 rise mt-7 [animation-delay:80ms]">
+            Borrar tu <em>cuenta</em>
+          </h1>
+          <p class="lead mt-5 [animation-delay:160ms]">
+            Esto borra tu cuenta, tus conversaciones guardadas y tus favoritos. No se puede deshacer.
+          </p>
+          {error !== null && (
+            <p role="alert" class="mt-6 border-l-2 border-red-400/70 py-1 pl-4 text-sm leading-relaxed">
+              {error.message}
+            </p>
+          )}
+          <form method="post" class="mt-8 space-y-5">
+            <div class="space-y-1.5">
+              <label for="confirm_email" class="field-label">
+                Escribe <strong class="text-umber-cream font-medium">{user.email}</strong> para confirmar
+              </label>
+              <input
+                id="confirm_email"
+                name="confirm_email"
+                type="email"
+                autocomplete="off"
+                required
+                aria-invalid={error !== null ? 'true' : undefined}
+                autofocus
+                class="field text-[1.05rem]"
+              />
+            </div>
+            <button type="submit" class="btn-secondary w-full border-red-400/50 py-3.5 text-[0.95rem] text-red-300 hover:border-red-400/80 hover:bg-red-400/[0.06]">
+              Borrar mi cuenta para siempre
+            </button>
+          </form>
+          <p class="border-umber-line text-umber-ash mt-10 border-t pt-6 text-sm">
+            <a href="/cuenta" class="link-quiet">Volver a tu cuenta</a>
+          </p>
+        </>
+      )
+    }
+  </main>
+</Layout>

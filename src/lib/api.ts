@@ -3,8 +3,6 @@
  * entrada, y convertir errores tipados en respuestas que se pueden enseñar a la
  * persona.
  */
-import type { APIContext } from 'astro';
-
 import {
   AuthError,
   ConversationFullError,
@@ -109,8 +107,12 @@ export function parseText(value: unknown, maxChars: number, field: string): stri
   return text;
 }
 
-/** IP de la petición. Astro lanza si el adaptador no la conoce; en Vercel y en `astro dev` la conoce. */
-export function readClientAddress(context: APIContext): string | null {
+/**
+ * IP de la petición. Astro lanza si el adaptador no la conoce; en Vercel y en
+ * `astro dev` la conoce. Vale tanto para un `APIRoute` como para el `Astro`
+ * global de una página: los dos exponen `clientAddress` igual.
+ */
+export function readClientAddress(context: { readonly clientAddress: string }): string | null {
   try {
     return context.clientAddress;
   } catch {

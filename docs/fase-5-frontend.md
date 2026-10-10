@@ -132,14 +132,16 @@ producción.
       tarda unos 150–200 ms. La ficha del chat (`ContentCard`) enlaza a ella,
       en otra pestaña para no perder una conversación sin sesión. Probado en
       Chromium, escritorio y móvil, sin violaciones de CSP
-- [ ] **Entrar con Google**: decidido, pendiente de hacer. Hará falta:
-  - Un cliente OAuth en Google Cloud y activar el proveedor en Supabase
-    (Authentication → Providers), con el *callback* que da el dashboard
-  - `signInWithOAuth({ provider: 'google', options: { redirectTo:
-    '<origen>/auth/confirm?next=…' } })`. `/auth/confirm` ya canjea el `?code=`
-  - La cuenta llega **sin nombre de usuario** (`profiles.username` a null): una
-    pantalla para elegirlo la primera vez, con `updateUser({ data: { username } })`,
-    que los triggers ya copian a `profiles`
+- [x] **Entrar con Google** (2026-10-09): `GET /auth/google` llama a
+      `signInWithOAuth({ provider: 'google', options: { redirectTo } })` y
+      redirige a Google; `/auth/confirm` canjea el `?code=` (mismo camino PKCE
+      que la confirmación de email) y, si la cuenta llega sin nombre de usuario
+      en los metadatos, manda a `/cuenta/nombre` antes de seguir (`updateUser({
+      data: { username } })`, que los triggers copian a `profiles`). Botón en
+      `AuthForm` (entrar y registro). **Pendiente de activar en el dashboard**:
+      crear el cliente OAuth en Google Cloud y el proveedor en Supabase
+      (Authentication → Providers → Google), con el *callback* que da el
+      dashboard — sin eso, el botón lleva a un error de Supabase
 - [ ] Recuperar la contraseña: no estaba en el alcance de la fase
 - [ ] Quien inicia sesión a mitad de charla guarda los turnos anteriores sin
       fichas: el navegador solo manda el texto del historial, no los ids. Al

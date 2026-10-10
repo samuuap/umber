@@ -1,0 +1,132 @@
+---
+/**
+ * Fijar la contraseña nueva, tras el enlace de `/recuperar`. Llega con sesión
+ * de recuperación (la puso `/auth/confirm` al canjear el enlace): sin sesión,
+ * no hay nada que hacer aquí.
+ */
+import AuthScene from '@/components/AuthScene.astro';
+import Layout from '@/layouts/Layout.astro';
+import {
+  MAX_PASSWORD_CHARS,
+  MIN_PASSWORD_CHARS,
+  authErrorMessage,
+  type AuthFormError,
+} from '@/lib/auth';
+
+if (Astro.locals.user === null) return Astro.redirect('/recuperar');
+
+let error: AuthFormError | null = null;
+let done = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const text = (name: string): string => {
+    const value = form.get(name);
+    return typeof value === 'string' ? value : '';
+  };
+  const password = text('password');
+  const passwordConfirm = text('password_confirm');
+
+  if (password.length < MIN_PASSWORD_CHARS) {
+    error = {
+      message: `La contraseña necesita al menos ${String(MIN_PASSWORD_CHARS)} caracteres.`,
+      field: 'password',
+    };
+  } else if (password.length > MAX_PASSWORD_CHARS) {
+    error = {
+      message: `La contraseña puede tener como mucho ${String(MAX_PASSWORD_CHARS)} caracteres.`,
+      field: 'password',
+    };
+  } else if (password !== passwordConfirm) {
+    error = { message: 'Las contraseñas no coinciden.', field: 'password_confirm' };
+  } else {
+    const { error: authError } = await Astro.locals.supabase.auth.updateUser({ password });
+    if (authError === null) {
+      done = true;
+    } else {
+      error = { message: authErrorMessage(authError), field: null };
+    }
+  }
+  if (error !== null) Astro.response.status = 400;
+}
+---
+
+<Layout title="Nueva contraseña — Umber">
+  <AuthScene>
+    {
+      done ? (
+        <div role="status" class="rise">
+          <p class="eyebrow eyebrow-rule">Listo</p>
+          <p class="display-1 mt-7">
+            Contraseña <em>actualizada</em>
+          </p>
+          <p class="lead mt-6">Ya puedes seguir usando tu cuenta con la contraseña nueva.</p>
+          <a href="/" class="btn-primary mt-8 inline-flex py-3.5 text-[0.95rem]">
+            Ir a Umber <span class="arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      ) : (
+        <>
+          <p class="eyebrow eyebrow-rule rise">Tu cuenta</p>
+          <h1 class="display-1 rise mt-7 [animation-delay:80ms]">
+            Elige una <em>contraseña</em>
+          </h1>
+          <form method="post" class="rise mt-10 space-y-7 [animation-delay:240ms]">
+            {
+              error !== null && error.field === null && (
+                <p role="alert" class="border-l-2 border-red-400/70 py-1 pl-4 text-sm leading-relaxed">
+                  {error.message}
+                </p>
+              )
+            }
+            <div class="space-y-1.5">
+              <label for="password" class="field-label">Contraseña nueva</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                required
+                minlength={MIN_PASSWORD_CHARS}
+                maxlength={MAX_PASSWORD_CHARS}
+                aria-invalid={error?.field === 'password' ? 'true' : undefined}
+                autofocus
+                class="field text-[1.05rem]"
+              />
+              <p class="text-umber-ash text-xs">
+                De {MIN_PASSWORD_CHARS} a {MAX_PASSWORD_CHARS} caracteres.
+              </p>
+              {
+                error?.field === 'password' && (
+                  <p role="alert" class="text-xs text-red-300">{error.message}</p>
+                )
+              }
+            </div>
+            <div class="space-y-1.5">
+              <label for="password_confirm" class="field-label">Repite la contraseña</label>
+              <input
+                id="password_confirm"
+                name="password_confirm"
+                type="password"
+                autocomplete="new-password"
+                required
+                aria-invalid={error?.field === 'password_confirm' ? 'true' : undefined}
+                class="field text-[1.05rem]"
+              />
+              {
+                error?.field === 'password_confirm' && (
+                  <p role="alert" class="text-xs text-red-300">{error.message}</p>
+                )
+              }
+            </div>
+            <div class="pt-3">
+              <button type="submit" class="btn-primary w-full py-3.5 text-[0.95rem]">
+                Guardar <span class="arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </form>
+        </>
+      )
+    }
+  </AuthScene>
+</Layout>

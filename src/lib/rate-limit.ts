@@ -22,9 +22,10 @@ export interface RateLimitRule {
 }
 
 const MINUTE = 60;
+const FIVE_MINUTES = 5 * MINUTE;
 const DAY = 24 * 60 * 60;
 
-export type RateLimitScope = 'chat' | 'search';
+export type RateLimitScope = 'chat' | 'search' | 'entrar' | 'registro';
 
 interface ScopeLimits {
   readonly user: readonly RateLimitRule[];
@@ -38,6 +39,15 @@ interface ScopeLimits {
   /** Lo que se cuenta, para el mensaje: «Has llegado al límite de {noun} de hoy». */
   readonly noun: string;
 }
+
+const ENTRAR_LIMITS: readonly RateLimitRule[] = [
+  { windowSeconds: FIVE_MINUTES, limit: 10 },
+  { windowSeconds: DAY, limit: 50 },
+];
+const REGISTRO_LIMITS: readonly RateLimitRule[] = [
+  { windowSeconds: FIVE_MINUTES, limit: 5 },
+  { windowSeconds: DAY, limit: 20 },
+];
 
 export const RATE_LIMITS: Readonly<Record<RateLimitScope, ScopeLimits>> = {
   /*
@@ -83,6 +93,28 @@ export const RATE_LIMITS: Readonly<Record<RateLimitScope, ScopeLimits>> = {
     ],
     global: [{ windowSeconds: DAY, limit: 5000 }],
     noun: 'búsquedas',
+  },
+  /*
+   * Propio, además del de Supabase (30 entradas o registros cada 5 minutos por
+   * IP, que se queda igual). Quien llama a `/entrar` o `/registro` nunca tiene
+   * sesión: las dos páginas redirigen si ya la hay, así que `user` nunca se usa
+   * y repite los mismos límites que `anonymous`.
+   */
+  entrar: {
+    user: ENTRAR_LIMITS,
+    anonymous: ENTRAR_LIMITS,
+    noun: 'intentos',
+  },
+  /*
+   * Más estricto que `entrar`: cada intento que llega a Supabase manda un
+   * correo. El global protege el cupo del SMTP (Gmail, unos 500 al día),
+   * dejando margen para la confirmación, la recuperación y el cambio de email.
+   */
+  registro: {
+    user: REGISTRO_LIMITS,
+    anonymous: REGISTRO_LIMITS,
+    global: [{ windowSeconds: DAY, limit: 300 }],
+    noun: 'registros',
   },
 };
 
@@ -151,9 +183,14 @@ function limitError(scope: RateLimitScope, retryAfterSeconds: number, anonymous:
       'trial_used',
     );
   }
-  const message = `Has llegado al límite de ${RATE_LIMITS[scope].noun} de hoy. Podrás seguir en ${formatWait(retryAfterSeconds)}.`;
+  const limits = RATE_LIMITS[scope];
+  const message = `Has llegado al límite de ${limits.noun} de hoy. Podrás seguir en ${formatWait(retryAfterSeconds)}.`;
+  // Solo tiene sentido el aviso si con sesión el límite es de verdad distinto
+  // (`entrar` y `registro` no tienen una versión con sesión: nadie llama a eso
+  // con una ya iniciada).
+  const higherWithSession = anonymous && limits.user !== limits.anonymous;
   return new RateLimitError(
-    anonymous ? `${message} Con la sesión iniciada el límite es más alto.` : message,
+    higherWithSession ? `${message} Con la sesión iniciada el límite es más alto.` : message,
     retryAfterSeconds,
   );
 }

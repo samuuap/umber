@@ -1,0 +1,95 @@
+---
+/**
+ * Recuperar la contraseña: pide el email y manda el enlace con
+ * `resetPasswordForEmail`. Vuelve a `/auth/confirm`, que canjea el código y
+ * manda a `/cuenta/contrasena` para fijar la nueva.
+ *
+ * Responde igual si el email no tiene cuenta, para no revelarlo (igual que el
+ * registro).
+ */
+import AuthScene from '@/components/AuthScene.astro';
+import Layout from '@/layouts/Layout.astro';
+import { authErrorMessage, type AuthFormError } from '@/lib/auth';
+
+let error: AuthFormError | null = null;
+let email = '';
+let sentTo: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const value = form.get('email');
+  email = typeof value === 'string' ? value.trim() : '';
+
+  if (email.length === 0) {
+    error = { message: 'Escribe tu email.', field: null };
+  } else {
+    const redirectTo = `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent('/cuenta/contrasena')}`;
+    const { error: authError } = await Astro.locals.supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (authError === null) {
+      sentTo = email;
+    } else {
+      error = { message: authErrorMessage(authError), field: null };
+    }
+  }
+  if (error !== null) Astro.response.status = 400;
+}
+---
+
+<Layout title="Recuperar contraseña — Umber">
+  <AuthScene>
+    {
+      sentTo === null ? (
+        <>
+          <p class="eyebrow eyebrow-rule rise">Tu cuenta</p>
+          <h1 class="display-1 rise mt-7 [animation-delay:80ms]">
+            Recuperar <em>contraseña</em>
+          </h1>
+          <p class="lead rise mt-5 [animation-delay:160ms]">
+            Escribe tu email y te mandamos un enlace para elegir una nueva.
+          </p>
+          <form method="post" class="rise mt-10 space-y-7 [animation-delay:240ms]">
+            {
+              error !== null && (
+                <p role="alert" class="border-l-2 border-red-400/70 py-1 pl-4 text-sm leading-relaxed">
+                  {error.message}
+                </p>
+              )
+            }
+            <div class="space-y-1.5">
+              <label for="email" class="field-label">Email</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                value={email}
+                autofocus
+                class="field text-[1.05rem]"
+              />
+            </div>
+            <div class="pt-3">
+              <button type="submit" class="btn-primary w-full py-3.5 text-[0.95rem]">
+                Enviar enlace <span class="arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </form>
+          <p class="border-umber-line text-umber-ash mt-12 border-t pt-6 text-sm">
+            <a href="/entrar" class="link">Volver a entrar</a>
+          </p>
+        </>
+      ) : (
+        <div role="status" class="rise">
+          <p class="eyebrow eyebrow-rule">Revisa tu correo</p>
+          <p class="display-1 mt-7">
+            Enlace <em>enviado</em>
+          </p>
+          <p class="lead mt-6">
+            Si <strong class="text-umber-cream font-medium">{sentTo}</strong> tiene cuenta, te hemos enviado un
+            enlace para elegir una contraseña nueva. Ábrelo en este mismo navegador.
+          </p>
+        </div>
+      )
+    }
+  </AuthScene>
+</Layout>

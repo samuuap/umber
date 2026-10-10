@@ -1,0 +1,57 @@
+name: DeepSeek — aviso de saldo bajo
+
+# Vigila el saldo de DeepSeek (docs/fase-6-pulido-despliegue.md, «Vigilar el
+# gasto»). Sin panel de administración todavía, así que el aviso es el propio
+# fallo del workflow: GitHub manda un email al dueño del repositorio cuando un
+# workflow programado falla. Cero servicios nuevos.
+#
+# Secreto que hace falta en Settings → Secrets and variables → Actions:
+#   DEEPSEEK_API_KEY
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # cada día, 08:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  balance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar el saldo
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          import urllib.request
+
+          # USD. ~0,30 USD/día de tope en el chat (ver rate-limit.ts): subirlo
+          # si el consumo real crece. Cambiar solo aquí.
+          THRESHOLD = 3.0
+
+          request = urllib.request.Request(
+              "https://api.deepseek.com/user/balance",
+              headers={"Authorization": f"Bearer {os.environ['DEEPSEEK_API_KEY']}"},
+          )
+          with urllib.request.urlopen(request, timeout=15) as response:
+              data = json.load(response)
+
+          usd = next(
+              (info for info in data.get("balance_infos", []) if info.get("currency") == "USD"),
+              None,
+          )
+          if usd is None:
+              print("::error::La respuesta de DeepSeek no trae saldo en USD.")
+              sys.exit(1)
+
+          balance = float(usd["total_balance"])
+          print(f"Saldo de DeepSeek: {balance:.2f} USD")
+          if balance < THRESHOLD:
+              print(
+                  f"::error::Saldo de DeepSeek bajo: {balance:.2f} USD "
+                  f"(umbral {THRESHOLD} USD). Recarga en https://platform.deepseek.com/"
+              )
+              sys.exit(1)
+          PY

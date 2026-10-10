@@ -114,6 +114,42 @@ export async function listConversations(
   );
 }
 
+export interface ExportedConversation {
+  readonly id: string;
+  readonly mode: ChatMode;
+  readonly specialty: Specialty | null;
+  readonly messages: readonly StoredChatMessage[];
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+/** Todas las conversaciones con sus mensajes enteros, para la descarga de datos (RGPD). */
+export async function listConversationsForExport(
+  client: UmberSupabaseClient,
+): Promise<ExportedConversation[]> {
+  const rows = unwrap(
+    await client
+      .from('conversations')
+      .select('id, mode, specialty, messages, created_at, updated_at')
+      .order('created_at', { ascending: true }),
+  );
+
+  return rows.flatMap((row) =>
+    isChatMode(row.mode)
+      ? [
+          {
+            id: row.id,
+            mode: row.mode,
+            specialty: isSpecialty(row.specialty) ? row.specialty : null,
+            messages: parseMessages(row.messages),
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+          },
+        ]
+      : [],
+  );
+}
+
 /** Borra una conversación. Una ajena o que ya no existe no da error: RLS no la ve y no borra nada. */
 export async function deleteConversation(client: UmberSupabaseClient, id: string): Promise<void> {
   const { error } = await client.from('conversations').delete().eq('id', id);

@@ -33,9 +33,15 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── chat.astro       # Chat: ?mode=movie para empezar (&q= lo envía al abrir), ?conversation=<id> para retomar
 │   │   ├── entrar.astro     # Login (formulario sin JS)
 │   │   ├── registro.astro   # Registro: usuario, email y contraseña dos veces; exige confirmar el email
+│   │   ├── recuperar.astro  # «¿La has olvidado?»: pide el email (resetPasswordForEmail)
 │   │   ├── salir.ts         # POST: cierra la sesión de este navegador
 │   │   ├── favoritos.astro  # Favoritos, con plataformas pedidas a TMDB en servidor
 │   │   ├── conversaciones.astro  # Conversaciones guardadas; POST para borrar una
+│   │   ├── cuenta/
+│   │   │   ├── index.astro      # Cambiar nombre de usuario, email y contraseña
+│   │   │   ├── nombre.astro     # Elegir nombre de usuario (tras entrar con Google, que no lo manda)
+│   │   │   ├── contrasena.astro # Fijar la contraseña nueva, tras el enlace de /recuperar
+│   │   │   └── borrar.astro     # Borrar la cuenta (RGPD): confirmar el email, Admin API, cierra sesión
 │   │   ├── explorar/
 │   │   │   ├── index.astro  # El corpus en carteles: búsqueda, tipo, género, orden, páginas
 │   │   │   └── [id].astro   # Ficha de un título: sinopsis, plataformas, favorito, «Más como esta»
@@ -44,12 +50,18 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   │   ├── cartel.astro # El cartel del día: cada intento, menos desenfocado
 │   │   │   └── titulo.astro # El título del día: ?idioma=es|en, cuatro letras y pistas
 │   │   ├── auth/
-│   │   │   └── confirm.ts   # Vuelta del enlace del email (code o token_hash)
+│   │   │   ├── confirm.ts   # Vuelta del enlace del email o de Google (code o token_hash)
+│   │   │   └── google.ts    # GET: inicia signInWithOAuth('google') y redirige a Google
+│   │   ├── admin/           # Solo app_metadata.role = 'admin'; al resto, 404 (adminGate)
+│   │   │   ├── index.astro  # Consultas: chat_traces con filtros de estado y sesión, paginado
+│   │   │   └── [id].astro   # Detalle: mensaje, búsqueda, recomendación, pasos y llm_calls
 │   │   └── api/
 │   │       ├── chat.ts      # Endpoint principal — orquesta búsqueda, DeepSeek y SSE
 │   │       ├── favorites.ts # POST / DELETE de favoritos
 │   │       ├── search.ts    # POST: la búsqueda del chat sin el modelo (depurar, buscador)
 │   │       ├── tmdb.ts      # GET: plataformas de un título del corpus, con caché
+│   │       ├── account/
+│   │       │   └── export.ts # GET: descarga perfil, conversaciones y favoritos (RGPD)
 │   │       └── games/       # title, poster (POST: corrigen), poster-image y titles (GET)
 │   ├── lib/
 │   │   ├── env.ts           # Único acceso a variables de entorno (servidor)
@@ -63,7 +75,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── supabase.ts      # Clientes Supabase (anon / cookies / usuario / service)
 │   │   ├── tmdb.ts          # Funciones TMDB
 │   │   ├── platforms.ts     # Plataformas de TMDB con caché en Supabase (platforms_cache)
-│   │   ├── rate-limit.ts    # Límites de /api/chat y /api/search por usuario o IP
+│   │   ├── rate-limit.ts    # Límites de /api/chat, /api/search, /entrar y /registro, por usuario o IP
 │   │   ├── recommendations.ts # Fichas por id, para las conversaciones retomadas
 │   │   ├── explore.ts       # Filtros de /explorar en la URL, listado, géneros y ficha
 │   │   ├── showcase.ts      # Escaparate: muy conocidas y sus parecidos, y el de otoño; con caché
@@ -729,7 +741,11 @@ Los otros dos endpoints, con el mismo formato de error:
 - `AuthForm` funciona sin JavaScript; con él, añade «Mostrar» en cada contraseña
   y el aviso de que no coinciden. Los errores de un campo salen junto a él
   (`AuthFormError`)
-- **Pendiente: entrar con Google.** Ver `docs/fase-5-frontend.md`
+- **Entrar con Google**: `GET /auth/google` (`signInWithOAuth`) → consentimiento
+  de Google → `/auth/confirm?code=…` (mismo canje PKCE que el email) → si la
+  cuenta no trae nombre de usuario en sus metadatos, `/cuenta/nombre` antes de
+  seguir. Pendiente activar el proveedor en el dashboard de Supabase (Authentication
+  → Providers → Google) con un cliente OAuth de Google Cloud; ver `docs/fase-5-frontend.md`
 
 ---
 

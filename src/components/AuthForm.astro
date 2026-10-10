@@ -17,9 +17,11 @@ interface Props {
   email?: string;
   username?: string;
   error?: AuthFormError | null;
+  /** Adonde volver tras entrar, para `/auth/google?next=…`. */
+  next: string;
 }
 
-const { kind, email = '', username = '', error = null } = Astro.props;
+const { kind, email = '', username = '', error = null, next } = Astro.props;
 const signup = kind === 'signup';
 
 const inputClass = 'field text-[1.05rem]';
@@ -169,6 +171,19 @@ const passwordFields = signup
     </button>
   </div>
 </form>
+
+<div class="mt-8 flex items-center gap-3" aria-hidden="true">
+  <span class="bg-umber-line h-px flex-1" />
+  <span class="text-umber-ash text-xs">o</span>
+  <span class="bg-umber-line h-px flex-1" />
+</div>
+
+<a href={`/auth/google?next=${encodeURIComponent(next)}`} class="btn-secondary mt-6 w-full py-3.5 text-[0.95rem]">
+  <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+    <path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.3 0 6.3 1.2 8.6 3.2l6-6C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.1-2.7-.5-4z" />
+  </svg>
+  {signup ? 'Crear cuenta con Google' : 'Seguir con Google'}
+</a>
 
 <script>
   import { initAuthForms } from '@/scripts/auth-form';

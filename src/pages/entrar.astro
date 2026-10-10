@@ -3,7 +3,10 @@
 import AuthForm from '@/components/AuthForm.astro';
 import AuthScene from '@/components/AuthScene.astro';
 import Layout from '@/layouts/Layout.astro';
+import { readClientAddress } from '@/lib/api';
 import { authErrorMessage, safeRedirectPath, type AuthFormError } from '@/lib/auth';
+import { RateLimitError } from '@/lib/errors';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 const next = safeRedirectPath(Astro.url.searchParams.get('next'));
 if (Astro.locals.user !== null) return Astro.redirect(next);
@@ -12,30 +15,72 @@ if (Astro.locals.user !== null) return Astro.redirect(next);
 const LINK_ERRORS: Readonly<Record<string, string>> = {
   enlace:
     'El enlace ha caducado o ya se ha usado. Si ya confirmaste la cuenta, entra; si no, regístrate otra vez.',
+  google: 'No se ha podido entrar con Google. Prueba otra vez.',
 };
 
 const linkError = LINK_ERRORS[Astro.url.searchParams.get('error') ?? ''];
+// Solo el enlace caducado se puede arreglar reenviando: con Google no hay nada que reenviar.
+const showResend = Astro.url.searchParams.get('error') === 'enlace';
 let error: AuthFormError | null = linkError === undefined ? null : { message: linkError, field: null };
 let email = '';
+let resent = false;
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
-  const emailValue = form.get('email');
-  const passwordValue = form.get('password');
-  email = typeof emailValue === 'string' ? emailValue.trim() : '';
-  const password = typeof passwordValue === 'string' ? passwordValue : '';
 
-  if (email.length === 0 || password.length === 0) {
-    error = { message: 'Escribe tu email y tu contraseña.', field: null };
+  if (form.get('action') === 'resend') {
+    const value = form.get('email');
+    const resendEmail = typeof value === 'string' ? value.trim() : '';
+    if (resendEmail.length === 0) {
+      error = { message: 'Escribe tu email.', field: null };
+      Astro.response.status = 400;
+    } else {
+      try {
+        await enforceRateLimit('registro', { userId: null, clientAddress: readClientAddress(Astro) });
+        const { error: resendError } = await Astro.locals.supabase.auth.resend({
+          type: 'signup',
+          email: resendEmail,
+          options: { emailRedirectTo: `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent(next)}` },
+        });
+        if (resendError === null) {
+          resent = true;
+          error = null;
+        } else {
+          error = { message: authErrorMessage(resendError), field: null };
+          Astro.response.status = 400;
+        }
+      } catch (rateLimitError: unknown) {
+        if (!(rateLimitError instanceof RateLimitError)) throw rateLimitError;
+        error = { message: rateLimitError.message, field: null };
+        Astro.response.status = 429;
+      }
+    }
   } else {
-    const { error: authError } = await Astro.locals.supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (authError === null) return Astro.redirect(next, 303);
-    error = { message: authErrorMessage(authError), field: null };
+    const emailValue = form.get('email');
+    const passwordValue = form.get('password');
+    email = typeof emailValue === 'string' ? emailValue.trim() : '';
+    const password = typeof passwordValue === 'string' ? passwordValue : '';
+
+    if (email.length === 0 || password.length === 0) {
+      error = { message: 'Escribe tu email y tu contraseña.', field: null };
+      Astro.response.status = 400;
+    } else {
+      try {
+        await enforceRateLimit('entrar', { userId: null, clientAddress: readClientAddress(Astro) });
+        const { error: authError } = await Astro.locals.supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (authError === null) return Astro.redirect(next, 303);
+        error = { message: authErrorMessage(authError), field: null };
+        Astro.response.status = 400;
+      } catch (rateLimitError: unknown) {
+        if (!(rateLimitError instanceof RateLimitError)) throw rateLimitError;
+        error = { message: rateLimitError.message, field: null };
+        Astro.response.status = 429;
+      }
+    }
   }
-  Astro.response.status = 400;
 }
 ---
 
@@ -46,10 +91,34 @@ if (Astro.request.method === 'POST') {
     <p class="lead rise mt-5 [animation-delay:160ms]">
       Con cuenta, Umber guarda tus conversaciones y lo que marques como favorito.
     </p>
+    {
+      showResend && (
+        <div class="border-umber-line rise mt-5 mb-2 border-l-2 pl-4 [animation-delay:200ms]">
+          {resent ? (
+            <p class="text-umber-amber text-sm">Reenviado. Revisa también la carpeta de spam.</p>
+          ) : (
+            <form method="post" class="flex flex-wrap items-center gap-3">
+              <input type="hidden" name="action" value="resend" />
+              <input
+                name="email"
+                type="email"
+                placeholder="Tu email"
+                required
+                class="field max-w-[14rem] py-2 text-sm"
+              />
+              <button type="submit" class="link text-sm">Reenviar el enlace</button>
+            </form>
+          )}
+        </div>
+      )
+    }
     <div class="rise [animation-delay:240ms]">
-      <AuthForm kind="login" email={email} error={error} />
+      <AuthForm kind="login" email={email} error={error} next={next} />
     </div>
-    <p class="border-umber-line text-umber-ash mt-12 border-t pt-6 text-sm">
+    <p class="rise [animation-delay:280ms] mt-5 text-sm">
+      <a href="/recuperar" class="link-quiet">¿Has olvidado tu contraseña?</a>
+    </p>
+    <p class="border-umber-line text-umber-ash mt-10 border-t pt-6 text-sm">
       ¿No tienes cuenta?{' '}
       <a href={`/registro?next=${encodeURIComponent(next)}`} class="link">Regístrate gratis</a>
     </p>

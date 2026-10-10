@@ -29,20 +29,49 @@ Lo que falta para que no sea un MVP. Orden propuesto: lo que bloquea el
 lanzamiento primero.
 
 **Cuenta**
-- [ ] Recuperar la contraseña («¿La has olvidado?»): hoy no existe
-- [ ] `/cuenta`: cambiar nombre de usuario, email y contraseña
-- [ ] Borrar la cuenta y descargar tus datos (RGPD: supresión y portabilidad)
-- [ ] Entrar con Google (ver la [Fase 5](fase-5-frontend.md))
-- [ ] Límite propio en `/entrar` y `/registro` por IP, además del de Supabase,
-      con `hit_rate_limit` como el chat. Protege también el cupo de correos
-- [ ] **Reenviar el correo de confirmación**: un botón en «Revisa tu correo»
-      (`registro.astro`) y en el aviso de enlace caducado de `/entrar`
-      (`?error=enlace`), con `auth.resend({ type: 'signup', email })` y límite
-      propio. Hoy, quien deja caducar el enlace (una hora) no puede activar la
-      cuenta
-- [ ] Mensajes en español para los errores de envío que hoy caen en el genérico
-      de `authErrorMessage` (`src/lib/auth.ts`): `email_address_not_authorized`
-      y los que salgan al probar con el SMTP de producción
+- [x] Recuperar la contraseña («¿La has olvidado?»), 2026-10-10: `/recuperar`
+      pide el email (`resetPasswordForEmail`, misma respuesta exista o no la
+      cuenta) y `/cuenta/contrasena` fija la nueva tras el enlace
+      (`updateUser({ password })`). Mismo canje en `/auth/confirm`
+- [x] `/cuenta`: cambiar nombre de usuario, email y contraseña (2026-10-10).
+      Tres formularios independientes (`updateUser`); el cambio de email manda
+      confirmación al nuevo (y, según «Secure email change», también al
+      actual) antes de aplicarse. Probado de punta a punta con un usuario de
+      prueba creado y borrado con la Admin API: nombre cogido rechazado,
+      nombre libre aplicado (y copiado a `profiles` por el trigger),
+      contraseñas que no coinciden rechazadas, contraseña nueva aplicada,
+      cambio de email enviado sin error
+- [x] Borrar la cuenta y descargar tus datos (RGPD: supresión y portabilidad),
+      2026-10-10: `GET /api/account/export` descarga perfil, conversaciones
+      completas y favoritos (`listConversationsForExport`, con el cliente de
+      sesión, RLS de por medio); `/cuenta/borrar` pide escribir el email tal
+      cual, borra con la Admin API por `id` y solo si sale bien cierra la
+      sesión (`signOut({ scope: 'global' })`). Probado de punta a punta con un
+      usuario de prueba con una conversación y un favorito: exportación con
+      los datos reales, confirmación rechazada con otro email, borrado real
+      (cuenta, perfil, conversación y favorito desaparecidos en cascada) y
+      sesión cerrada después (`/cuenta` vuelve a pedir entrar)
+- [x] Entrar con Google (ver la [Fase 5](fase-5-frontend.md)), 2026-10-09
+- [x] Límite propio en `/entrar` y `/registro` por IP (2026-10-10), con
+      `hit_rate_limit` como el chat: dos ámbitos nuevos en `rate-limit.ts`,
+      siempre anónimos (las páginas redirigen si ya hay sesión). `entrar`,
+      10 cada 5 minutos y 50 al día; `registro`, 5 cada 5 minutos, 20 al día y
+      un global de 300 al día que protege el cupo del SMTP (cada registro manda
+      un correo). Más estricto que el de Supabase (30 cada 5 minutos),
+      para dar antes el aviso propio en español. Probado contra el dev server:
+      10 intentos de `/entrar` pasan, el 11 cae con 429 y el mensaje en
+      español; limpiado el cupo de prueba después
+- [x] **Reenviar el correo de confirmación** (2026-10-10): botón en «Revisa tu
+      correo» (`registro.astro`) y en el aviso de enlace caducado de `/entrar`
+      (`?error=enlace`, con un campo de email propio: ese caso no sabe cuál
+      es). `auth.resend({ type: 'signup', email })`, con el mismo límite y el
+      mismo cupo global que `/registro` (ambos mandan correo por el mismo
+      SMTP). Probado de punta a punta con un usuario sin confirmar: el primer
+      reenvío llega bien, el segundo antes de 60 s choca con el límite de
+      Supabase entre dos correos a la misma persona (mensaje ya mapeado)
+- [x] Mensajes en español para los errores de envío que hoy caían en el
+      genérico de `authErrorMessage` (`src/lib/auth.ts`): añadido
+      `email_address_not_authorized`
 
 **Legal**
 - [ ] Aviso legal, política de privacidad, cookies (solo técnicas: sin banner)
@@ -50,15 +79,24 @@ lanzamiento primero.
       revise alguien
 
 **Operación**
-- [ ] **Correo de la cuenta sin coste**: el de Supabase no envía a gente real.
-      Ver «Correo de la cuenta», más abajo. El dominio propio (10–15 €/año) no
-      está aprobado: solo si algún día se decide pagarlo
+- [x] **Correo de la cuenta sin coste** (2026-10-10): Gmail como SMTP, ver
+      «Correo de la cuenta» más abajo. El dominio propio (10–15 €/año) sigue
+      sin aprobar: solo si algún día se decide pagarlo
 - [ ] Errores en producción con Sentry (plan gratuito) y aviso si la web cae
       (UptimeRobot o similar, gratis)
-- [ ] **Supabase gratuito pausa el proyecto tras 7 días sin actividad** y no
-      tiene copias descargables: tarea semanal en GitHub Actions que lo mantenga
-      vivo y guarde una copia de la base
-- [ ] Aviso cuando el saldo de DeepSeek baje de un umbral (`/user/balance`)
+- [x] **Supabase gratuito pausa el proyecto tras 7 días sin actividad** y no
+      tiene copias descargables (2026-10-10): `.github/workflows/supabase-keepalive.yml`,
+      semanal (lunes), una lectura trivial más `pg_dump` subido como artefacto
+      (90 días). Pendiente de tu parte: añadir `SUPABASE_URL`,
+      `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_DB_URL` (Project Settings →
+      Database → Connection string, modo Session) en Settings → Secrets and
+      variables → Actions del repositorio
+- [x] Aviso cuando el saldo de DeepSeek baje de un umbral (2026-10-10):
+      `.github/workflows/deepseek-balance.yml`, diario, llama a `/user/balance`
+      y falla el workflow por debajo de 3 USD — GitHub avisa por email al fallar
+      uno programado, sin ningún servicio nuevo. Probado contra la API real
+      (saldo actual: 6,89 USD). Pendiente de tu parte: añadir `DEEPSEEK_API_KEY`
+      como secreto del repositorio
 
 **Calidad**
 - [ ] Tests automáticos de la lógica pura (`turns`, `rate-limit`, `chat`,
@@ -272,19 +310,29 @@ límite?»). Tiene varios, y uno bloquea el lanzamiento:
 **Sin servidores ni gastos fijos** (el usuario, el 2026-10-04: «eso tiene un
 coste y dijimos que no»). Un «SMTP propio» no es un servidor: es darle a
 Supabase el usuario y la contraseña de un servicio de correo que ya existe, para
-que envíe con él. Propuesta, **pendiente de que el usuario la apruebe**:
+que envíe con él.
 
-- [ ] **Una cuenta de Gmail solo para Umber como SMTP** (Authentication →
-      Emails → SMTP Settings): verificación en dos pasos, una contraseña de
-      aplicación, `smtp.gmail.com`, puerto 465, y de remitente la propia
-      dirección (Gmail cambia cualquier otra). Llega bien porque sale de Google;
-      tope de unos 500 correos al día, de sobra para empezar. Lo menos bonito: el
-      remitente es una `@gmail.com`
-- [ ] Reenviar el correo, mensajes de envío en español y límite propio en
-      `/entrar` y `/registro`: en «Cuenta», arriba. Son código y no cuestan nada
-- [ ] Más adelante, **entrar con Google**: no necesita correo de confirmación,
+- [x] **Una cuenta de Gmail solo para Umber como SMTP** (2026-10-10,
+      Authentication → Emails → SMTP Settings): verificación en dos pasos,
+      contraseña de aplicación, `smtp.gmail.com`, puerto 465, remitente la propia
+      dirección (Gmail cambia cualquier otra). Probado con un email externo (no
+      del equipo): llega bien. Pendiente, más adelante: una plantilla de email
+      menos básica que la que trae Supabase por defecto
+- [x] **Entrar con Google** (ver arriba): no necesita correo de confirmación,
       porque Google ya ha comprobado el email. Completa lo de Gmail, no lo
       sustituye: recuperar la contraseña también envía un correo
+- [ ] Reenviar el correo, mensajes de envío en español y límite propio en
+      `/entrar` y `/registro`: en «Cuenta», arriba. Son código y no cuestan nada
+
+**Site URL / Redirect URLs** (2026-10-10): con el SMTP ya probado, el enlace
+redirigía a `umber365.vercel.app` con el puerto y la ruta equivocados —
+Authentication → URL Configuration tenía el *Site URL* por defecto
+(`localhost:3000`) y `/auth/confirm` no estaba en *Redirect URLs*. Un enlace
+fuera de esa lista cae al *Site URL* en vez de al `emailRedirectTo` que manda
+la app. Corregido: *Site URL* a `https://umber365.vercel.app`, y
+`https://umber365.vercel.app/auth/confirm` + `http://localhost:4321/auth/confirm`
+en *Redirect URLs*. El código ya construye el `emailRedirectTo` con
+`Astro.url.origin` (no con una URL fija), así que no hizo falta tocarlo
 
 Descartado:
 
@@ -390,6 +438,7 @@ Descartado:
 | Fuentes autoalojadas | Sin terceros, sin salto de fuente y una petición externa menos |
 | **Sin gastos fijos**: Vercel Hobby, Supabase Free, subdominio `vercel.app` y un SMTP con plan gratuito. Solo se paga DeepSeek, por uso | Decisión de producto. El plan Hobby de Vercel es para uso no comercial |
 | **Ni servidores ni dominio de pago, tampoco para el correo** (2026-10-04) | Decisión de producto, reafirmada al hablar del correo de la cuenta. El correo, con un servicio gratuito sin dominio (propuesta: Gmail, ver «Correo de la cuenta»). Si un día hace falta pagar algo, se dice y se deja para después |
+| **Correo de la cuenta con Gmail como SMTP**, aprobada y montada (2026-10-10) | El mailer de Supabase por defecto (2/hora, solo al equipo) no sirve para gente real; Resend y Brevo sin dominio quedaban descartados (ver «Correo de la cuenta»). Probado con un email externo al equipo: llega bien |
 | **Embeddings en Cloudflare Workers AI**, gratis, aceptando su latencia | El mismo modelo, con vectores idénticos a los del corpus: no hay que reindexar ni mantener un servidor, no se duerme y al pasarse del límite gratuito falla en vez de cobrar. Descartados: un servicio de pago (decisión de producto); un Space de Hugging Face, que desde julio de 2026 exige PRO (9 $/mes) para Docker y Gradio en CPU; el modelo que Supabase ejecuta gratis (gte-small), que solo entiende inglés y obligaría a reindexar. Se acepta la latencia (mediana de 1,2 s por consulta, picos de varios segundos) a cambio de no mantener nada. Si algún día molesta, dos alternativas gratuitas, en este orden: **`@cf/baai/bge-m3` en el mismo Cloudflare** (99 ms de mediana y 186 de máximo en 12 muestras; multilingüe y de 1024 dimensiones, pero obliga a revectorizar el corpus y recalibrar la búsqueda), o una **VM de Oracle Cloud «Always Free»** en Madrid con `server.py` (2 CPU ARM y 12 GB; se estima entre 0,3 y 1 s por consulta en CPU, sin medir; pide tarjeta, que no se cobra sin pasar a pago, y Oracle recupera las máquinas inactivas 7 días) |
 
 ## Preguntas abiertas
@@ -403,11 +452,9 @@ El público objetivo es España. Conviene que la función de Vercel, el proyecto
 Supabase y el servicio de embeddings estén en la misma región europea: cada salto
 transatlántico se suma antes del primer token que ve el usuario.
 
-**3. ¿Correo de la cuenta con una cuenta de Gmail como SMTP?** (2026-10-04)
-Es la propuesta de «Correo de la cuenta», la única vía de 0 € que encontramos
-para enviar a cualquiera sin acabar en spam. Pendiente de que el usuario diga
-que sí; bloquea el lanzamiento, porque sin ella nadie de fuera puede activar su
-cuenta.
+**3. ~~¿Correo de la cuenta con una cuenta de Gmail como SMTP?~~** Resuelta el
+2026-10-10: sí, montada y probada con un email externo al equipo (ver
+Decisiones).
 
 ## Verificación
 

@@ -1,0 +1,97 @@
+---
+/**
+ * Elegir nombre de usuario — paso obligatorio tras entrar con Google, que no
+ * manda uno en sus metadatos. `/auth/confirm` trae aquí a quien no lo tiene.
+ *
+ * `updateUser({ data: { username } })` lo deja en los metadatos de auth.users;
+ * el trigger `sync_profile_from_auth_user` lo copia a `profiles`, donde el
+ * `UNIQUE` puede rechazarlo.
+ */
+import AuthScene from '@/components/AuthScene.astro';
+import Layout from '@/layouts/Layout.astro';
+import {
+  USERNAME_INPUT_PATTERN,
+  USERNAME_PATTERN,
+  authErrorMessage,
+  isUsernameTaken,
+  normalizeUsername,
+  safeRedirectPath,
+  type AuthFormError,
+} from '@/lib/auth';
+
+const next = safeRedirectPath(Astro.url.searchParams.get('next'));
+
+if (Astro.locals.user === null) return Astro.redirect(`/entrar?next=${encodeURIComponent(next)}`);
+if (Astro.locals.user.username !== null) return Astro.redirect(next);
+
+let error: AuthFormError | null = null;
+let username = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const value = form.get('username');
+  username = normalizeUsername(typeof value === 'string' ? value : '');
+
+  if (!USERNAME_PATTERN.test(username)) {
+    error = {
+      message: 'De 3 a 20 caracteres: letras sin tilde, números o guion bajo.',
+      field: 'username',
+    };
+  } else {
+    const { error: authError } = await Astro.locals.supabase.auth.updateUser({ data: { username } });
+    if (authError === null) return Astro.redirect(next, 303);
+    error = (await isUsernameTaken(Astro.locals.supabase, username))
+      ? { message: 'Ese nombre de usuario ya está cogido. Prueba con otro.', field: 'username' }
+      : { message: authErrorMessage(authError), field: null };
+  }
+  Astro.response.status = 400;
+}
+---
+
+<Layout title="Elige tu nombre — Umber">
+  <AuthScene>
+    <p class="eyebrow eyebrow-rule rise">Un paso más</p>
+    <h1 class="display-1 rise mt-7 [animation-delay:80ms]">Elige tu nombre</h1>
+    <p class="lead rise mt-5 [animation-delay:160ms]">
+      Con tu cuenta de Google no nos ha llegado un nombre de usuario. Elige uno para terminar.
+    </p>
+    <form method="post" class="rise mt-10 space-y-7 [animation-delay:240ms]">
+      <div class="space-y-1.5">
+        <label for="username" class="field-label">Nombre de usuario</label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          autocomplete="nickname"
+          autocapitalize="none"
+          spellcheck="false"
+          required
+          minlength={3}
+          maxlength={20}
+          pattern={USERNAME_INPUT_PATTERN}
+          title="De 3 a 20 caracteres: letras sin tilde, números o guion bajo."
+          value={username}
+          aria-invalid={error?.field === 'username' ? 'true' : undefined}
+          aria-describedby={error?.field === 'username' ? 'username-error' : 'username-help'}
+          autofocus
+          class="field text-[1.05rem]"
+        />
+        <p id="username-help" class="text-umber-ash text-xs">
+          De 3 a 20 caracteres: letras sin tilde, números o guion bajo.
+        </p>
+        {
+          error !== null && (
+            <p id="username-error" role="alert" class="text-xs text-red-300">
+              {error.message}
+            </p>
+          )
+        }
+      </div>
+      <div class="pt-3">
+        <button type="submit" class="btn-primary w-full py-3.5 text-[0.95rem]">
+          Continuar <span class="arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+    </form>
+  </AuthScene>
+</Layout>

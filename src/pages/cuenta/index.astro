@@ -1,0 +1,258 @@
+---
+/**
+ * `/cuenta` — cambiar nombre de usuario, email y contraseña. Tres formularios
+ * independientes (campo oculto `action`), cada uno con su propio error y aviso
+ * de éxito.
+ *
+ * Cambiar el email manda confirmación (y, según la configuración del proyecto,
+ * también desde el email actual: «Secure email change») antes de aplicarse.
+ */
+import Layout from '@/layouts/Layout.astro';
+import {
+  MAX_PASSWORD_CHARS,
+  MIN_PASSWORD_CHARS,
+  USERNAME_INPUT_PATTERN,
+  USERNAME_PATTERN,
+  authErrorMessage,
+  isUsernameTaken,
+  normalizeUsername,
+  type AuthFormError,
+} from '@/lib/auth';
+
+if (Astro.locals.user === null) return Astro.redirect('/entrar?next=%2Fcuenta');
+const user = Astro.locals.user;
+
+let usernameValue = user.username ?? '';
+let usernameError: AuthFormError | null = null;
+let usernameDone = false;
+
+let emailValue = user.email ?? '';
+let emailError: AuthFormError | null = null;
+let emailSentTo: string | null = null;
+
+let passwordError: AuthFormError | null = null;
+let passwordDone = false;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const text = (name: string): string => {
+    const value = form.get(name);
+    return typeof value === 'string' ? value : '';
+  };
+  const action = text('action');
+
+  if (action === 'username') {
+    usernameValue = normalizeUsername(text('username'));
+    if (!USERNAME_PATTERN.test(usernameValue)) {
+      usernameError = {
+        message: 'De 3 a 20 caracteres: letras sin tilde, números o guion bajo.',
+        field: 'username',
+      };
+    } else {
+      const { error } = await Astro.locals.supabase.auth.updateUser({ data: { username: usernameValue } });
+      if (error === null) {
+        usernameDone = true;
+      } else {
+        usernameError = (await isUsernameTaken(Astro.locals.supabase, usernameValue))
+          ? { message: 'Ese nombre de usuario ya está cogido. Prueba con otro.', field: 'username' }
+          : { message: authErrorMessage(error), field: null };
+      }
+    }
+  } else if (action === 'email') {
+    emailValue = text('email').trim();
+    if (emailValue.length === 0) {
+      emailError = { message: 'Escribe el email nuevo.', field: 'email' };
+    } else {
+      const redirectTo = `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent('/cuenta')}`;
+      const { error } = await Astro.locals.supabase.auth.updateUser({ email: emailValue }, { emailRedirectTo: redirectTo });
+      if (error === null) {
+        emailSentTo = emailValue;
+      } else {
+        emailError = { message: authErrorMessage(error), field: null };
+      }
+    }
+  } else if (action === 'password') {
+    const password = text('password');
+    const passwordConfirm = text('password_confirm');
+    if (password.length < MIN_PASSWORD_CHARS) {
+      passwordError = {
+        message: `La contraseña necesita al menos ${String(MIN_PASSWORD_CHARS)} caracteres.`,
+        field: 'password',
+      };
+    } else if (password.length > MAX_PASSWORD_CHARS) {
+      passwordError = {
+        message: `La contraseña puede tener como mucho ${String(MAX_PASSWORD_CHARS)} caracteres.`,
+        field: 'password',
+      };
+    } else if (password !== passwordConfirm) {
+      passwordError = { message: 'Las contraseñas no coinciden.', field: 'password_confirm' };
+    } else {
+      const { error } = await Astro.locals.supabase.auth.updateUser({ password });
+      if (error === null) {
+        passwordDone = true;
+      } else {
+        passwordError = { message: authErrorMessage(error), field: null };
+      }
+    }
+  }
+  if (usernameError !== null || emailError !== null || passwordError !== null) Astro.response.status = 400;
+}
+
+const inputClass = 'field text-[1.05rem]';
+---
+
+<Layout title="Tu cuenta — Umber">
+  <main class="mx-auto w-full max-w-md flex-1 px-5 pt-8 pb-16 sm:px-8 lg:pt-10">
+    <p class="eyebrow eyebrow-rule rise">Tu cuenta</p>
+    <h1 class="display-1 rise mt-7 [animation-delay:80ms]">Ajustes</h1>
+
+    <section class="border-umber-line mt-12 border-t pt-8">
+      <h2 class="font-display text-xl">Nombre de usuario</h2>
+      {
+        usernameDone && (
+          <p role="status" class="text-umber-amber mt-3 text-sm">Nombre actualizado.</p>
+        )
+      }
+      {
+        usernameError !== null && usernameError.field === null && (
+          <p role="alert" class="mt-3 text-sm text-red-300">{usernameError.message}</p>
+        )
+      }
+      <form method="post" class="mt-5 space-y-3">
+        <input type="hidden" name="action" value="username" />
+        <input
+          name="username"
+          type="text"
+          autocomplete="nickname"
+          autocapitalize="none"
+          spellcheck="false"
+          required
+          minlength={3}
+          maxlength={20}
+          pattern={USERNAME_INPUT_PATTERN}
+          value={usernameValue}
+          aria-invalid={usernameError?.field === 'username' ? 'true' : undefined}
+          class={inputClass}
+        />
+        {
+          usernameError?.field === 'username' && (
+            <p role="alert" class="text-xs text-red-300">{usernameError.message}</p>
+          )
+        }
+        <button type="submit" class="btn-secondary py-2.5 text-sm">Guardar</button>
+      </form>
+    </section>
+
+    <section class="border-umber-line mt-10 border-t pt-8">
+      <h2 class="font-display text-xl">Email</h2>
+      <p class="text-umber-ash mt-2 text-sm">
+        Al cambiarlo te mandamos un enlace de confirmación al nuevo email; puede que también te pidamos
+        confirmarlo desde el actual.
+      </p>
+      {
+        emailSentTo !== null && (
+          <p role="status" class="text-umber-amber mt-3 text-sm">
+            Revisa <strong class="text-umber-cream font-medium">{emailSentTo}</strong> para confirmar el cambio.
+          </p>
+        )
+      }
+      {
+        emailError !== null && emailError.field === null && (
+          <p role="alert" class="mt-3 text-sm text-red-300">{emailError.message}</p>
+        )
+      }
+      <form method="post" class="mt-5 space-y-3">
+        <input type="hidden" name="action" value="email" />
+        <input
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          value={emailValue}
+          aria-invalid={emailError?.field === 'email' ? 'true' : undefined}
+          class={inputClass}
+        />
+        {
+          emailError?.field === 'email' && (
+            <p role="alert" class="text-xs text-red-300">{emailError.message}</p>
+          )
+        }
+        <button type="submit" class="btn-secondary py-2.5 text-sm">Cambiar email</button>
+      </form>
+    </section>
+
+    <section class="border-umber-line mt-10 border-t pt-8">
+      <h2 class="font-display text-xl">Contraseña</h2>
+      {
+        passwordDone && (
+          <p role="status" class="text-umber-amber mt-3 text-sm">Contraseña actualizada.</p>
+        )
+      }
+      {
+        passwordError !== null && passwordError.field === null && (
+          <p role="alert" class="mt-3 text-sm text-red-300">{passwordError.message}</p>
+        )
+      }
+      <form method="post" class="mt-5 space-y-3">
+        <input type="hidden" name="action" value="password" />
+        <div class="space-y-1.5">
+          <label for="password" class="field-label">Contraseña nueva</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            required
+            minlength={MIN_PASSWORD_CHARS}
+            maxlength={MAX_PASSWORD_CHARS}
+            aria-invalid={passwordError?.field === 'password' ? 'true' : undefined}
+            class={inputClass}
+          />
+          {
+            passwordError?.field === 'password' && (
+              <p role="alert" class="text-xs text-red-300">{passwordError.message}</p>
+            )
+          }
+        </div>
+        <div class="space-y-1.5">
+          <label for="password_confirm" class="field-label">Repite la contraseña</label>
+          <input
+            id="password_confirm"
+            name="password_confirm"
+            type="password"
+            autocomplete="new-password"
+            required
+            aria-invalid={passwordError?.field === 'password_confirm' ? 'true' : undefined}
+            class={inputClass}
+          />
+          {
+            passwordError?.field === 'password_confirm' && (
+              <p role="alert" class="text-xs text-red-300">{passwordError.message}</p>
+            )
+          }
+        </div>
+        <button type="submit" class="btn-secondary py-2.5 text-sm">Cambiar contraseña</button>
+      </form>
+    </section>
+
+    <section class="border-umber-line mt-10 border-t pt-8">
+      <h2 class="font-display text-xl">Tus datos</h2>
+      <p class="text-umber-ash mt-2 text-sm">
+        Descarga una copia de tu cuenta, tus conversaciones y tus favoritos.
+      </p>
+      <a href="/api/account/export" class="link mt-4 inline-block text-sm" download>
+        Descargar tus datos
+      </a>
+    </section>
+
+    <section class="mt-10 border-t border-red-400/30 pt-8">
+      <h2 class="font-display text-xl text-red-300">Borrar la cuenta</h2>
+      <p class="text-umber-ash mt-2 text-sm">
+        Borra tu cuenta, tus conversaciones y tus favoritos. No se puede deshacer.
+      </p>
+      <a href="/cuenta/borrar" class="mt-4 inline-block text-sm text-red-300 underline decoration-1 underline-offset-[5px] hover:text-red-200">
+        Borrar mi cuenta
+      </a>
+    </section>
+  </main>
+</Layout>

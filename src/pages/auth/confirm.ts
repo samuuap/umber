@@ -33,15 +33,23 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
   const type = url.searchParams.get('type');
 
   let failure: string | null = 'el enlace no trae ni código ni token';
+  let username: unknown;
   if (code !== null) {
-    const { error } = await locals.supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await locals.supabase.auth.exchangeCodeForSession(code);
     failure = error === null ? null : errorMessage(error);
+    username = data.user?.user_metadata?.['username'];
   } else if (tokenHash !== null && isEmailOtpType(type)) {
-    const { error } = await locals.supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    const { data, error } = await locals.supabase.auth.verifyOtp({ token_hash: tokenHash, type });
     failure = error === null ? null : errorMessage(error);
+    username = data.user?.user_metadata?.['username'];
   }
 
-  if (failure === null) return redirect(next, 303);
+  if (failure === null) {
+    // Google (y cualquier proveedor sin nombre en sus metadatos) llega sin
+    // `profiles.username`: hace falta elegirlo antes de seguir.
+    if (typeof username === 'string') return redirect(next, 303);
+    return redirect(`/cuenta/nombre?next=${encodeURIComponent(next)}`, 303);
+  }
   console.warn('[auth/confirm] Enlace rechazado:', failure);
   return redirect('/entrar?error=enlace', 303);
 };

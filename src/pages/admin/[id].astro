@@ -1,0 +1,240 @@
+---
+/**
+ * `/admin/<id>` — el detalle de una petición: conversación, búsqueda con sus
+ * candidatos, recomendación, pasos con su duración y cada llamada a un
+ * modelo. Mismo acceso que `/admin` (ver ese archivo).
+ */
+import Layout from '@/layouts/Layout.astro';
+import { adminGate } from '@/lib/auth';
+import { SupabaseError } from '@/lib/errors';
+import { isRecord } from '@/lib/api';
+import { getSupabaseAdminClient } from '@/lib/supabase';
+
+const gate = adminGate(Astro.locals.user);
+if (gate !== null) return gate;
+
+const { id } = Astro.params;
+const client = getSupabaseAdminClient();
+
+const { data: trace, error: traceError } = await client
+  .from('chat_traces')
+  .select('*')
+  .eq('id', id ?? '')
+  .maybeSingle();
+if (traceError !== null) throw new SupabaseError(traceError.message, traceError);
+if (trace === null) return new Response(null, { status: 404 });
+
+const { data: callsData, error: callsError } = await client
+  .from('llm_calls')
+  .select('*')
+  .eq('trace_id', trace.id)
+  .order('started_ms', { ascending: true });
+if (callsError !== null) throw new SupabaseError(callsError.message, callsError);
+const calls = callsData ?? [];
+
+let username: string | null = null;
+if (trace.user_id !== null) {
+  const { data: profile } = await client.from('profiles').select('username').eq('id', trace.user_id).maybeSingle();
+  username = profile?.username ?? null;
+}
+
+let recommended: { id: string; title: string; year: number | null }[] = [];
+if (trace.recommendation_ids.length > 0) {
+  const { data: content } = await client
+    .from('content')
+    .select('id, title, year')
+    .in('id', trace.recommendation_ids);
+  recommended = content ?? [];
+}
+
+interface TraceCandidate {
+  readonly id?: string;
+  readonly title?: string;
+  readonly year?: number | null;
+  readonly votes?: number | null;
+  readonly similarity?: number;
+  readonly rank_score?: number;
+}
+
+const search = isRecord(trace.search) ? trace.search : null;
+const candidates: readonly TraceCandidate[] = Array.isArray(search?.['candidates'])
+  ? (search['candidates'] as TraceCandidate[])
+  : [];
+
+interface TraceStep {
+  readonly name: string;
+  readonly startedMs: number;
+  readonly durationMs: number;
+  readonly ok: boolean;
+}
+const steps: readonly TraceStep[] = Array.isArray(trace.steps) ? (trace.steps as unknown as TraceStep[]) : [];
+
+const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
+const money = (value: number | null): string => (value === null ? '—' : `$${value.toFixed(6)}`);
+---
+
+<Layout title="Consulta — Admin" footer={false}>
+  <main class="mx-auto w-full max-w-[65rem] flex-1 px-5 pt-8 pb-16 sm:px-8 lg:pt-10">
+    <p class="eyebrow eyebrow-rule">
+      <a href="/admin" class="link-quiet">← Consultas</a>
+    </p>
+    <h1 class="display-1 mt-7">{dateFormat.format(new Date(trace.created_at))}</h1>
+
+    <dl class="border-umber-line mt-8 grid grid-cols-2 gap-4 border-y py-6 text-sm sm:grid-cols-4">
+      <div>
+        <dt class="text-umber-ash text-xs uppercase">Vía</dt>
+        <dd class="mt-1">{trace.endpoint}{trace.mode !== null && ` · ${trace.mode}`}</dd>
+      </div>
+      <div>
+        <dt class="text-umber-ash text-xs uppercase">Usuario</dt>
+        <dd class="mt-1">{trace.user_id === null ? 'anónimo' : username ?? trace.user_id}</dd>
+      </div>
+      <div>
+        <dt class="text-umber-ash text-xs uppercase">Estado</dt>
+        <dd class="mt-1">
+          <span class={trace.status >= 400 ? 'text-red-300' : 'text-umber-amber'}>{trace.status}</span>
+          {trace.error_code !== null && ` ${trace.error_code}`}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-umber-ash text-xs uppercase">Duración</dt>
+        <dd class="mt-1">{trace.duration_ms} ms{trace.first_byte_ms !== null && ` (1º byte: ${trace.first_byte_ms} ms)`}</dd>
+      </div>
+      {trace.language !== null && (
+        <div>
+          <dt class="text-umber-ash text-xs uppercase">Idioma</dt>
+          <dd class="mt-1">{trace.language}</dd>
+        </div>
+      )}
+      <div>
+        <dt class="text-umber-ash text-xs uppercase">Conversación</dt>
+        <dd class="mt-1">{trace.conversation_id ?? '—'}</dd>
+      </div>
+    </dl>
+
+    {trace.message !== null && (
+      <section class="border-umber-line mt-8 border-b pb-8">
+        <h2 class="font-display text-xl">Mensaje</h2>
+        <p class="reading mt-3 whitespace-pre-wrap">{trace.message}</p>
+      </section>
+    )}
+
+    {trace.reply !== null && (
+      <section class="border-umber-line mt-8 border-b pb-8">
+        <h2 class="font-display text-xl">Respuesta</h2>
+        <p class="reading mt-3 whitespace-pre-wrap">{trace.reply}</p>
+      </section>
+    )}
+
+    {search !== null && (
+      <section class="border-umber-line mt-8 border-b pb-8">
+        <h2 class="font-display text-xl">Búsqueda</h2>
+        <p class="text-umber-ash mt-2 text-sm">
+          {String(search['kind'] ?? '')} · {String(search['query'] ?? '')}
+        </p>
+        {candidates.length > 0 && (
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-umber-line text-umber-ash border-b text-xs tracking-[0.04em] uppercase">
+                  <th class="py-2 pr-4 font-medium">Título</th>
+                  <th class="py-2 pr-4 font-medium">Año</th>
+                  <th class="py-2 pr-4 font-medium">Votos</th>
+                  <th class="py-2 pr-4 font-medium">Similitud</th>
+                  <th class="py-2 pr-4 font-medium">Rank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidates.map((candidate) => (
+                  <tr class="border-umber-line border-b">
+                    <td class="py-2 pr-4">{candidate.title ?? candidate.id}</td>
+                    <td class="py-2 pr-4">{candidate.year ?? '—'}</td>
+                    <td class="py-2 pr-4">{candidate.votes ?? '—'}</td>
+                    <td class="py-2 pr-4">{candidate.similarity ?? '—'}</td>
+                    <td class="py-2 pr-4">{candidate.rank_score ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    )}
+
+    {recommended.length > 0 && (
+      <section class="border-umber-line mt-8 border-b pb-8">
+        <h2 class="font-display text-xl">Recomendó</h2>
+        <ul class="dot-list mt-3 text-sm">
+          {recommended.map((item) => (
+            <li>
+              {item.title} {item.year !== null && `(${item.year})`}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {trace.unknown_titles.length > 0 && (
+      <section class="border-umber-line mt-8 border-b pb-8">
+        <h2 class="font-display text-xl text-red-300">Títulos inventados</h2>
+        <ul class="dot-list mt-3 text-sm">
+          {trace.unknown_titles.map((title) => <li>{title}</li>)}
+        </ul>
+      </section>
+    )}
+
+    {steps.length > 0 && (
+      <section class="border-umber-line mt-8 border-b pb-8">
+        <h2 class="font-display text-xl">Pasos</h2>
+        <table class="mt-3 w-full max-w-md text-left text-sm">
+          <tbody>
+            {steps.map((step) => (
+              <tr class="border-umber-line border-b">
+                <td class="py-2 pr-4">{step.ok ? '' : '✗ '}{step.name}</td>
+                <td class="py-2 pr-4 text-right">{step.durationMs} ms</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    )}
+
+    <section class="mt-8">
+      <h2 class="font-display text-xl">Llamadas al modelo</h2>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-umber-line text-umber-ash border-b text-xs tracking-[0.04em] uppercase">
+              <th class="py-2 pr-4 font-medium">Propósito</th>
+              <th class="py-2 pr-4 font-medium">Modelo</th>
+              <th class="py-2 pr-4 font-medium">Estado</th>
+              <th class="py-2 pr-4 font-medium">Tokens (in/out/caché)</th>
+              <th class="py-2 pr-4 font-medium">Coste</th>
+              <th class="py-2 pr-4 font-medium">1º token</th>
+              <th class="py-2 pr-4 font-medium">Duración</th>
+              <th class="py-2 pr-4 font-medium">Herramienta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {calls.map((call) => (
+              <tr class="border-umber-line border-b align-top">
+                <td class="py-2 pr-4 whitespace-nowrap">{call.purpose}</td>
+                <td class="py-2 pr-4 whitespace-nowrap">{call.provider}/{call.model}</td>
+                <td class="py-2 pr-4 whitespace-nowrap">
+                  <span class={call.status === 'ok' ? 'text-umber-amber' : 'text-red-300'}>{call.status}</span>
+                </td>
+                <td class="py-2 pr-4 whitespace-nowrap">
+                  {call.input_tokens ?? '—'}/{call.output_tokens ?? '—'}/{call.cache_hit_tokens ?? 0}
+                </td>
+                <td class="py-2 pr-4 whitespace-nowrap">{money(call.cost_usd)}</td>
+                <td class="py-2 pr-4 whitespace-nowrap">{call.first_token_ms ?? '—'} ms</td>
+                <td class="py-2 pr-4 whitespace-nowrap">{call.duration_ms} ms</td>
+                <td class="py-2 pr-4 whitespace-nowrap">{call.tool_name ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</Layout>

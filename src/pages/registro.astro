@@ -10,6 +10,7 @@
 import AuthForm from '@/components/AuthForm.astro';
 import AuthScene from '@/components/AuthScene.astro';
 import Layout from '@/layouts/Layout.astro';
+import { readClientAddress } from '@/lib/api';
 import {
   MAX_PASSWORD_CHARS,
   MIN_PASSWORD_CHARS,
@@ -20,6 +21,8 @@ import {
   safeRedirectPath,
   type AuthFormError,
 } from '@/lib/auth';
+import { RateLimitError } from '@/lib/errors';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 const next = safeRedirectPath(Astro.url.searchParams.get('next'));
 if (Astro.locals.user !== null) return Astro.redirect(next);
@@ -28,6 +31,7 @@ let error: AuthFormError | null = null;
 let email = '';
 let username = '';
 let sentTo: string | null = null;
+let resent = false;
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -35,54 +39,86 @@ if (Astro.request.method === 'POST') {
     const value = form.get(name);
     return typeof value === 'string' ? value : '';
   };
-  username = normalizeUsername(text('username'));
-  email = text('email').trim();
-  const password = text('password');
-  const passwordConfirm = text('password_confirm');
 
-  if (username.length === 0 || email.length === 0 || password.length === 0) {
-    error = { message: 'Rellena todos los campos.', field: null };
-  } else if (!USERNAME_PATTERN.test(username)) {
-    error = {
-      message: 'El nombre de usuario lleva de 3 a 20 caracteres: letras sin tilde, números o guion bajo.',
-      field: 'username',
-    };
-  } else if (password.length < MIN_PASSWORD_CHARS) {
-    error = {
-      message: `La contraseña necesita al menos ${String(MIN_PASSWORD_CHARS)} caracteres.`,
-      field: 'password',
-    };
-  } else if (password.length > MAX_PASSWORD_CHARS) {
-    error = {
-      message: `La contraseña puede tener como mucho ${String(MAX_PASSWORD_CHARS)} caracteres.`,
-      field: 'password',
-    };
-  } else if (password !== passwordConfirm) {
-    error = { message: 'Las contraseñas no coinciden.', field: 'password_confirm' };
-  } else {
-    const { data, error: authError } = await Astro.locals.supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username },
-        emailRedirectTo: `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent(next)}`,
-      },
-    });
-    if (authError !== null) {
-      // Un nombre cogido llega como un error genérico de base de datos.
-      error = (await isUsernameTaken(Astro.locals.supabase, username))
-        ? { message: 'Ese nombre de usuario ya está cogido. Prueba con otro.', field: 'username' }
-        : { message: authErrorMessage(authError), field: null };
-    } else if (data.session !== null) {
-      // Solo si el proyecto deja de exigir confirmación.
-      return Astro.redirect(next, 303);
+  if (text('action') === 'resend') {
+    // Se queda en la pantalla de «revisa tu correo», con o sin error.
+    sentTo = text('email').trim();
+    if (sentTo.length === 0) {
+      error = { message: 'Falta el email.', field: null };
     } else {
-      // Supabase responde igual si el email ya tenía cuenta, para no revelarlo.
-      // El mensaje tampoco lo revela.
-      sentTo = email;
+      try {
+        await enforceRateLimit('registro', { userId: null, clientAddress: readClientAddress(Astro) });
+        const { error: resendError } = await Astro.locals.supabase.auth.resend({
+          type: 'signup',
+          email: sentTo,
+          options: { emailRedirectTo: `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent(next)}` },
+        });
+        if (resendError === null) resent = true;
+        else error = { message: authErrorMessage(resendError), field: null };
+      } catch (rateLimitError: unknown) {
+        if (!(rateLimitError instanceof RateLimitError)) throw rateLimitError;
+        error = { message: rateLimitError.message, field: null };
+        Astro.response.status = 429;
+      }
+    }
+  } else {
+    username = normalizeUsername(text('username'));
+    email = text('email').trim();
+    const password = text('password');
+    const passwordConfirm = text('password_confirm');
+
+    if (username.length === 0 || email.length === 0 || password.length === 0) {
+      error = { message: 'Rellena todos los campos.', field: null };
+    } else if (!USERNAME_PATTERN.test(username)) {
+      error = {
+        message: 'El nombre de usuario lleva de 3 a 20 caracteres: letras sin tilde, números o guion bajo.',
+        field: 'username',
+      };
+    } else if (password.length < MIN_PASSWORD_CHARS) {
+      error = {
+        message: `La contraseña necesita al menos ${String(MIN_PASSWORD_CHARS)} caracteres.`,
+        field: 'password',
+      };
+    } else if (password.length > MAX_PASSWORD_CHARS) {
+      error = {
+        message: `La contraseña puede tener como mucho ${String(MAX_PASSWORD_CHARS)} caracteres.`,
+        field: 'password',
+      };
+    } else if (password !== passwordConfirm) {
+      error = { message: 'Las contraseñas no coinciden.', field: 'password_confirm' };
+    } else {
+      try {
+        // Antes del alta: cada una manda un correo, y ese es el cupo a proteger.
+        await enforceRateLimit('registro', { userId: null, clientAddress: readClientAddress(Astro) });
+        const { data, error: authError } = await Astro.locals.supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username },
+            emailRedirectTo: `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent(next)}`,
+          },
+        });
+        if (authError !== null) {
+          // Un nombre cogido llega como un error genérico de base de datos.
+          error = (await isUsernameTaken(Astro.locals.supabase, username))
+            ? { message: 'Ese nombre de usuario ya está cogido. Prueba con otro.', field: 'username' }
+            : { message: authErrorMessage(authError), field: null };
+        } else if (data.session !== null) {
+          // Solo si el proyecto deja de exigir confirmación.
+          return Astro.redirect(next, 303);
+        } else {
+          // Supabase responde igual si el email ya tenía cuenta, para no revelarlo.
+          // El mensaje tampoco lo revela.
+          sentTo = email;
+        }
+      } catch (rateLimitError: unknown) {
+        if (!(rateLimitError instanceof RateLimitError)) throw rateLimitError;
+        error = { message: rateLimitError.message, field: null };
+        Astro.response.status = 429;
+      }
     }
   }
-  if (error !== null) Astro.response.status = 400;
+  if (error !== null && Astro.response.status !== 429) Astro.response.status = 400;
 }
 ---
 
@@ -99,7 +135,7 @@ if (Astro.request.method === 'POST') {
             Guarda tus conversaciones y tus favoritos, y habla con Umber todos los días.
           </p>
           <div class="rise [animation-delay:240ms]">
-            <AuthForm kind="signup" email={email} username={username} error={error} />
+            <AuthForm kind="signup" email={email} username={username} error={error} next={next} />
           </div>
           <p class="border-umber-line text-umber-ash mt-12 border-t pt-6 text-sm">
             ¿Ya tienes cuenta?{' '}
@@ -118,6 +154,19 @@ if (Astro.request.method === 'POST') {
             Si <strong class="text-umber-cream font-medium">{sentTo}</strong> no tenía cuenta, te hemos enviado un enlace
             para activarla. Ábrelo en este mismo navegador y entrarás directamente.
           </p>
+          {resent && <p class="text-umber-amber mt-4 text-sm">Reenviado. Revisa también la carpeta de spam.</p>}
+          {
+            error !== null && (
+              <p role="alert" class="mt-4 text-sm text-red-300">
+                {error.message}
+              </p>
+            )
+          }
+          <form method="post" class="mt-8">
+            <input type="hidden" name="action" value="resend" />
+            <input type="hidden" name="email" value={sentTo} />
+            <button type="submit" class="link text-sm">¿No te ha llegado? Reenviar correo</button>
+          </form>
         </div>
       )
     }

@@ -1,0 +1,44 @@
+name: Supabase — mantener activo y copia semanal
+
+# El plan gratuito de Supabase pausa el proyecto tras 7 días sin actividad, y
+# no da copias descargables. Esto hace una lectura trivial cada semana (para
+# que nunca pasen esos 7 días) y guarda un dump como artefacto del workflow.
+#
+# Secretos que hacen falta en Settings → Secrets and variables → Actions:
+#   SUPABASE_URL              (de .env.local; no es secreto, pero así va junto)
+#   SUPABASE_PUBLISHABLE_KEY  (idem)
+#   SUPABASE_DB_URL           (Project Settings → Database → Connection string,
+#                              modo «Session», con la contraseña de la base)
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # lunes 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  keepalive-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mantener el proyecto activo
+        run: |
+          curl -sf "${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_PUBLISHABLE_KEY}" > /dev/null
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Instalar el cliente de PostgreSQL
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Copia de la base
+        run: pg_dump "${DB_URL}" --no-owner --no-privileges --format=custom --file=umber-backup.dump
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      - name: Subir la copia
+        uses: actions/upload-artifact@v4
+        with:
+          name: umber-backup-${{ github.run_id }}
+          path: umber-backup.dump
+          retention-days: 90

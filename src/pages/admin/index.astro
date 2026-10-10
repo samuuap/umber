@@ -1,0 +1,170 @@
+---
+/**
+ * `/admin` — las peticiones al chat y al buscador (Fase 8, bloque D:
+ * «Consultas»). Solo para quien tiene `app_metadata.role = 'admin'`
+ * (`scripts/set-admin.mjs`); a quien no, 404 y no una redirección, para no
+ * revelar que la ruta existe.
+ *
+ * Lee con la secret key: `chat_traces` no tiene políticas de RLS para nadie
+ * más. Filtros en la URL (`?estado=&sesion=&pagina=`), sin JavaScript.
+ */
+import Layout from '@/layouts/Layout.astro';
+import { adminGate } from '@/lib/auth';
+import { SupabaseError } from '@/lib/errors';
+import { getSupabaseAdminClient } from '@/lib/supabase';
+
+const gate = adminGate(Astro.locals.user);
+if (gate !== null) return gate;
+
+const PAGE_SIZE = 30;
+const params = Astro.url.searchParams;
+const estado = params.get('estado'); // 'error' | 'ok' | null (todas)
+const sesion = params.get('sesion'); // 'con' | 'sin' | null (todas)
+const page = Math.max(1, Number.parseInt(params.get('pagina') ?? '1', 10) || 1);
+
+const client = getSupabaseAdminClient();
+let query = client
+  .from('chat_traces')
+  .select(
+    'id, created_at, endpoint, user_id, mode, status, error_code, duration_ms, message, recommendation_ids',
+    { count: 'exact' },
+  )
+  .order('created_at', { ascending: false });
+
+if (estado === 'error') query = query.gte('status', 400);
+else if (estado === 'ok') query = query.lt('status', 400);
+if (sesion === 'con') query = query.not('user_id', 'is', null);
+else if (sesion === 'sin') query = query.is('user_id', null);
+
+const from = (page - 1) * PAGE_SIZE;
+const { data, error, count } = await query.range(from, from + PAGE_SIZE - 1);
+if (error !== null) throw new SupabaseError(error.message, error);
+
+const traces = data ?? [];
+const total = count ?? 0;
+const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+const userIds = [...new Set(traces.flatMap((trace) => (trace.user_id === null ? [] : [trace.user_id])))];
+const usernames = new Map<string, string | null>();
+if (userIds.length > 0) {
+  const { data: profiles } = await client.from('profiles').select('id, username').in('id', userIds);
+  for (const profile of profiles ?? []) usernames.set(profile.id, profile.username);
+}
+
+/** Solo para los enlaces de página: conserva `estado` y `sesion`. */
+function pageHref(targetPage: number): string {
+  const next = new URLSearchParams(params);
+  next.set('pagina', String(targetPage));
+  return `/admin?${next.toString()}`;
+}
+
+const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
+---
+
+<Layout title="Consultas — Admin" footer={false}>
+  <main class="mx-auto w-full max-w-[75rem] flex-1 px-5 pt-8 pb-16 sm:px-8 lg:pt-10">
+    <p class="eyebrow eyebrow-rule">Admin</p>
+    <h1 class="display-1 mt-7">Consultas</h1>
+    <p class="text-umber-ash mt-3 text-sm">{total} en total.</p>
+
+    <form method="get" class="mt-8 flex flex-wrap items-end gap-4">
+      <div class="space-y-1.5">
+        <label for="estado" class="field-label">Estado</label>
+        <div class="select-wrap">
+          <select id="estado" name="estado" class="field text-sm">
+            <option value="" selected={estado === null}>Todas</option>
+            <option value="ok" selected={estado === 'ok'}>OK</option>
+            <option value="error" selected={estado === 'error'}>Error</option>
+          </select>
+        </div>
+      </div>
+      <div class="space-y-1.5">
+        <label for="sesion" class="field-label">Sesión</label>
+        <div class="select-wrap">
+          <select id="sesion" name="sesion" class="field text-sm">
+            <option value="" selected={sesion === null}>Todas</option>
+            <option value="con" selected={sesion === 'con'}>Con cuenta</option>
+            <option value="sin" selected={sesion === 'sin'}>Anónimas</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn-secondary py-2.5 text-sm">Filtrar</button>
+    </form>
+
+    <div class="border-umber-line mt-8 overflow-x-auto border-t">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="border-umber-line text-umber-ash border-b text-xs tracking-[0.04em] uppercase">
+            <th class="py-3 pr-4 font-medium">Fecha</th>
+            <th class="py-3 pr-4 font-medium">Vía</th>
+            <th class="py-3 pr-4 font-medium">Usuario</th>
+            <th class="py-3 pr-4 font-medium">Estado</th>
+            <th class="py-3 pr-4 font-medium">Duración</th>
+            <th class="py-3 pr-4 font-medium">Mensaje</th>
+            <th class="py-3 pr-4 font-medium">Recomendó</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            traces.map((trace) => (
+              <tr class="border-umber-line hover:bg-umber-raised/40 border-b">
+                <td class="py-3 pr-4 whitespace-nowrap">
+                  <a href={`/admin/${trace.id}`} class="link-quiet">
+                    {dateFormat.format(new Date(trace.created_at))}
+                  </a>
+                </td>
+                <td class="py-3 pr-4 whitespace-nowrap">
+                  {trace.endpoint}
+                  {trace.mode !== null && <span class="text-umber-ash"> · {trace.mode}</span>}
+                </td>
+                <td class="py-3 pr-4 whitespace-nowrap">
+                  {trace.user_id === null ? (
+                    <span class="text-umber-ash">anónimo</span>
+                  ) : (
+                    (usernames.get(trace.user_id) ?? trace.user_id.slice(0, 8))
+                  )}
+                </td>
+                <td class="py-3 pr-4 whitespace-nowrap">
+                  <span class={trace.status >= 400 ? 'text-red-300' : 'text-umber-amber'}>{trace.status}</span>
+                  {trace.error_code !== null && <span class="text-umber-ash"> {trace.error_code}</span>}
+                </td>
+                <td class="py-3 pr-4 whitespace-nowrap">{trace.duration_ms} ms</td>
+                <td class="max-w-[22rem] truncate py-3 pr-4">{trace.message}</td>
+                <td class="py-3 pr-4 whitespace-nowrap">{trace.recommendation_ids.length}</td>
+              </tr>
+            ))
+          }
+          {
+            traces.length === 0 && (
+              <tr>
+                <td colspan="7" class="text-umber-ash py-8 text-center">
+                  No hay ninguna con estos filtros.
+                </td>
+              </tr>
+            )
+          }
+        </tbody>
+      </table>
+    </div>
+
+    {
+      pages > 1 && (
+        <nav aria-label="Páginas" class="mt-6 flex items-center gap-4 text-sm">
+          {page > 1 && (
+            <a href={pageHref(page - 1)} class="link-quiet">
+              ← Anterior
+            </a>
+          )}
+          <span class="text-umber-ash">
+            Página {page} de {pages}
+          </span>
+          {page < pages && (
+            <a href={pageHref(page + 1)} class="link-quiet">
+              Siguiente →
+            </a>
+          )}
+        </nav>
+      )
+    }
+  </main>
+</Layout>

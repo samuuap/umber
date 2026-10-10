@@ -6,6 +6,7 @@
  * Los endpoints aceptan además `Authorization: Bearer <access_token>`, para
  * clientes que no son el navegador, como los scripts de verificación.
  */
+import { isRecord } from '@/lib/api';
 import { AuthError, errorMessage } from '@/lib/errors';
 import {
   createSupabaseUserClient,
@@ -19,6 +20,11 @@ export interface SessionUser {
   readonly email: string | null;
   /** `null` en las cuentas anteriores al nombre de usuario. */
   readonly username: string | null;
+  /**
+   * `app_metadata.role === 'admin'`: solo lo cambia la Admin API, nadie desde
+   * su propia cuenta (ver `scripts/set-admin.mjs`). Decide el acceso a `/admin`.
+   */
+  readonly isAdmin: boolean;
 }
 
 export const MIN_PASSWORD_CHARS = 8;
@@ -76,10 +82,12 @@ export async function getSessionUser(supabase: UmberSupabaseClient): Promise<Ses
     }
     // Los triggers de `profiles` lo mantienen igual que en la tabla: no hace falta consultarla.
     const username: unknown = claims.user_metadata?.['username'];
+    const appMetadata: unknown = claims.app_metadata;
     return {
       id: claims.sub,
       email: typeof claims.email === 'string' ? claims.email : null,
       username: typeof username === 'string' ? username : null,
+      isAdmin: isRecord(appMetadata) && appMetadata['role'] === 'admin',
     };
   } catch (error: unknown) {
     // Una cookie corrupta o un refresh token revocado no tumban la página: se
@@ -123,6 +131,15 @@ export function returnPath(url: URL): string {
   return search === '' ? url.pathname : `${url.pathname}?${search}`;
 }
 
+/**
+ * Para las páginas de `/admin`: 404 y no una redirección a `/entrar`, para no
+ * revelar a quien no es admin que la ruta existe. `return` el resultado si no
+ * es `null`.
+ */
+export function adminGate(user: SessionUser | null): Response | null {
+  return user?.isAdmin === true ? null : new Response(null, { status: 404 });
+}
+
 /** Códigos de error de Supabase Auth que la persona puede resolver por sí misma. */
 const AUTH_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   invalid_credentials: 'El email o la contraseña no son correctos.',
@@ -135,6 +152,9 @@ const AUTH_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   validation_failed: 'Revisa el email: no parece válido.',
   email_address_invalid: 'Revisa el email: no parece válido.',
   signup_disabled: 'El registro está cerrado ahora mismo.',
+  // Del mailer de pruebas de Supabase (solo entrega al equipo del proyecto) o
+  // de un problema puntual del SMTP: en los dos casos, no ha salido el correo.
+  email_address_not_authorized: 'No hemos podido enviarte el correo. Prueba otra vez en un momento.',
 };
 
 /** Mensaje en español para un error de Supabase Auth. El detalle técnico va al log. */

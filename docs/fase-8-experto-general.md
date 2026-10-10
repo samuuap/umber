@@ -1,8 +1,9 @@
 # Fase 8 — Umber, experto general en cine
 
-**Estado:** 🔄 En curso: A, B y C hechos; siguiente, D (panel de administración)
+**Estado:** 🔄 En curso: A, B y C hechos; D (panel de administración) empezado:
+acceso y Consultas hechos, faltan Resumen, Usuarios y Consumo
 **Depende de:** [Fase 6](fase-6-pulido-despliegue.md) (lo que no cambia con esto sigue allí)
-**Actualizado:** 2026-10-04
+**Actualizado:** 2026-10-10
 
 ## Objetivo
 
@@ -263,10 +264,13 @@ Lo que destapó la prueba con personas, y está arreglado:
 
 Solo para ti, en `/admin`, con datos leídos con la secret key en servidor.
 
-- [ ] **Acceso**: rol en `app_metadata` del usuario, que solo se cambia con la
-      Admin API (nadie se lo puede poner desde su cuenta), y **verificación en
-      dos pasos obligatoria** para entrar (MFA con TOTP de Supabase, gratis). A
-      quien no es admin, `/admin` le responde 404
+- [x] **Acceso** (2026-10-10, parcial): rol en `app_metadata` (`SessionUser.isAdmin`
+      en `src/lib/auth.ts`), que solo cambia la Admin API (`scripts/set-admin.mjs`;
+      nadie se lo puede poner desde su cuenta). A quien no es admin, `/admin`
+      responde 404 (`adminGate`), no una redirección, para no revelar que la ruta
+      existe. Probado: anónimo → 404, admin → 200. **Pendiente**: la
+      verificación en dos pasos obligatoria (MFA con TOTP de Supabase) — hoy
+      basta con la sesión y el rol
 - [ ] **Resumen**: hoy, 7 y 30 días. Mensajes, conversaciones, usuarios nuevos,
       tokens, coste en USD, porcentaje de caché, primer token (p50 y p95),
       errores por código, 429 y cuánto queda del cupo global. Saldo de
@@ -275,10 +279,14 @@ Solo para ti, en `/admin`, con datos leídos con la secret key en servidor.
       confirmado), con sus conversaciones, favoritos, mensajes, tokens y coste.
       Acciones: bloquear y desbloquear, borrar la cuenta (RGPD) y reiniciar su
       límite del día
-- [ ] **Consultas**: todas las peticiones, con filtros (fecha, usuario o
-      anónimo, estado, especialidad). Detalle con la conversación, las
-      llamadas a herramientas, el resumen de la búsqueda, los candidatos con su
-      puntuación, la recomendación y una cascada de tiempos
+- [x] **Consultas** (2026-10-10): `/admin` (lista, con filtros de estado y
+      sesión, y paginación) y `/admin/<id>` (detalle: mensaje, respuesta,
+      búsqueda con sus candidatos y puntuación, recomendación resuelta a
+      títulos, títulos inventados, pasos con su duración y cada llamada al
+      modelo con tokens, caché, coste y tiempos). Sin especialidad como filtro:
+      `chat_traces` no la guarda como columna propia. Probado contra las 51
+      trazas reales del proyecto: filtros, paginación y un detalle completo,
+      sin errores
 - [ ] **Consumo**: tokens y coste por día, por modelo y por propósito; usuarios
       que más gastan; proyección del mes
 
