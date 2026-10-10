@@ -16,7 +16,7 @@ La documentación **técnica** (stack, esquema, convenciones, estética) está e
 | [6](fase-6-pulido-despliegue.md) | Pulido, producto completo y despliegue | 🔄 En curso |
 | [7](fase-7-premium.md) | Premium: planes de pago | 💤 Futuro: no empezar hasta acabar la 6 |
 | [8](fase-8-experto-general.md) | Umber experto general: pasarela y trazabilidad, corpus, recomendador, panel de admin y diseño | 🔄 En curso |
-| [9](fase-9-juegos.md) | Juegos del día: «El cartel del día» y «El título del día» | 🔄 En curso: falta la migración |
+| [9](fase-9-juegos.md) | Juegos del día: «El cartel del día» y «El título del día» | 🔄 En curso: falta probarlo en el navegador |
 
 Leyenda: ✅ completada · 🔄 en curso · ⏳ pendiente · ⛔ bloqueada · 💤 futuro
 

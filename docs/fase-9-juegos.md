@@ -56,12 +56,13 @@ DeepSeek ni embeddings, solo lecturas de la base.
 
 ## Pendiente
 
-- [ ] **Aplicar la migración** (`npm run db:push`). Desde la red del 2026-10-08
-      no se puede: el pooler no responde (ver la memoria «La red y Postgres»).
-      Después, `npm run db:types` (`database.types.ts` lleva `daily_games` escrito
-      a mano con la forma del generador: tiene que salir igual) y `npm run db:verify`
-- [ ] **Rellenar los días**: `python scripts/seed/games.py` (con el `.venv`). Los
-      carteles sin texto de TMDB ya están en la caché
+- [x] **Migración aplicada** (comprobado el 2026-10-11: ya estaba en remoto).
+      `npm run db:types` da para `daily_games` lo mismo que se escribió a mano
+      (solo añadió `people_search` en `content` y reordenó `conversations`);
+      `npm run db:verify`, 59/59; `npm run typecheck`, 0 errores. Con la
+      publishable key, `daily_games` responde 401 (`permission denied`)
+- [x] **Días rellenados**: 365 de cartel (2026-10-08 → 2027-10-07) y 169 de
+      título (2026-10-08 → 2027-03-25)
 - [ ] **Probarlo en el navegador** a 390 y 1280 px: los dos juegos de principio a
       fin, ganar y perder, volver a la página a mitad de partida, teclado físico,
       movimiento reducido, y la CSP sobre el build

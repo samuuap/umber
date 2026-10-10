@@ -125,6 +125,7 @@ export type Database = {
           id: string
           keywords: string[] | null
           original_language: string | null
+          people_search: string | null
           popularity: number | null
           poster_path: string | null
           runtime: number | null
@@ -152,6 +153,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           original_language?: string | null
+          people_search?: string | null
           popularity?: number | null
           poster_path?: string | null
           runtime?: number | null
@@ -179,6 +181,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           original_language?: string | null
+          people_search?: string | null
           popularity?: number | null
           poster_path?: string | null
           runtime?: number | null
@@ -233,6 +236,36 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          mode: string
+          specialty: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          mode: string
+          specialty?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          mode?: string
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_games: {
         Row: {
           content_id: string
@@ -273,36 +306,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      conversations: {
-        Row: {
-          created_at: string
-          id: string
-          messages: Json
-          mode: string
-          specialty: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          messages?: Json
-          mode: string
-          specialty?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          messages?: Json
-          mode?: string
-          specialty?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       llm_calls: {
         Row: {
