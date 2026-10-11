@@ -1,0 +1,36 @@
+name: CI
+
+# En cada push y pull request: tipos, tests y build. No usa ningún secreto: el
+# build valida que estén las variables de `astro:env`, pero no llama a nada, así
+# que bastan valores de mentira.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      DEEPSEEK_API_KEY: ci
+      EMBEDDINGS_URL: https://example.com/v1
+      EMBEDDINGS_API_KEY: ci
+      EMBEDDINGS_MODEL: ci
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: ci
+      SUPABASE_SECRET_KEY: ci
+      TMDB_READ_ACCESS_TOKEN: ci
+      PUBLIC_APP_URL: https://example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
