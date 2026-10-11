@@ -495,7 +495,7 @@ CREATE TABLE daily_games (
 
 - Son las soluciones, también las de mañana: RLS sin políticas y sin permisos
   para `anon` ni `authenticated`. Las lee `src/lib/games.ts` con la secret key
-- La rellena por adelantado `scripts/seed/games.py`: películas de 10.000 votos o
+- La rellena por adelantado `scripts/seed/games.py`: películas de 6.000 votos o
   más, con cartel sin texto, y para el título, con un título jugable. Solo añade
   días después del último: los de antes no se tocan (el número compartido tiene
   que seguir siendo el mismo)

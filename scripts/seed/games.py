@@ -4,8 +4,12 @@ título del día», por adelantado.
 
     python scripts/seed/games.py                    # hasta tener los próximos 365 días
     python scripts/seed/games.py --days 30
-    python scripts/seed/games.py --min-votes 8000   # cuando se acaben las de 10.000
+    python scripts/seed/games.py --min-votes 5000   # cuando se acaben las de 6.000
     python scripts/seed/games.py --dry-run          # enseña lo que añadiría, sin escribir
+
+No necesita los datos del seed: las películas salen de la base y los títulos de
+España, de `data/details-movie.jsonl` si está o, si no, de TMDB. Basta con
+`.env.local` y `pip install -r scripts/seed/requirements.txt`.
 
 Solo añade días después del último que ya tiene película: los de antes no se
 tocan, porque alguien puede haberlos jugado y el número que se comparte («El
@@ -14,8 +18,8 @@ ejecutarlo, los juegos se quedan sin partida: la página lo dice y no falla.
 
 Qué entra (decisión de producto, 2026-10-08: «muy muy muy conocidas»):
 
-- Películas con **10.000 votos o más** en TMDB, unas 390: las que conoce todo el
-  mundo (las menos votadas de la lista son *Shrek tercero* o *Cazafantasmas*)
+- Películas con **6.000 votos o más** en TMDB, unas 870 (10.000 hasta el 2026-10-11): las que conoce todo el
+  mundo (la menos votada de la lista es *Escondidos en Brujas*)
 - Con un **cartel sin texto** en TMDB (`/movie/<id>/images`, idioma nulo): el
   del juego del cartel y la última pista del título. Con texto, el título se
   leería en él. La respuesta de TMDB se cachea en `data/textless-posters.jsonl`
@@ -43,9 +47,11 @@ from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from common import CORPUS_PATH, DATA_DIR, append_jsonl, http_session, read_jsonl, require_env
+from common import DATA_DIR, append_jsonl, http_session, read_jsonl, require_env
 
 DETAILS_PATH = DATA_DIR / "details-movie.jsonl"
+# Lo que pide a TMDB cuando falta `details-movie.jsonl` (otro ordenador que el del seed).
+GAME_DETAILS_PATH = DATA_DIR / "game-details.jsonl"
 TEXTLESS_PATH = DATA_DIR / "textless-posters.jsonl"
 
 # Como `GAME_TIME_ZONE` en `src/lib/games.ts`: el juego cambia a medianoche de Madrid.
@@ -54,8 +60,8 @@ TIME_ZONE = ZoneInfo("Europe/Madrid")
 GAMES = ("title", "poster")
 
 # Lo que conoce todo el mundo: un cartel sin título o cuatro letras solo bastan
-# si la película se ha visto mucho. Con menos se puede bajar a 8.000 (unas 560).
-MIN_VOTES = 10_000
+# si la película se ha visto mucho. Con 10.000 (390) el título se acababa en marzo de 2027; con 6.000 llega con el cartel.
+MIN_VOTES = 6_000
 # Una película en los dos juegos, pero no cerca: quien la acaba de ver en uno la sabría en el otro.
 CROSS_GAME_GAP_DAYS = 120
 # Ni dos de la misma saga en dos semanas en un mismo juego.
@@ -176,20 +182,44 @@ def select_all(path: str, select: str, **filters: str) -> list[dict[str, Any]]:
             return rows
 
 
-def movie_ids() -> dict[int, str]:
-    """`{tmdb_id: content.id}` de las películas cargadas."""
-    ids: dict[int, str] = {}
-    offset = 0
+def movies() -> list[dict[str, Any]]:
+    """Las películas cargadas, de la base: así no hace falta `data/corpus.jsonl` del seed."""
+    rows: list[dict[str, Any]] = []
     while True:
         page = request(
             "GET",
             "/content",
-            params={"select": "id,tmdb_id", "type": "eq.movie", "order": "id", "limit": PAGE_SIZE, "offset": offset},
+            params={
+                "select": "id,tmdb_id,title_en,vote_count,collection_id",
+                "type": "eq.movie",
+                "order": "id",
+                "limit": PAGE_SIZE,
+                "offset": len(rows),
+            },
         ).json()
-        ids |= {row["tmdb_id"]: row["id"] for row in page}
+        rows += page
         if len(page) < PAGE_SIZE:
-            return ids
-        offset += PAGE_SIZE
+            return rows
+
+
+def movie_detail(tmdb_id: int, cache: dict[int, dict[str, Any]]) -> dict[str, Any]:
+    """Título original y traducciones, con la forma de `details-movie.jsonl`. Del seed si está; si no, de TMDB, cacheado."""
+    if tmdb_id not in cache:
+        response = tmdb.get(f"{API}/movie/{tmdb_id}", params={"append_to_response": "translations"}, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        cache[tmdb_id] = {
+            "id": tmdb_id,
+            "original_title": data.get("original_title"),
+            "original_language": data.get("original_language"),
+            "translations": [
+                {"lang": t["iso_639_1"], "region": t["iso_3166_1"], "title": (t["data"].get("title") or "").strip()}
+                for t in data["translations"]["translations"]
+                if t["iso_639_1"] in ("en", "es")
+            ],
+        }
+        append_jsonl(GAME_DETAILS_PATH, [cache[tmdb_id]])
+    return cache[tmdb_id]
 
 
 Candidate = tuple[dict[str, Any], str, tuple[str, str]]
@@ -231,11 +261,9 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="enseña lo que añadiría, sin escribir")
     args = parser.parse_args()
 
-    details = {d["id"]: d for d in read_jsonl(DETAILS_PATH)}
-    corpus = [r for r in read_jsonl(CORPUS_PATH) if r["type"] == "movie"]
-    if not corpus or not details:
-        raise SystemExit("Faltan data/corpus.jsonl o data/details-movie.jsonl: ejecuta antes fetch-tmdb.py y score.py.")
-    ids = movie_ids()
+    details = {d["id"]: d for path in (DETAILS_PATH, GAME_DETAILS_PATH) for d in read_jsonl(path)}
+    corpus = movies()
+    ids = {row["tmdb_id"]: row["id"] for row in corpus}
     existing = select_all("/daily_games", "game,day,number,content_id")
     # Los días de cada película en cada juego.
     days_in: dict[str, dict[str, list[date]]] = {game: {} for game in GAMES}
@@ -263,16 +291,10 @@ def main() -> None:
 
         candidates: list[Candidate] = []
         for row in corpus:
-            content_id = ids.get(row["tmdb_id"])
-            detail = details.get(row["tmdb_id"])
-            if (
-                content_id is None
-                or detail is None
-                or content_id in days_in[game]
-                or (row.get("vote_count") or 0) < args.min_votes
-            ):
+            content_id = row["id"]
+            if content_id in days_in[game] or (row.get("vote_count") or 0) < args.min_votes:
                 continue
-            title_es = spain_title(detail)
+            title_es = spain_title(movie_detail(row["tmdb_id"], details))
             if title_es is None or not row.get("title_en"):
                 continue
             titles = (clean_title(title_es), clean_title(row["title_en"]))

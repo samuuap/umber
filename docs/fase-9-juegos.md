@@ -18,7 +18,7 @@ DeepSeek ni embeddings, solo lecturas de la base.
   letras** y se destapan donde salen; después se escribe el título entero. Cada
   fallo, o pedir pista, destapa la siguiente: **año → director → sinopsis →
   cartel** (desenfocado, pero fácil de reconocer). Cinco intentos
-- Películas **muy, muy conocidas**: 10.000 votos o más en TMDB
+- Películas **muy, muy conocidas**: 6.000 votos o más en TMDB (10.000 hasta el 2026-10-11)
 
 ## Hecho
 
@@ -72,11 +72,17 @@ DeepSeek ni embeddings, solo lecturas de la base.
       preview` no funciona con el adaptador de Vercel: se sirvió
       `.vercel/output` con un servidor de Node de usar y tirar. Arreglado: «100 %»
       de las estadísticas se partía en dos líneas a 390 px
-- [ ] **Antes del 25 de marzo de 2027**: el título se queda sin películas de
-      10.000 votos que valgan (169). `games.py --min-votes 8000` añade más. El
-      cartel llega hasta el 31 de octubre de 2027
-- [ ] Una tarea programada (GitHub Actions, la misma que mantenga despierto
-      Supabase) que ejecute `games.py` cada mes
+- [x] **El título se quedaba sin películas el 25 de marzo de 2027** (169 de
+      10.000 votos que valían). Resuelto el 2026-10-11: umbral bajado a 6.000 y
+      `games.py` ejecutado (202 días nuevos). Los dos juegos tienen 368
+      partidas, hasta el 10 de octubre de 2027. `games.py` ya no necesita los
+      datos del seed: se puede ejecutar desde cualquier ordenador con `.env.local`
+- [ ] **Antes del 10 de octubre de 2027**: volver a ejecutar `games.py`. Para el
+      título quedan 29 películas de 6.000 votos: hará falta `--min-votes 5000`
+- [x] ~~Una tarea programada que ejecute `games.py` cada mes~~ Descartada
+      (2026-10-11): ejecutarlo más a menudo no añade películas, solo bajar
+      `--min-votes`; y `games.py` necesita los datos del seed, que no están en
+      el repositorio. Basta con ejecutarlo a mano una vez al año
 - [ ] Más adelante: la racha en la cuenta, para quien tenga sesión (hoy, en el
       navegador); un archivo de días anteriores (el servidor ya acepta días
       pasados)
@@ -86,7 +92,7 @@ DeepSeek ni embeddings, solo lecturas de la base.
 | Decisión | Motivo |
 |---|---|
 | El título no es un Wordle tal cual: cuatro letras y luego pistas (2026-10-08) | Decisión de producto, tras ver la propuesta de Wordle. Con títulos de 15 letras, un Wordle era un ahorcado lento |
-| Solo películas con 10.000 votos o más (2026-10-08) | Decisión de producto: «muy muy muy conocidas». Son unas 390; con un cartel sin título o cuatro letras, una menos conocida no la saca nadie |
+| Solo películas con 10.000 votos o más (2026-10-08); 6.000 desde el 2026-10-11 | Decisión de producto: «muy muy muy conocidas», con un cartel sin título o cuatro letras, una menos conocida no la saca nadie. Con 10.000 (390 películas), el título se acababa el 25 de marzo de 2027 (169 que valen); con 6.000 (867), los dos juegos llegan al 10 de octubre de 2027, a la par, y sobran 29 para el título |
 | El título se escribe entero en las casillas; las destapadas quedan fijas | Es lo que da sentido a las letras elegidas. Elegirlo de una lista con autocompletado, con títulos tan conocidos, sería demasiado fácil |
 | Al acabar el cartel del día se enseña el mismo cartel, nítido (2026-10-11) | Enseñaba el del corpus, con el título: otra imagen, y parecía que había salido otro cartel. El del título sigue enseñando el del corpus |
 | ~~Las cuatro letras, libres y distintas~~ **Cuatro letras distintas, dos vocales como mucho** (2026-10-11, `TITLE_MAX_VOWELS`) | Decisión de producto: con cuatro vocales el título salía casi solo, muy guiado. Lo valida el servidor (400) y el teclado avisa al elegir la tercera. Una partida guardada de antes con más vocales se empieza de nuevo. Para que no destapen el título entero, solo entran títulos con seis letras distintas o más |
