@@ -1,0 +1,47 @@
+---
+/** Sobre Umber: de dónde viene el nombre, qué es y quién lo hace. Enlazada desde el pie. */
+import Layout from '@/layouts/Layout.astro';
+import { LEGAL_OWNER } from '@/lib/legal';
+---
+
+<Layout title="Sobre Umber" description="Por qué se llama Umber, qué es y quién lo hace.">
+  <main class="mx-auto w-full max-w-[46rem] flex-1 px-5 py-12 sm:px-8 sm:py-20">
+    <p class="eyebrow eyebrow-rule rise">Sobre Umber</p>
+    <h1 class="display-1 rise mt-6 [animation-delay:80ms]">¿Por qué <em>Umber</em>?</h1>
+
+    <div class="reading rise mt-10 space-y-5 [animation-delay:160ms]">
+      <p>
+        Umber nació a finales de septiembre de 2026, con el otoño recién estrenado. La idea era sencilla: alguien que
+        te ayudase a elegir qué ver en esas tardes que oscurecen antes, con lluvia en la ventana y ganas de manta.
+      </p>
+      <p>
+        El nombre salió de la propia estación. <em>Umber</em> es, en inglés, la <strong>tierra de sombra</strong>: el
+        pigmento marrón de las hojas cuando empiezan a caer, el color del otoño en una paleta de pintor.
+      </p>
+      <p>
+        Con el tiempo, Umber dejó de saber solo de otoño y pasó a recomendar cualquier película o serie. El otoño
+        sigue ahí, como especialidad, y en el nombre.
+      </p>
+    </div>
+
+    <h2 class="display-3 mt-16">Qué es</h2>
+    <div class="reading mt-5 space-y-5">
+      <p>
+        Un cinéfilo con el que conversar: le cuentas cómo te sientes o qué te apetece, te hace alguna pregunta y te
+        recomienda algo de un catálogo de miles de títulos conocidos. Umber es una inteligencia artificial y puede
+        equivocarse, pero no se inventa títulos: todo lo que recomienda existe. Además, cada día hay dos
+        <a href="/juegos" class="link">juegos de cine</a>.
+      </p>
+    </div>
+
+    <h2 class="display-3 mt-16">Quién lo hace</h2>
+    <div class="reading mt-5 space-y-5">
+      <p>
+        Umber es un proyecto personal de {LEGAL_OWNER.name}, gratuito y sin publicidad. Si tienes una idea, una queja o
+        una película que debería conocer, escribe a <a href={`mailto:${LEGAL_OWNER.email}`} class="link"
+          >{LEGAL_OWNER.email}</a
+        >.
+      </p>
+    </div>
+  </main>
+</Layout>
