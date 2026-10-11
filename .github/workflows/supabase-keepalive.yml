@@ -28,11 +28,15 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
+      # La misma versión mayor que el servidor (17): pg_dump se niega con una menor
       - name: Instalar el cliente de PostgreSQL
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: |
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
 
       - name: Copia de la base
-        run: pg_dump "${DB_URL}" --no-owner --no-privileges --format=custom --file=umber-backup.dump
+        run: /usr/lib/postgresql/17/bin/pg_dump "${DB_URL}" --no-owner --no-privileges --format=custom --file=umber-backup.dump
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
