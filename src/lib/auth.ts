@@ -25,6 +25,8 @@ export interface SessionUser {
    * su propia cuenta (ver `scripts/set-admin.mjs`). Decide el acceso a `/admin`.
    */
   readonly isAdmin: boolean;
+  /** `app_metadata.role === 'tester'`: las cuentas que crean los scripts de evaluación. */
+  readonly isTester: boolean;
 }
 
 export const MIN_PASSWORD_CHARS = 8;
@@ -64,6 +66,8 @@ export async function isUsernameTaken(supabase: UmberSupabaseClient, username: s
 
 export interface RequestUser {
   readonly id: string;
+  /** Admin o cuenta de prueba: fuera de los límites del chat (`rate-limit.ts`). */
+  readonly unlimited: boolean;
   /** Cliente con la sesión del usuario: RLS se evalúa como él. */
   readonly client: UmberSupabaseClient;
 }
@@ -73,6 +77,12 @@ export interface RequestUser {
  * local con las claves asimétricas del proyecto, sin llamada de red, y renueva el
  * token si ha caducado: por eso la llama el middleware en cada petición.
  */
+/** El rol de `app_metadata`, que solo cambia la Admin API. */
+function roleOf(appMetadata: unknown): string | null {
+  const role = isRecord(appMetadata) ? appMetadata['role'] : null;
+  return typeof role === 'string' ? role : null;
+}
+
 export async function getSessionUser(supabase: UmberSupabaseClient): Promise<SessionUser | null> {
   try {
     const { data } = await supabase.auth.getClaims();
@@ -87,7 +97,8 @@ export async function getSessionUser(supabase: UmberSupabaseClient): Promise<Ses
       id: claims.sub,
       email: typeof claims.email === 'string' ? claims.email : null,
       username: typeof username === 'string' ? username : null,
-      isAdmin: isRecord(appMetadata) && appMetadata['role'] === 'admin',
+      isAdmin: roleOf(appMetadata) === 'admin',
+      isTester: roleOf(appMetadata) === 'tester',
     };
   } catch (error: unknown) {
     // Una cookie corrupta o un refresh token revocado no tumban la página: se
@@ -181,7 +192,9 @@ export async function getRequestUser(context: RequestUserContext): Promise<Reque
 
   if (token === null) {
     const user = context.locals.user;
-    return user === null ? null : { id: user.id, client: context.locals.supabase };
+    return user === null
+      ? null
+      : { id: user.id, unlimited: user.isAdmin || user.isTester, client: context.locals.supabase };
   }
 
   const { data, error } = await getSupabaseClient().auth.getClaims(token);
@@ -189,5 +202,6 @@ export async function getRequestUser(context: RequestUserContext): Promise<Reque
   if (error !== null || typeof userId !== 'string' || userId.length === 0) {
     throw new AuthError('La sesión no es válida o ha caducado.', error ?? undefined);
   }
-  return { id: userId, client: createSupabaseUserClient(token) };
+  const role = roleOf(data?.claims.app_metadata);
+  return { id: userId, unlimited: role === 'admin' || role === 'tester', client: createSupabaseUserClient(token) };
 }

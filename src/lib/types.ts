@@ -271,8 +271,7 @@ export const MAX_MESSAGE_CHARS = 1000;
 /**
  * Mensajes de una conversación, contando los de Umber: 20 turnos. Una normal
  * son de 10 a 20 (2 a 4 preguntas, la recomendación y algún «otra»). Decisión
- * de producto (2026-10-03): que ninguna se alargue sin fin. Sin cuenta, es
- * también la conversación de prueba del día.
+ * de producto (2026-10-03): que ninguna se alargue sin fin.
  */
 export const MAX_CONVERSATION_MESSAGES = 40;
 /** Con cuántos turnos por delante empieza el chat a avisar. */

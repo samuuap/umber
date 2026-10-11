@@ -111,7 +111,7 @@ const stamp = Date.now();
 const user = { email: `umber-guardrails-${stamp}@example.com`, password: `Gg${stamp}!xY` };
 let userId = null;
 try {
-  userId = (await (await supa('/auth/v1/admin/users', { method: 'POST', body: { ...user, email_confirm: true } })).json()).id;
+  userId = (await (await supa('/auth/v1/admin/users', { method: 'POST', body: { ...user, email_confirm: true, app_metadata: { role: 'tester' } } })).json()).id;
   const token = (await (await supa('/auth/v1/token?grant_type=password', { key: ANON, method: 'POST', body: user })).json()).access_token;
   if (!token) throw new Error('No se pudo crear el usuario de prueba.');
 

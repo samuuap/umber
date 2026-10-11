@@ -42,6 +42,7 @@ const sendButton = required<HTMLButtonElement>(form, '[data-send]');
 const stopButton = required<HTMLButtonElement>(form, '[data-stop]');
 const turnsLeftNotice = required<HTMLElement>(form, '[data-turns-left]');
 const conversationEnd = required<HTMLElement>(root, '[data-conversation-end]');
+const dailyEnd = required<HTMLElement>(root, '[data-daily-end]');
 const emptyState = root.querySelector<HTMLElement>('[data-empty-state]');
 const templates = {
   user: required<HTMLTemplateElement>(root, 'template[data-template="user"]'),
@@ -137,8 +138,8 @@ interface Recovery {
   readonly retry: (() => void) | null;
   /** Un enlace con la salida, si la hay: volver a entrar, empezar otra. */
   readonly action: { readonly href: string; readonly label: string } | null;
-  /** La conversación ya no admite más mensajes: se cierra. */
-  readonly ends: boolean;
+  /** El chat ya no admite más mensajes: se cierra con este panel. */
+  readonly ends: HTMLElement | null;
 }
 
 function showError(bubble: HTMLElement, message: string, recovery: Pick<Recovery, 'retry' | 'action'>): void {
@@ -158,28 +159,27 @@ function showError(bubble: HTMLElement, message: string, recovery: Pick<Recovery
 
 // ─── Final de la conversación ────────────────────────────────────────────────
 
-/** Errores con los que el servidor dice que aquí ya no caben más mensajes. */
-const END_CODES: ReadonlySet<string> = new Set(['conversation_full', 'trial_used']);
-
 /** Qué se ofrece según el código de error del servidor. */
 function recoveryFor(code: string | null, retry: () => void): Recovery {
-  if (code !== null && END_CODES.has(code)) return { retry: null, action: null, ends: true };
+  // Aquí ya no caben más mensajes: la conversación está llena, o ya tiene las recomendaciones del día.
+  if (code === 'conversation_full') return { retry: null, action: null, ends: conversationEnd };
+  if (code === 'recommendations_used') return { retry: null, action: null, ends: dailyEnd };
   // La sesión ha caducado: tras entrar, se vuelve a esta misma conversación.
   if (code === 'auth_error') {
     const next = encodeURIComponent(window.location.pathname + window.location.search);
-    return { retry: null, action: { href: `/entrar?next=${next}`, label: 'Entrar de nuevo' }, ends: false };
+    return { retry: null, action: { href: `/entrar?next=${next}`, label: 'Entrar de nuevo' }, ends: null };
   }
   // La conversación ya no existe: la borró en otra pestaña.
-  if (code === 'not_found') return { retry: null, action: { href: '/', label: 'Empezar una nueva' }, ends: false };
+  if (code === 'not_found') return { retry: null, action: { href: '/', label: 'Empezar una nueva' }, ends: null };
   // El mensaje no es válido: enviarlo otra vez daría lo mismo.
-  if (code === 'validation_error') return { retry: null, action: null, ends: false };
-  return { retry, action: null, ends: false };
+  if (code === 'validation_error') return { retry: null, action: null, ends: null };
+  return { retry, action: null, ends: null };
 }
 
-/** Cierra la conversación: fuera el cuadro de texto, y el panel para empezar otra o registrarse. */
-function endConversation(): void {
+/** Cierra el chat: fuera el cuadro de texto, y el panel que toque (empezar otra, o volver mañana). */
+function endConversation(panel: HTMLElement = conversationEnd): void {
   form.hidden = true;
-  conversationEnd.hidden = false;
+  panel.hidden = false;
 }
 
 /** Avisa de los mensajes que quedan cuando son pocos, y cierra al llegar a cero. */
@@ -317,7 +317,7 @@ async function send(message: string, bubble?: HTMLElement): Promise<void> {
       const error = await readError(response);
       const recovery = recoveryFor(error.code, retry);
       showError(target, error.message, recovery);
-      if (recovery.ends) endConversation();
+      if (recovery.ends !== null) endConversation(recovery.ends);
       return;
     }
 
@@ -353,7 +353,7 @@ async function send(message: string, bubble?: HTMLElement): Promise<void> {
         finished = true;
         const recovery = recoveryFor(event.data.code, retry);
         showError(target, event.data.message, recovery);
-        if (recovery.ends) endConversation();
+        if (recovery.ends !== null) endConversation(recovery.ends);
       }
     }
     if (!finished) {

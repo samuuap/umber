@@ -489,6 +489,7 @@ Descartado:
 
 | Decisión | Motivo |
 |---|---|
+| **El chat exige cuenta, con 2 recomendaciones al día** (2026-10-11): sin sesión, `/chat` manda a `/registro` (y vuelve con el mensaje) y `/api/chat` responde 401; fuera la conversación de prueba sin cuenta. Cuenta cada respuesta que recomienda, también «otra»; al llegar a 2, el chat se cierra hasta el día siguiente con un panel. Admin y cuentas `tester` (las de los scripts) quedan fuera | Decisión del usuario: contar el uso de cada persona. Ese día, una evaluación de 60 conversaciones agotó el tope global de 300 mensajes y dejó a todos, a un usuario nuevo incluido, con 429 hasta medianoche. Probado contra el build con usuarios temporales: sin sesión 302 y 401; con las 2 gastadas, 429 `recommendations_used` sin llamar a DeepSeek; una cuenta `tester`, sin límite |
 | `output: 'server'` con adaptador de Vercel | El chat necesita streaming en servidor. La portada podría prerenderizarse más adelante si interesa |
 | Fuentes autoalojadas | Sin terceros, sin salto de fuente y una petición externa menos |
 | **Rediseño «Programa de mano», claro y oscuro** (2026-10-11) | Decisión de producto: el diseño de antes gustaba, pero se quería «un diseño de verdad, muy profesional». De tres direcciones en maquetas, el usuario eligió B (papel, tinta y rojo) y pidió modo oscuro. El claro va por defecto; el oscuro, si lo pide el sistema o con el botón de la cabecera |

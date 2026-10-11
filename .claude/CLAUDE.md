@@ -603,12 +603,18 @@ no pesa nada.
 ```
 Usuario escribe
       ↓
-POST /api/chat → validar (parseChatRequest)
+POST /api/chat → validar (parseChatRequest) → sin sesión, 401 (hace falta
+cuenta desde el 2026-10-11; la página /chat ya manda a /registro)
       ↓
 A la vez:
-  - Rate limit (hit_rate_limit): 8/min; 50/día con cuenta; sin ella, una
-    conversación de prueba al día por IP (20 mensajes, `trial_used`); y, si
-    cabe, 300/día entre todos (techo del gasto de DeepSeek) → 429
+  - Rate limit (hit_rate_limit): 8/min y 50/día por cuenta y, si cabe, 300/día
+    entre todos (techo del gasto de DeepSeek) → 429
+  - Recomendaciones del día: 2 por cuenta (`RECOMMENDATIONS_PER_DAY`, clave
+    `recommend:user:<id>`); sin ninguna, 429 `recommendations_used` y el chat
+    se cierra hasta el día siguiente (UTC). Cuenta cada respuesta que
+    recomienda, también «otra», al acabar el turno (`countRecommendation`).
+    Las cuentas con rol `admin` o `tester` (las de los scripts de evaluación)
+    no tienen ninguno de estos límites ni cuentan en el global
   - Historial: de Supabase si hay conversation_id, si no el que manda el cliente
       ↓
 Estado (conversationState): preguntas seguidas, última búsqueda, candidatos que
@@ -669,8 +675,8 @@ Contrato de `POST /api/chat`, tipado en `src/lib/types.ts`:
 - **Tope por conversación**: 40 mensajes contando los de Umber
   (`MAX_CONVERSATION_MESSAGES`, 20 turnos). El que no cabe recibe 409
   `conversation_full`. En los dos últimos turnos Umber va cerrando, y el chat
-  avisa cuando quedan 5. Para `conversation_full` y `trial_used`, la interfaz
-  muestra un panel (empezar otra, o crear cuenta) en vez de un error. El resto
+  avisa cuando quedan 5. Para `conversation_full` y `recommendations_used`, la
+  interfaz muestra un panel (empezar otra, o volver mañana) en vez de un error. El resto
   de errores salen en la burbuja con lo que se puede hacer (`recoveryFor` en
   `src/scripts/chat.ts`): «Reintentar» si repetir puede servir, «Entrar de
   nuevo» con `auth_error`, «Empezar una nueva» con `not_found`
@@ -686,7 +692,7 @@ Contrato de `POST /api/chat`, tipado en `src/lib/types.ts`:
 - **Errores antes de abrir el stream** (validar, sesión, rate limit, historial,
   abrir DeepSeek): JSON `{ error: { code, message } }` con el `status` del error
   tipado (400, 401, 404, 409, 429, 502). `message` se puede mostrar tal cual. El
-  429 (`rate_limited` o `trial_used`) lleva `Retry-After` en segundos. Lo que falla después,
+  429 (`rate_limited` o `recommendations_used`) lleva `Retry-After` en segundos. Lo que falla después,
   búsqueda incluida, llega como evento `error` con el mismo `code` y `message`
 
 Los otros dos endpoints, con el mismo formato de error:

@@ -154,7 +154,7 @@ async function turn(token, mode, message, conversationId) {
 async function runPersona([id, mode, opening, profile]) {
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const user = { email: `umber-dialogue-${stamp}@example.com`, password: `Dl${stamp}!xY` };
-  const userId = (await (await supa('/auth/v1/admin/users', { method: 'POST', body: { ...user, email_confirm: true } })).json()).id;
+  const userId = (await (await supa('/auth/v1/admin/users', { method: 'POST', body: { ...user, email_confirm: true, app_metadata: { role: 'tester' } } })).json()).id;
   try {
     const token = (await (await supa('/auth/v1/token?grant_type=password', { key: ANON, method: 'POST', body: user })).json()).access_token;
     const transcript = [];

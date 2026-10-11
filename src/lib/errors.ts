@@ -85,14 +85,14 @@ export class NotFoundError extends UmberError {
 
 /**
  * Demasiadas peticiones seguidas. El mensaje ya está escrito para la persona.
- * Código `trial_used` si quien no tiene cuenta ha gastado su conversación de
- * prueba del día: la interfaz le ofrece registrarse en vez de un error.
+ * Código `recommendations_used` si ya ha recibido las recomendaciones del día:
+ * la interfaz cierra el chat hasta mañana en vez de mostrar un error.
  */
 export class RateLimitError extends UmberError {
   /** Segundos hasta poder repetir: va en la cabecera `Retry-After`. */
   readonly retryAfterSeconds: number;
 
-  constructor(message: string, retryAfterSeconds: number, code: 'rate_limited' | 'trial_used' = 'rate_limited') {
+  constructor(message: string, retryAfterSeconds: number, code: 'rate_limited' | 'recommendations_used' = 'rate_limited') {
     super(message, { code, status: 429 });
     this.retryAfterSeconds = retryAfterSeconds;
   }

@@ -19,6 +19,7 @@ import { loadConversation, type StoredConversation } from '@/lib/conversations';
 import { NotFoundError } from '@/lib/errors';
 import { listFavoriteIds } from '@/lib/favorites';
 import { AI_CONSENT_COOKIE, AI_CONSENT_VERSION } from '@/lib/legal';
+import { RECOMMENDATIONS_PER_DAY, recommendationsLeft } from '@/lib/rate-limit';
 import { regionFromAcceptLanguage } from '@/lib/locale';
 import { loadRecommendations } from '@/lib/recommendations';
 import { TMDB_DEFAULT_REGION } from '@/lib/tmdb';
@@ -33,6 +34,12 @@ import {
 
 const { user, supabase } = Astro.locals;
 
+// Decisión de producto (2026-10-11): hablar con Umber exige cuenta. Tras registrarse
+// (o entrar), vuelve aquí con su `q`, y el chat envía el mensaje que traía.
+if (user === null) {
+  return Astro.redirect(`/registro?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`);
+}
+
 // Sin el consentimiento para tratar los mensajes en China, no se abre el chat.
 // shortcut: /api/chat no lo comprueba (los scripts entran con Bearer); exigirlo allí si se abre la API a terceros
 if (Astro.cookies.get(AI_CONSENT_COOKIE)?.value !== AI_CONSENT_VERSION) {
@@ -43,9 +50,6 @@ const conversationParam = Astro.url.searchParams.get('conversation');
 
 let conversation: StoredConversation | null = null;
 if (conversationParam !== null) {
-  if (user === null) {
-    return Astro.redirect(`/entrar?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`);
-  }
   if (!UUID_PATTERN.test(conversationParam)) return Astro.redirect('/conversaciones');
   try {
     conversation = await loadConversation(supabase, conversationParam);
@@ -65,7 +69,9 @@ const definition = CHAT_MODE_DEFINITIONS[mode];
 const messages = conversation?.messages ?? [];
 // Una conversación guardada que ya llegó al tope se abre cerrada, sin cuadro de texto.
 const ended = remainingTurns(messages.length) === 0;
-const startOver = `/chat?mode=${mode}`;
+// Sin recomendaciones hoy, el chat se abre cerrado hasta mañana. Admin y pruebas no tienen límite.
+const outOfRecommendations =
+  !user.isAdmin && !user.isTester && (await recommendationsLeft(user.id)).left === 0;
 /*
  * El mensaje con el que llega desde la portada: el chat lo envía al abrirse.
  * Puede venir dos veces `q`: el del cuadro y, si se pulsó una sugerencia, el de
@@ -74,7 +80,7 @@ const startOver = `/chat?mode=${mode}`;
  * el servidor al recibirlo, como cualquier otro.
  */
 const initialMessage =
-  conversation === null
+  conversation === null && !outOfRecommendations
     ? (Astro.url.searchParams
         .getAll('q')
         .map((value) => value.trim())
@@ -177,7 +183,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
 
     <form
       data-composer
-      hidden={ended}
+      hidden={ended || outOfRecommendations}
       class="from-umber-base via-umber-base/95 sticky bottom-0 -mx-5 bg-gradient-to-t to-transparent px-5 pt-8 pb-4 sm:-mx-8 sm:px-8 sm:pb-5"
     >
       <p data-turns-left hidden role="status" class="text-umber-accent pb-3 text-center text-xs font-medium"></p>
@@ -209,38 +215,36 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       role="status"
       class="bg-umber-base/95 border-umber-line sticky bottom-0 -mx-5 border-t px-5 py-10 backdrop-blur sm:-mx-8 sm:px-8"
     >
-      {
-        user === null ? (
-          <>
-            <p class="eyebrow eyebrow-rule">Fin de la prueba</p>
-            <p class="display-3 mt-4">
-              Aquí termina tu conversación <em>de prueba</em>
-            </p>
-            <p class="text-umber-muted mt-3 max-w-md leading-relaxed">
-              Crea una cuenta gratis para seguir hablando con Umber, guardar tus conversaciones y tus favoritos.
-            </p>
-            <div class="mt-7 flex flex-wrap gap-3">
-              <a href={`/registro?next=${encodeURIComponent(startOver)}`} class="btn-primary">
-                Crear cuenta <span class="arrow" aria-hidden="true">→</span>
-              </a>
-              <a href={`/entrar?next=${encodeURIComponent(startOver)}`} class="btn-secondary">
-                Ya tengo cuenta
-              </a>
-            </div>
-          </>
-        ) : (
-          <>
-            <p class="eyebrow eyebrow-rule">Fin de la conversación</p>
-            <p class="display-3 mt-4">
-              Esta conversación ha llegado <em>a su final</em>
-            </p>
-            <p class="text-umber-muted mt-3">Tus favoritos siguen guardados.</p>
-            <a href="/" class="btn-primary mt-7">
-              Empezar una nueva <span class="arrow" aria-hidden="true">→</span>
-            </a>
-          </>
-        )
-      }
+      <p class="eyebrow eyebrow-rule">Fin de la conversación</p>
+      <p class="display-3 mt-4">
+        Esta conversación ha llegado <em>a su final</em>
+      </p>
+      <p class="text-umber-muted mt-3">Tus favoritos siguen guardados.</p>
+      <a href="/" class="btn-primary mt-7">
+        Empezar una nueva <span class="arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
+
+    <div
+      data-daily-end
+      hidden={!outOfRecommendations}
+      role="status"
+      class="bg-umber-base/95 border-umber-line sticky bottom-0 -mx-5 border-t px-5 py-10 backdrop-blur sm:-mx-8 sm:px-8"
+    >
+      <p class="eyebrow eyebrow-rule">Hasta mañana</p>
+      <p class="display-3 mt-4">
+        Ya tienes tus <em>{RECOMMENDATIONS_PER_DAY}</em> recomendaciones de hoy
+      </p>
+      <p class="text-umber-muted mt-3 max-w-md leading-relaxed">
+        Cada día puedes pedirle a Umber {RECOMMENDATIONS_PER_DAY}. Mientras, tus favoritos y tus conversaciones
+        siguen aquí, y los juegos del día también.
+      </p>
+      <div class="mt-7 flex flex-wrap gap-3">
+        <a href="/favoritos" class="btn-primary">
+          Tus favoritos <span class="arrow" aria-hidden="true">→</span>
+        </a>
+        <a href="/juegos" class="btn-secondary">Los juegos del día</a>
+      </div>
     </div>
 
     <template data-template="user"><ChatMessage role="user" /></template>

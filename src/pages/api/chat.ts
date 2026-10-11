@@ -60,7 +60,7 @@ import {
 import { AuthError, ConversationFullError, DeepSeekError, ValidationError } from '@/lib/errors';
 import { readPlatformsCache } from '@/lib/platforms';
 import { PROMPT_VERSION } from '@/lib/prompts';
-import { enforceRateLimit } from '@/lib/rate-limit';
+import { countRecommendation, enforceRateLimit, enforceRecommendationsLeft } from '@/lib/rate-limit';
 import {
   DEFAULT_CANDIDATE_COUNT,
   describeFilters,
@@ -206,20 +206,23 @@ async function prepareChat(
   const clientAddress = readClientAddress(context);
   trace.userId = user?.id ?? null;
   trace.clientHash = await hashClient(clientAddress);
-  if (chat.conversationId !== null && user === null) {
-    throw new AuthError('Para seguir una conversación guardada hay que iniciar sesión.');
+  // Decisión de producto (2026-10-11): para hablar con Umber hace falta cuenta.
+  // La web ya manda a registrarse antes de abrir el chat; esto es para quien llama a la API.
+  if (user === null) {
+    throw new AuthError('Para hablar con Umber hace falta una cuenta. Crea una gratis o entra con la tuya.');
   }
 
-  // El límite va antes de cualquier llamada que cueste (embeddings, TMDB y
-  // DeepSeek). Leer la conversación no cuesta, así que va a la vez: son dos
-  // viajes a Supabase de unos 120 ms cada uno, medidos desde local.
-  const [, conversation] = await trace.time(
+  // Los límites van antes de cualquier llamada que cueste (embeddings, TMDB y
+  // DeepSeek). Leer la conversación no cuesta, así que va a la vez: son viajes
+  // a Supabase de unos 120 ms cada uno, medidos desde local.
+  const [, , conversation] = await trace.time(
     'limits_history',
     Promise.all([
-      enforceRateLimit('chat', { userId: user?.id ?? null, clientAddress }).then(() => {
+      enforceRateLimit('chat', { userId: user.id, clientAddress, unlimited: user.unlimited }).then(() => {
         // Ha gastado cupo: deja traza completa aunque luego falle otra cosa.
         trace.admitted = true;
       }),
+      user.unlimited ? Promise.resolve() : enforceRecommendationsLeft(user.id),
       loadRequestedConversation(chat, user),
     ]),
   );
@@ -231,9 +234,7 @@ async function prepareChat(
   // El turno añade dos mensajes: el de la persona y la respuesta.
   if (history.length + 2 > MAX_CONVERSATION_MESSAGES) {
     throw new ConversationFullError(
-      user === null
-        ? 'Aquí termina la conversación de prueba. Crea una cuenta gratis para seguir hablando con Umber.'
-        : 'Esta conversación ha llegado a su final. Empieza una nueva para seguir hablando con Umber.',
+      'Esta conversación ha llegado a su final. Empieza una nueva para seguir hablando con Umber.',
     );
   }
   const state = conversationState(history);
@@ -540,7 +541,20 @@ function streamReply(
           trace.unknownTitles = titles;
         }
         trace.recommendationIds = recommendations.map((item) => item.id);
-        const conversationId = await trace.time('save', persist(prepared, reply, recommendations));
+        const { user } = prepared;
+        const [conversationId] = await trace.time(
+          'save',
+          Promise.all([
+            persist(prepared, reply, recommendations),
+            // Una recomendación hecha gasta una de las del día. Si el contador falla,
+            // la respuesta ya está escrita: se avisa en el log y no se pierde.
+            user !== null && !user.unlimited && recommendations.length > 0
+              ? countRecommendation(user.id).catch((error: unknown) => {
+                  console.error('[api/chat] No se pudo contar la recomendación:', error);
+                })
+              : Promise.resolve(),
+          ]),
+        );
         trace.conversationId = conversationId;
         controller.enqueue(
           encodeEvent({

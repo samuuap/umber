@@ -43,11 +43,12 @@ import { LEGAL_OWNER } from '@/lib/legal';
     ejecución del contrato).
   </p>
 
-  <h3>Cuando hablas con Umber, con o sin cuenta</h3>
+  <h3>Cuando hablas con Umber o usas el buscador</h3>
   <p>
     Guardamos un <strong>registro de cada petición</strong> al chat y al buscador: el mensaje que escribes, la
-    respuesta, qué títulos se buscaron y recomendaron, el tiempo que tardó y lo que costó. Si tienes cuenta, el
-    registro va unido a ella; si no, a un código que calculamos a partir de tu dirección IP con una función
+    respuesta, qué títulos se buscaron y recomendaron, el tiempo que tardó y lo que costó. Para hablar con Umber
+    hace falta cuenta, y el registro va unido a ella; el buscador se puede usar sin cuenta, y entonces va unido a un
+    código que calculamos a partir de tu dirección IP con una función
     irreversible (un HMAC), de modo que <strong>la IP no se guarda en el registro</strong>.
   </p>
   <p>
@@ -58,8 +59,8 @@ import { LEGAL_OWNER } from '@/lib/legal';
 
   <h3>Para limitar el uso</h3>
   <p>
-    Para que nadie pueda agotar el servicio, contamos las peticiones por cuenta o, sin cuenta, por
-    <strong>dirección IP</strong>. Esos contadores guardan la IP tal cual, solo durante la ventana de tiempo que
+    Para que nadie pueda agotar el servicio, contamos las peticiones y las recomendaciones de cada cuenta y, sin
+    cuenta, las peticiones por <strong>dirección IP</strong>. Esos contadores guardan la IP tal cual, solo durante la ventana de tiempo que
     cuentan (como mucho, un día), y se borran solos al caducar. Base legal: interés legítimo en la seguridad del
     servicio (artículo 6.1.f).
   </p>

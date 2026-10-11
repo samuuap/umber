@@ -54,10 +54,9 @@ export const RATE_LIMITS: Readonly<Record<RateLimitScope, ScopeLimits>> = {
    * Cada respuesta tarda varios segundos en llegar: nadie escribe ocho mensajes
    * por minuto a mano. Decisión de producto (2026-10-03): con cuenta, 50 al día,
    * dos o tres conversaciones, y así ninguna cuenta sola agota el cupo global.
-   * Sin cuenta, una conversación de prueba al día por conexión, como gancho para
-   * registrarse: crear una cuenta exige confirmar un email, cambiar de IP no.
-   * Detrás de una IP puede haber varias personas (una oficina, el CGNAT de un
-   * operador móvil): comparten la prueba, y por eso es por día y no para siempre.
+   * Desde el 2026-10-11 el chat exige cuenta (`/api/chat` responde 401 sin
+   * ella) y lo que de verdad limita es `RECOMMENDATIONS_PER_DAY`, abajo: esto
+   * queda como freno para quien pregunta sin parar. `anonymous` ya no se usa.
    */
   chat: {
     user: [
@@ -176,13 +175,6 @@ function limitError(scope: RateLimitScope, retryAfterSeconds: number, anonymous:
       retryAfterSeconds,
     );
   }
-  if (anonymous && scope === 'chat') {
-    return new RateLimitError(
-      `Ya has usado la conversación de prueba de hoy. Crea una cuenta gratis para seguir hablando con Umber, o vuelve en ${formatWait(retryAfterSeconds)}.`,
-      retryAfterSeconds,
-      'trial_used',
-    );
-  }
   const limits = RATE_LIMITS[scope];
   const message = `Has llegado al límite de ${limits.noun} de hoy. Podrás seguir en ${formatWait(retryAfterSeconds)}.`;
   // Solo tiene sentido el aviso si con sesión el límite es de verdad distinto
@@ -200,6 +192,8 @@ export interface Requester {
   readonly userId: string | null;
   /** IP de la petición. En Vercel la pone su proxy, así que el cliente no puede falsearla. */
   readonly clientAddress: string | null;
+  /** Admin y cuentas de prueba (rol `admin` o `tester`): sin límites ni cuenta en el global. */
+  readonly unlimited?: boolean;
 }
 
 /** Cuenta una petición en `key`. Devuelve 0 si cabe; si no, los segundos hasta poder repetir. */
@@ -215,6 +209,8 @@ async function hit(key: string, rules: readonly RateLimitRule[]): Promise<number
 
 /** Cuenta una petición del ámbito. Lanza `RateLimitError` (429) si no cabe. */
 export async function enforceRateLimit(scope: RateLimitScope, requester: Requester): Promise<void> {
+  // Las evaluaciones mandan cientos de mensajes: sin esto, se comían el cupo de todos (2026-10-11).
+  if (requester.unlimited === true) return;
   const { userId } = requester;
   const anonymous = userId === null;
   const limits = RATE_LIMITS[scope];
@@ -233,4 +229,58 @@ export async function enforceRateLimit(scope: RateLimitScope, requester: Request
       globalRetryAfter,
     );
   }
+}
+
+// ─── Recomendaciones al día ──────────────────────────────────────────────────
+
+/**
+ * Decisión de producto (2026-10-11): el chat exige cuenta y cada cuenta recibe
+ * 2 recomendaciones al día. Cuenta cada respuesta de Umber que recomienda algo,
+ * también «otra» de los mismos candidatos. Al llegar, el chat se cierra hasta el
+ * día siguiente (UTC, como el resto de contadores), preguntas incluidas. Quedan
+ * fuera las cuentas con rol `admin` o `tester` (las de los scripts de
+ * evaluación), que tampoco cuentan para los demás límites ni para el global.
+ */
+export const RECOMMENDATIONS_PER_DAY = 2;
+
+const recommendationsKey = (userId: string): string => `recommend:user:${userId}`;
+
+/** El inicio del día UTC de ahora: la ventana diaria de `hit_rate_limit`, alineada con la época. */
+function dayWindowStart(now: number): Date {
+  return new Date(Math.floor(now / (DAY * 1000)) * DAY * 1000);
+}
+
+/** Las que le quedan hoy y los segundos hasta que vuelvan a ser 2. */
+export async function recommendationsLeft(userId: string): Promise<{ left: number; resetsInSeconds: number }> {
+  const now = Date.now();
+  const start = dayWindowStart(now);
+  const rows = unwrap(
+    await getSupabaseAdminClient()
+      .from('rate_limits')
+      .select('hits')
+      .eq('key', recommendationsKey(userId))
+      .eq('window_seconds', DAY)
+      .eq('window_start', start.toISOString()),
+  );
+  const used = rows[0]?.hits ?? 0;
+  return {
+    left: Math.max(0, RECOMMENDATIONS_PER_DAY - used),
+    resetsInSeconds: Math.max(1, Math.ceil((start.getTime() + DAY * 1000 - now) / 1000)),
+  };
+}
+
+/** Lanza `RateLimitError` (`recommendations_used`) si ya no le quedan. Antes de llamar a nada que cueste. */
+export async function enforceRecommendationsLeft(userId: string): Promise<void> {
+  const { left, resetsInSeconds } = await recommendationsLeft(userId);
+  if (left > 0) return;
+  throw new RateLimitError(
+    `Ya tienes tus ${String(RECOMMENDATIONS_PER_DAY)} recomendaciones de hoy. Podrás pedir más en ${formatWait(resetsInSeconds)}.`,
+    resetsInSeconds,
+    'recommendations_used',
+  );
+}
+
+/** Suma una recomendación hecha. Si dos llegan a la vez puede pasarse en una: se acepta. */
+export async function countRecommendation(userId: string): Promise<void> {
+  await hit(recommendationsKey(userId), [{ windowSeconds: DAY, limit: RECOMMENDATIONS_PER_DAY }]);
 }
