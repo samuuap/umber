@@ -139,21 +139,24 @@ lanzamiento primero.
 - [x] Modo oscuro: el del sistema, o el del botón de la cabecera (cookie
       `umber_tema`, en la política de cookies). Probado sobre el build en 10
       páginas, claro y oscuro, a 390 px: sin errores de CSP ni scroll horizontal
-- [ ] Repasar página a página: lo que heredan de los tokens se ve bien, pero
-      quedan restos del diseño anterior, como esquinas redondeadas
-      (`rounded-full`) y sombras negras grandes bajo los carteles, que sobre
-      papel pesan. La portada, la ficha de `/explorar` y los juegos, primero
-- [ ] La portada de la maqueta: sugerencias numeradas a la derecha, «Cómo
-      funciona» como banda de tinta con «Acto I, II, III», la línea de fecha
-      sobre la cabecera. Hoy la portada tiene la estructura de antes con el
-      estilo nuevo
-- [ ] El chat de la maqueta: los mensajes como un guion («TÚ» / «UMBER»), con
-      filetes, en vez de burbujas
+- [x] Repasar página a página (2026-10-11): fuera las sombras negras de los carteles (un filete
+      `ring-1 ring-umber-ink/10` donde no había marco) y las esquinas redondas de tarjetas, botones, etiquetas «Nuevo»
+      y la burbuja del chat. Queda una sombra corta en el desplegable del buscador del cartel, que flota. Comprobado
+      sobre el build con capturas de Edge, claro y oscuro
+- [x] La portada de la maqueta (2026-10-11): sugerencias numeradas a la
+      derecha (debajo en el móvil), «Cómo funciona» como banda de tinta con
+      «Acto I, II, III» (en oscuro se invierte con los tokens) y la línea de
+      fecha sobre la cabecera, solo en la portada, con el día de Madrid. Como en
+      la maqueta, sin el fotograma arriba: la película sigue en «Si te gustó…»
+- [x] El chat de la maqueta (2026-10-11): los mensajes como un guion, «Tú» en
+      gris y «Umber» en rojo encima de cada uno y un filete entre ellos, sin
+      burbujas. El texto sigue en la serif de lectura y no en Instrument Serif,
+      que en texto largo cansa (regla de la tipografía)
 
 **SEO y difusión**
-- [ ] Metadatos y vista previa al compartir (Open Graph con el cartel) en cada
-      ficha: 5.000 páginas «Dónde ver…»
-- [ ] `sitemap.xml` y `robots.txt`
+- [x] Metadatos y vista previa al compartir (2026-10-11): Open Graph, `twitter:card` y
+      `canonical` en `Layout.astro`; por defecto `public/og.png` (1200×630, hecha con Edge sin interfaz), y en cada ficha su fotograma de TMDB y «Dónde ver X (año)…» como título y descripción: unas 16.000 páginas
+- [x] `sitemap.xml` (las páginas públicas y cada ficha, 16.045 URLs, un día en la CDN) y `robots.txt` (fuera lo privado, el chat y la API), los dos con el dominio de la petición (2026-10-11)
 - [ ] Analítica sin cookies (Cloudflare Web Analytics): exige añadirla al CSP
 
 **Producto**

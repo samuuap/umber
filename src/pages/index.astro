@@ -2,8 +2,10 @@
 /**
  * Portada: la acción primero. Se escribe cómo te sientes, se elige película o
  * serie, y el chat empieza con ese mensaje (`/chat?mode=…&q=…`, un formulario
- * GET que funciona sin JavaScript). Debajo, cómo funciona, una frase de Umber,
- * «Si te gustó…», el apartado de la especialidad de otoño y el de los juegos.
+ * GET que funciona sin JavaScript), con las sugerencias numeradas al lado. Debajo,
+ * cómo funciona en tres actos, en una banda de tinta, una frase de Umber, «Si te
+ * gustó…», el apartado de la especialidad de otoño y el de los juegos. Es la
+ * maqueta «Programa de mano» (dirección B, ver Estética en CLAUDE.md).
  *
  * Umber es general (Fase 8): el ejemplo es una película muy conocida y sus
  * parecidos, y el otoño tiene su propio apartado.
@@ -12,7 +14,7 @@ import LeafMark from '@/components/LeafMark.astro';
 import Layout from '@/layouts/Layout.astro';
 import { EXPLORE_PATH } from '@/lib/explore';
 import { pickAutumn, pickKnown, pickRelated, pickStill, type ShowcaseTitle } from '@/lib/showcase';
-import { backdropUrl, posterUrl } from '@/lib/tmdb';
+import { posterUrl } from '@/lib/tmdb';
 import { CHAT_MODES, CHAT_MODE_DEFINITIONS, MAX_MESSAGE_CHARS } from '@/lib/types';
 
 const INDEX_SIZE = 6;
@@ -38,7 +40,7 @@ const STEPS = [
   { title: 'Te pregunta lo justo', text: 'Unas preguntas cortas para afinar. Si tienes prisa, dile que te recomiende ya.' },
   { title: 'Te recomienda una', text: 'Te explica por qué esa y no otra, y en qué plataforma está.' },
 ] as const;
-const NUMERALS = ['i', 'ii', 'iii'] as const;
+const ACTS = ['I', 'II', 'III'] as const;
 
 const upcoming = CHAT_MODES.filter((mode) => !CHAT_MODE_DEFINITIONS[mode].available).map(
   (mode) => CHAT_MODE_DEFINITIONS[mode],
@@ -46,7 +48,6 @@ const upcoming = CHAT_MODES.filter((mode) => !CHAT_MODE_DEFINITIONS[mode].availa
 const signedIn = Astro.locals.user !== null;
 const credit = (item: ShowcaseTitle): string =>
   [item.director, item.year].filter((part) => part !== null).join(', ');
-const stillCaption = still === null ? null : [still.title, still.year].filter((part) => part !== null).join(', ');
 
 /** Las tres de otoño, montadas en escalera. */
 const AUTUMN_POSITIONS = [
@@ -61,7 +62,7 @@ const AUTUMN_POSITIONS = [
     <section
       class="mx-auto grid max-w-[80rem] gap-y-16 px-5 pt-10 pb-24 sm:px-8 lg:grid-cols-12 lg:gap-x-10 lg:pt-14 lg:pb-32"
     >
-      <div class="lg:col-span-7 lg:pt-12">
+      <div class="lg:col-span-8 lg:pt-12">
         <p class="eyebrow eyebrow-rule rise">Tu cinéfilo de confianza</p>
         <h1 class="display-1 rise mt-7 [animation-delay:90ms]">¿Qué te apetece ver <em>hoy</em>?</h1>
         <p class="lead rise mt-7 max-w-[33rem] [animation-delay:180ms]">
@@ -108,77 +109,55 @@ const AUTUMN_POSITIONS = [
           </div>
         </form>
 
-        <div class="rise mt-7 max-w-[38rem] [animation-delay:360ms]">
-          <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
-          <ul class="mt-4 flex flex-wrap gap-2" aria-labelledby="sugerencias">
-            {
-              SUGGESTIONS.map((suggestion) => (
-                <li>
-                  {/* Fuera del cuadro pero de su formulario (`form`). `formnovalidate`: el cuadro puede ir vacío. */}
-                  <button form="portada" type="submit" name="q" value={suggestion} formnovalidate class="chip">
-                    {suggestion}
-                  </button>
-                </li>
-              ))
-            }
-          </ul>
-        </div>
       </div>
 
-      {
-        still !== null && still.backdrop_path !== null && (
-          <figure class="relative lg:col-span-5">
-            <a href={`${EXPLORE_PATH}/${still.id}`} class="group relative block" tabindex="-1" aria-hidden="true">
-              <div class="relative aspect-[4/3] overflow-hidden rounded-[3px] lg:aspect-[4/5]">
-                <img
-                  src={backdropUrl(still.backdrop_path, 'w1280')}
-                  srcset={`${backdropUrl(still.backdrop_path, 'w780')} 780w, ${backdropUrl(still.backdrop_path, 'w1280')} 1280w`}
-                  sizes="(min-width: 1024px) 40vw, 100vw"
-                  alt=""
-                  fetchpriority="high"
-                  class="graded develop h-full w-full object-cover transition-transform duration-[1.8s] ease-(--ease-soft) group-hover:scale-[1.03] motion-reduce:transition-none"
-                />
-                <div class="from-umber-base/60 absolute inset-0 bg-gradient-to-t via-transparent to-transparent" />
-              </div>
-              {/* Su cartel, montado sobre la esquina del fotograma. */}
-              <img
-                src={posterUrl(still.poster_path, 'w185')}
-                srcset={`${posterUrl(still.poster_path, 'w185')} 185w, ${posterUrl(still.poster_path, 'w342')} 342w`}
-                sizes="7.5rem"
-                alt=""
-                width="185"
-                height="278"
-                class="graded rise ring-umber-base absolute -bottom-14 -left-10 hidden aspect-[2/3] w-30 rounded-[3px] object-cover shadow-[0_30px_60px_-20px_rgb(0_0_0/0.95)] ring-[6px] [animation-delay:1100ms] lg:block"
-              />
-            </a>
-            <figcaption class="mt-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 lg:pl-26">
-              <span class="eyebrow">Fotograma</span>
-              <a href={`${EXPLORE_PATH}/${still.id}`} class="link-quiet font-display text-lg italic">
-                {stillCaption}
-              </a>
-            </figcaption>
-          </figure>
-        )
-      }
+      {/* Como en un programa de mano: las sugerencias, numeradas, en la columna de al lado. */}
+      <aside
+        aria-labelledby="sugerencias"
+        class="rise border-umber-line [animation-delay:360ms] lg:col-span-4 lg:col-start-9 lg:mt-12 lg:border-l lg:pl-8"
+      >
+        <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
+        <ol class="mt-5">
+          {
+            SUGGESTIONS.map((suggestion, position) => (
+              <li class="border-umber-line border-t last:border-b">
+                {/* Fuera del cuadro pero de su formulario (`form`). `formnovalidate`: el cuadro puede ir vacío. */}
+                <button
+                  form="portada"
+                  type="submit"
+                  name="q"
+                  value={suggestion}
+                  formnovalidate
+                  class="group hover:text-umber-accent flex min-h-16 w-full items-baseline gap-4 py-4 text-left transition-colors"
+                >
+                  <span class="font-label text-umber-accent text-xs font-bold tabular-nums" aria-hidden="true">
+                    {String(position + 1).padStart(2, '0')}
+                  </span>
+                  <span class="font-display text-[1.45rem] leading-[1.15] tracking-[-0.01em]">{suggestion}</span>
+                </button>
+              </li>
+            ))
+          }
+        </ol>
+      </aside>
     </section>
 
-    <section aria-labelledby="como-funciona" class="border-umber-line border-t">
-      <div class="mx-auto grid max-w-[80rem] gap-14 px-5 py-24 sm:px-8 lg:grid-cols-12 lg:gap-x-10 lg:py-32">
-        <div class="reveal lg:col-span-5">
-          <p class="eyebrow eyebrow-rule">Cómo funciona</p>
-          <h2 id="como-funciona" class="display-2 mt-7">Como hablar con alguien que ha visto <em>mucho</em> cine.</h2>
-        </div>
-        <ol class="lg:col-span-6 lg:col-start-7 lg:pt-20">
+    {/* Una banda de tinta: en claro, papel sobre negro; en oscuro se invierte con los tokens. */}
+    <section aria-labelledby="como-funciona" class="bg-umber-ink text-umber-base">
+      <div class="mx-auto max-w-[80rem] px-5 py-24 sm:px-8 lg:py-28">
+        <p class="eyebrow text-umber-base/70 reveal">Cómo funciona</p>
+        <h2 id="como-funciona" class="display-2 reveal mt-7 max-w-3xl">
+          Como hablar con alguien que ha visto <em>mucho</em> cine.
+        </h2>
+        <ol class="mt-16 grid gap-10 md:grid-cols-3 md:gap-x-10">
           {
             STEPS.map((step, position) => (
-              <li class="reveal border-umber-line grid grid-cols-[3.25rem_1fr] border-t py-7 last:border-b">
-                <span class="font-display text-umber-accent pt-0.5 text-[1.6rem] leading-none italic" aria-hidden="true">
-                  {NUMERALS[position]}.
-                </span>
-                <div>
-                  <h3 class="font-sans text-[1.05rem] font-medium tracking-normal">{step.title}</h3>
-                  <p class="text-umber-muted mt-1.5 leading-relaxed">{step.text}</p>
-                </div>
+              <li class="reveal border-umber-base border-t pt-5">
+                <p class="font-label text-umber-base/70 text-xs font-bold tracking-[0.16em] uppercase">
+                  Acto {ACTS[position]}
+                </p>
+                <h3 class="font-display mt-3 text-[1.75rem] leading-tight tracking-[-0.01em]">{step.title}</h3>
+                <p class="text-umber-base/75 mt-2 leading-relaxed">{step.text}</p>
               </li>
             ))
           }
@@ -186,7 +165,7 @@ const AUTUMN_POSITIONS = [
       </div>
     </section>
 
-    <section aria-label="Cómo habla Umber" class="mx-auto w-full max-w-[80rem] px-5 pb-24 sm:px-8 lg:pb-32">
+    <section aria-label="Cómo habla Umber" class="mx-auto w-full max-w-[80rem] px-5 py-24 sm:px-8 lg:py-32">
       <figure class="reveal max-w-4xl lg:ml-[16.666%]">
         <LeafMark class="text-umber-accent size-6" />
         <blockquote class="font-display mt-8 text-[clamp(1.85rem,3.8vw,3.1rem)] leading-[1.14] tracking-[-0.025em]">
@@ -265,7 +244,7 @@ const AUTUMN_POSITIONS = [
 
               <div class="hidden lg:col-span-4 lg:col-start-9 lg:block" aria-hidden="true">
                 <div class="sticky top-10">
-                  <div class="bg-umber-surface relative aspect-[2/3] overflow-hidden rounded-[3px] shadow-[0_40px_80px_-40px_rgb(0_0_0/0.95)]">
+                  <div class="bg-umber-surface relative aspect-[2/3] overflow-hidden rounded-[3px] ring-1 ring-umber-ink/10">
                     {index.map((item, position) => (
                       <img
                         src={posterUrl(item.poster_path, 'w342')}
@@ -294,7 +273,7 @@ const AUTUMN_POSITIONS = [
         <div class="reveal lg:col-span-6">
           <p class="eyebrow eyebrow-rule">
             Especialidad
-            <span class="border-umber-accent/60 text-umber-accent ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+            <span class="border-umber-accent/60 text-umber-accent ml-2 border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
               Nuevo
             </span>
           </p>
@@ -324,7 +303,7 @@ const AUTUMN_POSITIONS = [
                   width="342"
                   height="513"
                   loading="lazy"
-                  class={`graded ring-umber-base absolute aspect-[2/3] rounded-[3px] object-cover shadow-[0_30px_60px_-24px_rgb(0_0_0/0.95)] ring-[5px] ${AUTUMN_POSITIONS[position]}`}
+                  class={`graded ring-umber-base absolute aspect-[2/3] rounded-[3px] object-cover ring-[5px] ${AUTUMN_POSITIONS[position]}`}
                 />
               ))}
             </div>
@@ -338,7 +317,7 @@ const AUTUMN_POSITIONS = [
         <div class="reveal lg:col-span-6">
           <p class="eyebrow eyebrow-rule">
             Juegos
-            <span class="border-umber-accent/60 text-umber-accent ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+            <span class="border-umber-accent/60 text-umber-accent ml-2 border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
               Nuevo
             </span>
           </p>

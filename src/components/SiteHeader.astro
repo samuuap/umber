@@ -23,7 +23,27 @@ const links = [
 ];
 // Una ficha de /explorar/<id> sigue dentro de «Explorar».
 const isCurrent = (href: string): boolean => current === href || current.startsWith(`${href}/`);
+
+// La línea de fecha del programa de mano, solo en la portada. El día de Madrid, como
+// `GAME_TIME_ZONE` de los juegos (no se importa: `games.ts` arrastra `sharp` a todas las páginas).
+const today = new Intl.DateTimeFormat('es-ES', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'Europe/Madrid',
+}).format(new Date());
 ---
+
+{
+  current === '/' && (
+    <div class="border-umber-ink border-b">
+      <p class="font-label mx-auto flex font-semibold max-w-[80rem] flex-wrap justify-between gap-x-6 gap-y-1 px-5 py-2.5 text-[0.7rem] tracking-[0.14em] uppercase sm:px-8">
+        <span>{today.charAt(0).toUpperCase() + today.slice(1)}</span>
+        <span class="text-umber-muted">Programa del día</span>
+      </p>
+    </div>
+  )
+}
 
 <header class="border-umber-line relative z-30 border-b [view-transition-name:header]">
   <div

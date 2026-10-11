@@ -29,10 +29,10 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
 <article
   data-content-card
   data-content-id={item?.id}
-  class="border-umber-line bg-umber-surface/70 grid grid-cols-[6.25rem_1fr] gap-5 rounded-xl border p-4 sm:grid-cols-[8rem_1fr] sm:gap-6 sm:p-5"
+  class="border-umber-line bg-umber-surface/70 grid grid-cols-[6.25rem_1fr] gap-5 border p-4 sm:grid-cols-[8rem_1fr] sm:gap-6 sm:p-5"
 >
   <div
-    class="bg-umber-raised relative aspect-[2/3] self-start overflow-hidden rounded-[3px] shadow-[0_20px_40px_-20px_rgb(0_0_0/0.9)]"
+    class="bg-umber-raised relative aspect-[2/3] self-start overflow-hidden rounded-[3px] ring-1 ring-umber-ink/10"
   >
     <img
       data-field="poster"
@@ -94,7 +94,7 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
             data-favorite-button
             data-content-id={item?.id}
             aria-pressed={favorite ? 'true' : 'false'}
-            class="group/fav border-umber-rule/70 text-umber-ink hover:border-umber-accent aria-pressed:border-umber-accent aria-pressed:text-umber-accent inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors duration-300"
+            class="group/fav border-umber-rule/70 text-umber-ink hover:border-umber-accent aria-pressed:border-umber-accent aria-pressed:text-umber-accent inline-flex items-center gap-2 border px-3.5 py-1.5 text-sm font-medium transition-colors duration-300"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" class="size-3.5 fill-transparent transition-colors group-aria-pressed/fav:fill-current">
               <path d="M6 4h12v17l-6-4-6 4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>

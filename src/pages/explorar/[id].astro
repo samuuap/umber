@@ -66,9 +66,16 @@ const facts = [
 const otherTitle = item.title_en !== null && item.title_en !== item.title ? item.title_en : null;
 // Umber recibe este mensaje al abrir el chat, como el de la portada.
 const askHref = `/chat?mode=${item.type}&q=${encodeURIComponent(`Algo parecido a «${item.title}»`)}`;
+
+// Para buscadores y para la vista previa al compartir: «Dónde ver…» es lo que se busca.
+const yearSuffix = item.year === null ? '' : ` (${String(item.year)})`;
+const synopsisLead =
+  item.synopsis === null ? '' : ` ${item.synopsis.length > 150 ? `${item.synopsis.slice(0, 150).trimEnd()}…` : item.synopsis}`;
+const metaDescription = `Dónde ver ${item.title}${yearSuffix} en streaming, y títulos parecidos.${synopsisLead}`;
+const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
 ---
 
-<Layout title={`${item.title} — Umber`}>
+<Layout title={`${item.title}${yearSuffix} — dónde verla | Umber`} description={metaDescription} image={shareImage}>
   <main class="flex-1">
     <section class="relative isolate">
       {
@@ -99,7 +106,7 @@ const askHref = `/chat?mode=${item.type}&q=${encodeURIComponent(`Algo parecido a
           <div class="lg:col-span-3">
             <div
               data-poster-target
-              class="bg-umber-surface ring-umber-base aspect-[2/3] w-40 overflow-hidden rounded-[3px] shadow-[0_40px_80px_-30px_rgb(0_0_0/0.95)] ring-[6px] [view-transition-name:poster] sm:w-52 lg:w-full"
+              class="bg-umber-surface ring-umber-base aspect-[2/3] w-40 overflow-hidden rounded-[3px] ring-[6px] [view-transition-name:poster] sm:w-52 lg:w-full"
             >
               {
                 poster === null ? (

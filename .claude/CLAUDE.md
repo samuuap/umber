@@ -29,8 +29,12 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   ├── middleware.ts        # Sesión de Supabase (cookies) en Astro.locals, en cada petición
 │   ├── env.d.ts             # Tipos de Astro.locals
 │   ├── pages/
-│   │   ├── index.astro      # Portada: el cuadro para empezar (GET a /chat?mode=…&q=…), cómo funciona, «Si te gustó…», el apartado de otoño y el de juegos
-│   │   ├── chat.astro       # Chat: ?mode=movie para empezar (&q= lo envía al abrir), ?conversation=<id> para retomar
+│   │   ├── index.astro      # Portada: el cuadro para empezar (GET a /chat?mode=…&q=…) y sugerencias numeradas, cómo funciona en tres actos, «Si te gustó…», otoño y juegos
+│   │   ├── chat.astro       # Chat: ?mode=movie para empezar (&q= lo envía al abrir), ?conversation=<id> para retomar; sin consentimiento, a /antes-de-hablar
+│   │   ├── antes-de-hablar.astro # Consentimiento para tratar los mensajes en China (DeepSeek, art. 49.1.a RGPD): cookie umber_consentimiento_ia
+│   │   ├── sobre-umber.astro    # Por qué Umber: el nombre, qué es y quién lo hace
+│   │   ├── aviso-legal.astro, privacidad.astro, cookies.astro, condiciones.astro  # Textos legales (LegalPage, src/lib/legal.ts)
+│   │   ├── sitemap.xml.ts   # Las páginas públicas y cada ficha; robots.txt.ts, lo que no se indexa
 │   │   ├── entrar.astro     # Login (formulario sin JS)
 │   │   ├── registro.astro   # Registro: usuario, email y contraseña dos veces; exige confirmar el email
 │   │   ├── recuperar.astro  # «¿La has olvidado?»: pide el email (resetPasswordForEmail)
@@ -184,6 +188,7 @@ npm run dev        # Desarrollo local
 npm run build      # Build de producción
 npm run preview    # Preview del build
 npm run typecheck  # astro check
+npm test           # Vitest: la lógica pura (src/lib/*.test.ts); lo pasa también el CI en cada push
 npm run embeddings # Qwen3-Embedding local en EMBEDDINGS_URL (necesita .venv, ver seed)
 
 # Base de datos (migraciones versionadas en supabase/migrations/)

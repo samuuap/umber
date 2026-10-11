@@ -4,8 +4,9 @@
  * guardada), con las fichas de lo que recomendó; sin él sale vacío, como
  * plantilla para el `<script>` del chat.
  *
- * Umber escribe en serif de lectura, sin burbuja, como una carta; lo tuyo va en
- * una burbuja discreta a la derecha.
+ * Como un guion: cada intervención con su nombre encima («Tú», «Umber») y un
+ * filete entre una y otra, sin burbujas. Umber, en serif de lectura y su nombre
+ * en rojo; lo tuyo, en la misma serif y tu nombre en gris.
  */
 import ContentCard from '@/components/ContentCard.astro';
 import LeafMark from '@/components/LeafMark.astro';
@@ -25,18 +26,15 @@ const { role, text = '', recommendations = [], favoriteIds = [] } = Astro.props;
 
 {
   role === 'user' ? (
-    <li data-role="user" class="message-in flex justify-end">
-      <p class="sr-only">Tú:</p>
-      <div
-        data-field="body"
-        class="bg-umber-raised/80 border-umber-line max-w-[85%] rounded-2xl rounded-br-[4px] border px-4.5 py-3 font-serif text-[1.05rem] leading-relaxed whitespace-pre-line"
-      >
+    <li data-role="user" class="message-in py-8">
+      <p class="eyebrow">Tú<span class="sr-only">:</span></p>
+      <div data-field="body" class="mt-3 font-serif text-[1.05rem] leading-relaxed whitespace-pre-line">
         {text}
       </div>
     </li>
   ) : (
-    <li data-role="assistant" class="message-in">
-      <p class="eyebrow flex items-center gap-2.5">
+    <li data-role="assistant" class="message-in py-8">
+      <p class="eyebrow text-umber-accent flex items-center gap-2.5">
         <LeafMark class="text-umber-accent size-3.5" />
         Umber<span class="sr-only">:</span>
       </p>

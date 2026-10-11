@@ -549,7 +549,7 @@
 
   /* Las que ya probaste. */
   .miss-chip {
-    @apply border-umber-line text-umber-muted rounded-full border px-3 py-1 font-sans text-xs tracking-[0.08em] uppercase line-through decoration-1;
+    @apply border-umber-line text-umber-muted border px-3 py-1 font-sans text-xs tracking-[0.08em] uppercase line-through decoration-1;
     animation: rise 0.5s var(--ease-soft) both;
   }
 
@@ -585,7 +585,7 @@
 
   /* El cartel del día: marco de cartel, con radio de 3 px como los demás. */
   .poster-frame {
-    @apply bg-umber-surface ring-umber-base relative aspect-[2/3] overflow-hidden rounded-[3px] shadow-[0_40px_80px_-30px_rgb(0_0_0/0.95)] ring-[6px];
+    @apply bg-umber-surface ring-umber-base relative aspect-[2/3] overflow-hidden rounded-[3px] ring-[6px];
   }
 
   .poster-frame img {

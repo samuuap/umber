@@ -9,6 +9,8 @@ import '@/styles/global.css';
 interface Props {
   title?: string;
   description?: string;
+  /** La imagen al compartir el enlace (Open Graph), absoluta. Sin ella, la de Umber. */
+  image?: string | null;
   /** El chat lo quita: su compositor ocupa el pie de la pantalla. */
   footer?: boolean;
 }
@@ -16,8 +18,12 @@ interface Props {
 const {
   title = 'Umber — tu cinéfilo de confianza',
   description = 'Cuéntale a Umber cómo estás y qué te gusta, y te recomienda la película o la serie que encaja, con el porqué y dónde verla.',
+  image = null,
   footer = true,
 } = Astro.props;
+// Sin los filtros ni el `q` de la URL: la misma página para los buscadores.
+const canonical = new URL(Astro.url.pathname, Astro.url.origin).href;
+const shareImage = image ?? new URL('/og.png', Astro.url.origin).href;
 // Sin cookie, el del sistema (CSS); con ella, el que eligió con el botón de la cabecera.
 const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value);
 ---
@@ -35,6 +41,16 @@ const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value);
 
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <!-- La vista previa al compartir el enlace (WhatsApp, redes, mensajería) -->
+    <meta property="og:site_name" content="Umber" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={shareImage} />
+    <meta name="twitter:card" content="summary_large_image" />
 
     <Font cssVariable="--font-instrument" preload />
     <Font cssVariable="--font-archivo" preload />
@@ -45,7 +61,7 @@ const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value);
   <body class="flex flex-col">
     <a
       href="#contenido"
-      class="bg-umber-accent text-umber-base sr-only z-[70] rounded-full px-4 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      class="bg-umber-accent text-umber-base sr-only z-[70] px-4 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
     >
       Saltar al contenido
     </a>

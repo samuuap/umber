@@ -134,8 +134,8 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       <a href="/" class="link-quiet text-sm">Nueva conversación <span class="arrow" aria-hidden="true">→</span></a>
     </header>
 
-    <section aria-label="Conversación" class="flex-1 pt-10 pb-8">
-      <div data-empty-state hidden={messages.length > 0 || initialMessage !== ''} class="rise pb-10">
+    <section aria-label="Conversación" class="flex-1 pt-2 pb-8">
+      <div data-empty-state hidden={messages.length > 0 || initialMessage !== ''} class="rise pt-10 pb-10">
         <p class="eyebrow flex items-center gap-2.5">
           <LeafMark class="text-umber-accent size-3.5" />
           Umber
@@ -161,7 +161,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
         </div>
       </div>
 
-      <ol data-messages aria-live="polite" aria-busy="false" class="space-y-11">
+      <ol data-messages aria-live="polite" aria-busy="false" class="divide-umber-line divide-y">
         {
           messages.map((message) => (
             <ChatMessage
