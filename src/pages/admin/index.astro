@@ -65,7 +65,7 @@ const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeSt
   <main class="mx-auto w-full max-w-[75rem] flex-1 px-5 pt-8 pb-16 sm:px-8 lg:pt-10">
     <p class="eyebrow eyebrow-rule">Admin</p>
     <h1 class="display-1 mt-7">Consultas</h1>
-    <p class="text-umber-ash mt-3 text-sm">{total} en total.</p>
+    <p class="text-umber-muted mt-3 text-sm">{total} en total.</p>
 
     <form method="get" class="mt-8 flex flex-wrap items-end gap-4">
       <div class="space-y-1.5">
@@ -94,7 +94,7 @@ const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeSt
     <div class="border-umber-line mt-8 overflow-x-auto border-t">
       <table class="w-full text-left text-sm">
         <thead>
-          <tr class="border-umber-line text-umber-ash border-b text-xs tracking-[0.04em] uppercase">
+          <tr class="border-umber-line text-umber-muted border-b text-xs tracking-[0.04em] uppercase">
             <th class="py-3 pr-4 font-medium">Fecha</th>
             <th class="py-3 pr-4 font-medium">Vía</th>
             <th class="py-3 pr-4 font-medium">Usuario</th>
@@ -115,18 +115,18 @@ const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeSt
                 </td>
                 <td class="py-3 pr-4 whitespace-nowrap">
                   {trace.endpoint}
-                  {trace.mode !== null && <span class="text-umber-ash"> · {trace.mode}</span>}
+                  {trace.mode !== null && <span class="text-umber-muted"> · {trace.mode}</span>}
                 </td>
                 <td class="py-3 pr-4 whitespace-nowrap">
                   {trace.user_id === null ? (
-                    <span class="text-umber-ash">anónimo</span>
+                    <span class="text-umber-muted">anónimo</span>
                   ) : (
                     (usernames.get(trace.user_id) ?? trace.user_id.slice(0, 8))
                   )}
                 </td>
                 <td class="py-3 pr-4 whitespace-nowrap">
-                  <span class={trace.status >= 400 ? 'text-red-300' : 'text-umber-amber'}>{trace.status}</span>
-                  {trace.error_code !== null && <span class="text-umber-ash"> {trace.error_code}</span>}
+                  <span class={trace.status >= 400 ? 'text-umber-danger' : 'text-umber-accent'}>{trace.status}</span>
+                  {trace.error_code !== null && <span class="text-umber-muted"> {trace.error_code}</span>}
                 </td>
                 <td class="py-3 pr-4 whitespace-nowrap">{trace.duration_ms} ms</td>
                 <td class="max-w-[22rem] truncate py-3 pr-4">{trace.message}</td>
@@ -137,7 +137,7 @@ const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeSt
           {
             traces.length === 0 && (
               <tr>
-                <td colspan="7" class="text-umber-ash py-8 text-center">
+                <td colspan="7" class="text-umber-muted py-8 text-center">
                   No hay ninguna con estos filtros.
                 </td>
               </tr>
@@ -155,7 +155,7 @@ const dateFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeSt
               ← Anterior
             </a>
           )}
-          <span class="text-umber-ash">
+          <span class="text-umber-muted">
             Página {page} de {pages}
           </span>
           {page < pages && (

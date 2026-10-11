@@ -20,7 +20,7 @@ const current = Astro.url.pathname.replace(/\/$/, '');
     <header class="pt-10 pb-10 sm:pt-14">
       <p class="eyebrow eyebrow-rule rise">Legal</p>
       <h1 class="display-1 rise mt-7 [animation-delay:80ms]">{title}</h1>
-      <p class="text-umber-ash rise mt-5 text-sm [animation-delay:160ms]">Última actualización: {LEGAL_UPDATED}</p>
+      <p class="text-umber-muted rise mt-5 text-sm [animation-delay:160ms]">Última actualización: {LEGAL_UPDATED}</p>
       <nav aria-label="Textos legales" class="rise mt-8 [animation-delay:200ms]">
         <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           {
@@ -28,7 +28,7 @@ const current = Astro.url.pathname.replace(/\/$/, '');
               <li>
                 <a
                   href={page.href}
-                  class={page.href === current ? 'text-umber-cream' : 'link-quiet'}
+                  class={page.href === current ? 'text-umber-ink' : 'link-quiet'}
                   aria-current={page.href === current ? 'page' : undefined}
                 >
                   {page.label}
@@ -42,7 +42,7 @@ const current = Astro.url.pathname.replace(/\/$/, '');
 
     {
       LEGAL_DRAFT && (
-        <p role="note" class="border-umber-amber/70 text-umber-cream mb-10 max-w-[42rem] border-l-2 py-1 pl-4 text-sm leading-relaxed">
+        <p role="note" class="border-umber-accent/70 text-umber-ink mb-10 max-w-[42rem] border-l-2 py-1 pl-4 text-sm leading-relaxed">
           Borrador pendiente de revisión. Puede cambiar antes de su versión definitiva.
         </p>
       )

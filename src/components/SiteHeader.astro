@@ -3,7 +3,6 @@
  * Cabecera común: marca y navegación, según haya sesión o no. En las
  * transiciones entre páginas se queda quieta (`[view-transition-name:header]`).
  */
-import LeafMark from '@/components/LeafMark.astro';
 import { returnPath } from '@/lib/auth';
 
 const user = Astro.locals.user;
@@ -26,15 +25,12 @@ const links = [
 const isCurrent = (href: string): boolean => current === href || current.startsWith(`${href}/`);
 ---
 
-<header class="relative z-30 [view-transition-name:header]">
+<header class="border-umber-line relative z-30 border-b [view-transition-name:header]">
   <div
-    class="mx-auto flex max-w-[80rem] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 pt-5 pb-4 sm:px-8 sm:pt-7"
+    class="mx-auto flex max-w-[80rem] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 pt-5 pb-4 sm:px-8 sm:pt-6"
   >
-    <a href="/" class="group flex items-center gap-2.5" aria-label="Umber, inicio">
-      <LeafMark
-        class="text-umber-amber size-[1.15rem] transition-transform duration-700 ease-(--ease-soft) group-hover:-rotate-[18deg] motion-reduce:transition-none"
-      />
-      <span class="font-display text-[1.7rem] leading-none tracking-[-0.03em]">Umber</span>
+    <a href="/" class="font-display text-[2.1rem] leading-none tracking-[-0.01em]" aria-label="Umber, inicio">
+      Umber<span class="text-umber-accent" aria-hidden="true">.</span>
     </a>
 
     <nav
@@ -57,7 +53,7 @@ const isCurrent = (href: string): boolean => current === href || current.startsW
         }
         {
           user?.username != null && (
-            <li class="text-umber-ash hidden pb-1.5 lg:block" title="Tu nombre de usuario">
+            <li class="text-umber-muted hidden pb-1.5 lg:block" title="Tu nombre de usuario">
               @{user.username}
             </li>
           )
@@ -80,6 +76,21 @@ const isCurrent = (href: string): boolean => current === href || current.startsW
           </form>
         )
       }
+      {/* La etiqueta la pone src/scripts/theme.ts según el modo; sin JavaScript no hace nada. */}
+      <button
+        type="button"
+        data-theme-toggle
+        aria-label="Cambiar entre modo claro y oscuro"
+        class="border-umber-line text-umber-ink hover:border-umber-ink inline-flex size-11 shrink-0 items-center justify-center border transition-colors"
+      >
+        <svg aria-hidden="true" class="size-[18px] in-data-[current=dark]:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z" />
+        </svg>
+        <svg aria-hidden="true" class="hidden size-[18px] in-data-[current=dark]:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </svg>
+      </button>
     </nav>
   </div>
 </header>

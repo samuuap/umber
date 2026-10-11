@@ -76,12 +76,12 @@ if (Astro.request.method === 'POST') {
           autofocus
           class="field text-[1.05rem]"
         />
-        <p id="username-help" class="text-umber-ash text-xs">
+        <p id="username-help" class="text-umber-muted text-xs">
           De 3 a 20 caracteres: letras sin tilde, números o guion bajo.
         </p>
         {
           error !== null && (
-            <p id="username-error" role="alert" class="text-xs text-red-300">
+            <p id="username-error" role="alert" class="text-xs text-umber-danger">
               {error.message}
             </p>
           )

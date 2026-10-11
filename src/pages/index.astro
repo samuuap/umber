@@ -78,7 +78,7 @@ const AUTUMN_POSITIONS = [
         >
           <fieldset class="tabs px-5 pt-4 sm:px-6">
             <legend class="sr-only">¿Película o serie?</legend>
-            <span aria-hidden="true" class="text-umber-ash pb-1.5 text-sm">Busco</span>
+            <span aria-hidden="true" class="text-umber-muted pb-1.5 text-sm">Busco</span>
             <label>
               <input type="radio" name="mode" value="movie" checked class="sr-only" />
               <span class="tab">una película</span>
@@ -96,10 +96,10 @@ const AUTUMN_POSITIONS = [
             maxlength={MAX_MESSAGE_CHARS}
             required
             placeholder="Hoy no tengo el día y me apetece algo que abrace…"
-            class="placeholder:text-umber-ash/70 block w-full resize-none bg-transparent px-5 pt-3 pb-4 font-serif text-[1.2rem] leading-relaxed focus:outline-none sm:px-6"
+            class="placeholder:text-umber-muted/70 block w-full resize-none bg-transparent px-5 pt-3 pb-4 font-serif text-[1.2rem] leading-relaxed focus:outline-none sm:px-6"
           ></textarea>
           <div class="border-umber-line flex items-center justify-between gap-4 border-t px-5 py-3.5 sm:px-6">
-            <p class="text-umber-ash hidden text-xs sm:block">
+            <p class="text-umber-muted hidden text-xs sm:block">
               {signedIn ? 'Tus conversaciones se guardan en tu cuenta.' : 'Sin cuenta: una conversación de prueba al día.'}
             </p>
             <button type="submit" class="btn-primary ml-auto">
@@ -172,12 +172,12 @@ const AUTUMN_POSITIONS = [
           {
             STEPS.map((step, position) => (
               <li class="reveal border-umber-line grid grid-cols-[3.25rem_1fr] border-t py-7 last:border-b">
-                <span class="font-display text-umber-amber pt-0.5 text-[1.6rem] leading-none italic" aria-hidden="true">
+                <span class="font-display text-umber-accent pt-0.5 text-[1.6rem] leading-none italic" aria-hidden="true">
                   {NUMERALS[position]}.
                 </span>
                 <div>
                   <h3 class="font-sans text-[1.05rem] font-medium tracking-normal">{step.title}</h3>
-                  <p class="text-umber-ash mt-1.5 leading-relaxed">{step.text}</p>
+                  <p class="text-umber-muted mt-1.5 leading-relaxed">{step.text}</p>
                 </div>
               </li>
             ))
@@ -188,11 +188,11 @@ const AUTUMN_POSITIONS = [
 
     <section aria-label="Cómo habla Umber" class="mx-auto w-full max-w-[80rem] px-5 pb-24 sm:px-8 lg:pb-32">
       <figure class="reveal max-w-4xl lg:ml-[16.666%]">
-        <LeafMark class="text-umber-amber size-6" />
+        <LeafMark class="text-umber-accent size-6" />
         <blockquote class="font-display mt-8 text-[clamp(1.85rem,3.8vw,3.1rem)] leading-[1.14] tracking-[-0.025em]">
           <p>«¿Te apetece algo que te acompañe en el bajón, <em>o algo que te saque de él</em>?»</p>
         </blockquote>
-        <figcaption class="text-umber-ash mt-8 flex items-center gap-3 text-sm">
+        <figcaption class="text-umber-muted mt-8 flex items-center gap-3 text-sm">
           <span class="bg-umber-rule h-px w-7" aria-hidden="true"></span>
           Umber, a las once y media de un martes cualquiera
         </figcaption>
@@ -248,16 +248,16 @@ const AUTUMN_POSITIONS = [
                         loading="lazy"
                         class="aspect-[2/3] w-12 rounded-[2px] object-cover lg:hidden"
                       />
-                      <span class="text-umber-ash hidden text-xs tabular-nums lg:block" aria-hidden="true">
+                      <span class="text-umber-muted hidden text-xs tabular-nums lg:block" aria-hidden="true">
                         {String(position + 1).padStart(2, '0')}
                       </span>
                       <span class="min-w-0">
-                        <span class="font-display group-hover:text-umber-amber block text-[clamp(1.45rem,2.5vw,2.15rem)] leading-[1.1] tracking-[-0.02em] transition-[color,transform] duration-500 ease-(--ease-soft) group-hover:translate-x-1.5 motion-reduce:group-hover:translate-x-0">
+                        <span class="font-display group-hover:text-umber-accent block text-[clamp(1.45rem,2.5vw,2.15rem)] leading-[1.1] tracking-[-0.02em] transition-[color,transform] duration-500 ease-(--ease-soft) group-hover:translate-x-1.5 motion-reduce:group-hover:translate-x-0">
                           {item.title}
                         </span>
-                        <span class="text-umber-ash mt-1 block text-sm sm:hidden">{credit(item)}</span>
+                        <span class="text-umber-muted mt-1 block text-sm sm:hidden">{credit(item)}</span>
                       </span>
-                      <span class="text-umber-ash hidden text-right text-sm sm:block">{credit(item)}</span>
+                      <span class="text-umber-muted hidden text-right text-sm sm:block">{credit(item)}</span>
                     </a>
                   </li>
                 ))}
@@ -294,7 +294,7 @@ const AUTUMN_POSITIONS = [
         <div class="reveal lg:col-span-6">
           <p class="eyebrow eyebrow-rule">
             Especialidad
-            <span class="border-umber-amber/60 text-umber-amber ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+            <span class="border-umber-accent/60 text-umber-accent ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
               Nuevo
             </span>
           </p>
@@ -338,7 +338,7 @@ const AUTUMN_POSITIONS = [
         <div class="reveal lg:col-span-6">
           <p class="eyebrow eyebrow-rule">
             Juegos
-            <span class="border-umber-amber/60 text-umber-amber ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+            <span class="border-umber-accent/60 text-umber-accent ml-2 rounded-full border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
               Nuevo
             </span>
           </p>
@@ -361,8 +361,8 @@ const AUTUMN_POSITIONS = [
 
     {
       upcoming.length > 0 && (
-        <p class="text-umber-ash mx-auto w-full max-w-[80rem] px-5 pb-6 text-sm leading-relaxed sm:px-8">
-          <span class="text-umber-cream">En preparación.</span>{' '}
+        <p class="text-umber-muted mx-auto w-full max-w-[80rem] px-5 pb-6 text-sm leading-relaxed sm:px-8">
+          <span class="text-umber-ink">En preparación.</span>{' '}
           {upcoming
             .map((mode) => `${mode.label}: ${mode.description.charAt(0).toLowerCase()}${mode.description.slice(1)}`)
             .join(' · ')}

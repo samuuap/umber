@@ -85,21 +85,21 @@ export default defineConfig({
   // Fuentes autoalojadas y optimizadas en build. Se exponen como variables CSS
   // que consume el tema de Tailwind en `src/styles/global.css`.
   //
-  // Newsreader en dos cortes fijos de su eje óptico (`opsz`): el de titular (72),
-  // fino y con cursiva, y el de lectura (16), para lo que dicen Umber y las
-  // sinopsis. Con el eje entero eran 272 kB; así, 45 + 56. El de lectura no se
-  // precarga: solo lo descargan las páginas que lo usan. `latin` cubre el
+  // «Programa de mano» (rediseño del 2026-10-11): Instrument Serif para los
+  // titulares (solo tiene el 400, con cursiva), Newsreader de lectura (opsz 16)
+  // para lo que dicen Umber y las sinopsis, y Archivo para la interfaz, con un
+  // corte estrecho (wdth 75) para rótulos y botones. La de lectura no se
+  // precarga: solo la descargan las páginas que la usan. `latin` cubre el
   // español entero (tildes, ñ, ¿¡); un nombre con otra letra sale con la de respaldo.
   fonts: [
     {
       provider: fontProviders.google(),
-      name: 'Newsreader',
-      cssVariable: '--font-newsreader-display',
-      weights: [300],
+      name: 'Instrument Serif',
+      cssVariable: '--font-instrument',
+      weights: [400],
       styles: ['normal', 'italic'],
       subsets: ['latin'],
       fallbacks: ['Georgia', 'serif'],
-      options: { experimental: { variableAxis: { opsz: ['72'] } } },
     },
     {
       provider: fontProviders.google(),
@@ -113,12 +113,22 @@ export default defineConfig({
     },
     {
       provider: fontProviders.google(),
-      name: 'Schibsted Grotesk',
-      cssVariable: '--font-schibsted',
-      weights: ['400 600'],
+      name: 'Archivo',
+      cssVariable: '--font-archivo',
+      weights: ['400 700'],
       styles: ['normal'],
       subsets: ['latin'],
       fallbacks: ['system-ui', 'sans-serif'],
+    },
+    {
+      provider: fontProviders.google(),
+      name: 'Archivo',
+      cssVariable: '--font-archivo-narrow',
+      weights: ['600 700'],
+      styles: ['normal'],
+      subsets: ['latin'],
+      fallbacks: ['Arial Narrow', 'system-ui', 'sans-serif'],
+      options: { experimental: { variableAxis: { wdth: ['75'] } } },
     },
   ],
 

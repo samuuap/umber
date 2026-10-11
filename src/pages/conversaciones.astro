@@ -65,17 +65,17 @@ function preview(text: string | null): string {
           <ul class="border-umber-line border-t">
             {conversations.map((conversation) => (
               <li class="reveal border-umber-line group relative grid grid-cols-[1fr_auto] items-start gap-x-6 gap-y-2 border-b py-7 sm:grid-cols-[11rem_1fr_auto] lg:grid-cols-[14rem_1fr_auto]">
-                <p class="text-umber-ash col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:col-span-1 sm:block sm:pt-1.5">
+                <p class="text-umber-muted col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:col-span-1 sm:block sm:pt-1.5">
                   <time datetime={conversation.updatedAt} class="block">
                     {dateFormat.format(new Date(conversation.updatedAt))}
                   </time>
-                  <span class="text-umber-cream/80 eyebrow sm:mt-2 sm:block">
+                  <span class="text-umber-ink/80 eyebrow sm:mt-2 sm:block">
                     {CHAT_MODE_DEFINITIONS[conversation.mode].label}
                   </span>
                 </p>
                 <a
                   href={`/chat?conversation=${conversation.id}`}
-                  class="font-serif text-[1.15rem] leading-relaxed transition-colors duration-300 group-hover:text-umber-amber after:absolute after:inset-0 sm:text-[1.25rem]"
+                  class="font-serif text-[1.15rem] leading-relaxed transition-colors duration-300 group-hover:text-umber-accent after:absolute after:inset-0 sm:text-[1.25rem]"
                 >
                   «{preview(conversation.firstMessage)}»
                 </a>
@@ -84,7 +84,7 @@ function preview(text: string | null): string {
                   <button
                     type="submit"
                     aria-label={`Borrar la conversación «${preview(conversation.firstMessage)}»`}
-                    class="link-quiet -mr-2 rounded-full px-3 py-1.5 text-sm hover:bg-umber-cream/[0.05]"
+                    class="link-quiet -mr-2 rounded-full px-3 py-1.5 text-sm hover:bg-umber-ink/[0.05]"
                   >
                     Borrar
                   </button>
@@ -93,7 +93,7 @@ function preview(text: string | null): string {
             ))}
           </ul>
           {conversations.length === CONVERSATION_LIST_LIMIT && (
-            <p class="text-umber-ash mt-6 text-xs">Se muestran las {CONVERSATION_LIST_LIMIT} más recientes.</p>
+            <p class="text-umber-muted mt-6 text-xs">Se muestran las {CONVERSATION_LIST_LIMIT} más recientes.</p>
           )}
         </>
       )

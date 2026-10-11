@@ -25,7 +25,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 ├── src/
 │   ├── components/          # SiteHeader, SiteFooter, LeafMark, ContentCard, PosterCard, ChatMessage, AuthForm, AuthScene, GameResult
 │   ├── layouts/
-│   │   └── Layout.astro     # Layout base: tema, tipografías, metadatos, cabecera y pie
+│   │   └── Layout.astro     # Layout base: modo (data-theme), tipografías, metadatos, cabecera y pie
 │   ├── middleware.ts        # Sesión de Supabase (cookies) en Astro.locals, en cada petición
 │   ├── env.d.ts             # Tipos de Astro.locals
 │   ├── pages/
@@ -91,6 +91,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── favorites.ts     # Favoritos con RLS
 │   │   ├── api.ts           # JSON y errores comunes de los endpoints
 │   │   ├── locale.ts        # Idioma y región desde Accept-Language
+│   │   ├── theme.ts         # Modo claro u oscuro elegido: la cookie umber_tema
 │   │   ├── markdown.ts      # Texto de Umber a HTML, escapado (servidor y navegador)
 │   │   └── chat-stream.ts   # Lector del SSE de /api/chat en el navegador
 │   ├── scripts/             # JavaScript del navegador (sin framework)
@@ -99,6 +100,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── explore.ts       # Aplicar al momento el género y el orden de /explorar
 │   │   ├── home.ts          # Intro envía en el cuadro de la portada; el índice cambia de cartel
 │   │   ├── transitions.ts   # El cartel pulsado viaja a la ficha (View Transitions)
+│   │   ├── theme.ts         # El botón de la cabecera: modo claro u oscuro
 │   │   ├── auth-form.ts     # Mostrar la contraseña y avisar si las dos no coinciden
 │   │   ├── conversations.ts # Confirmar antes de borrar una conversación
 │   │   ├── games.ts         # Juegos: partida y racha en localStorage, compartir, final, hojas al acertar
@@ -109,7 +111,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── specialty-autumn.md  # Capa de la especialidad de otoño
 │   │   └── user-context.md  # Plantilla del user prompt con {{variables}}
 │   └── styles/
-│       └── global.css       # Tailwind + tema otoñal
+│       └── global.css       # Tailwind + «Programa de mano», claro y oscuro
 ├── scripts/
 │   ├── verify-schema.mjs    # Comprueba esquema y RLS vía Data API
 │   ├── check-guardrails.mjs # Casos delicados contra el chat: fuera de tema, crisis, piratería…
@@ -776,7 +778,7 @@ Los modos `weekend` y `month` están diseñados. No eliminar sus tipos ni consta
 - Streaming activado siempre en las llamadas al chat de DeepSeek
 - JavaScript del navegador en `src/scripts/`, sin framework. Solo puede importar
   de `src/lib/` los módulos que no tocan servidor: `types.ts`, `markdown.ts`,
-  `chat-stream.ts`, `game-rules.ts`
+  `chat-stream.ts`, `game-rules.ts`, `theme.ts`
 - Astro pinta el `<script>` de un componente donde se pinta el componente. Si el
   componente va dentro de un `<template>` (como `ContentCard` en el chat), su
   script queda inerte: quien clona la plantilla tiene que inicializarlo
@@ -863,42 +865,63 @@ Los modos `weekend` y `month` están diseñados. No eliminar sus tipos ni consta
 
 ## Estética
 
-«Noche de otoño», en clave editorial (rediseño del 2026-10-04): como una revista
-de cine en otoño. Oscura y cálida, mucho espacio, **un solo acento** y
-composiciones asimétricas en vez de rejillas de tarjetas iguales. Nada de
-degradados de color ni de elementos infantiles. Tokens `umber-*` en
-`src/styles/global.css`.
+«Programa de mano» (rediseño del 2026-10-11, antes «Noche de otoño»): como el
+programa de una filmoteca o de un festival. Papel, tinta y **un solo acento**,
+el rojo; titulares grandes en serif, rótulos en mayúsculas estrechas y filetes
+en vez de cajas y sombras. Mucho espacio y composiciones asimétricas. Nada de
+degradados de color ni de elementos infantiles. Maquetas en el lienzo
+https://claude.ai/artifact/8tE1CS26eWqNEwdTaijD2m (dirección B). Tokens
+`umber-*` en `src/styles/global.css`.
+
+**Dos modos con los mismos tokens**: claro (papel) por defecto, y oscuro si el
+sistema lo pide (`prefers-color-scheme`) o la persona lo elige con el botón de
+la cabecera. La elección va en la cookie `umber_tema` (un año), que
+`Layout.astro` lee para poner `data-theme` en `<html>`: el servidor pinta ya el
+modo bueno, sin script en línea (la CSP lo bloquearía) ni parpadeo
+(`src/lib/theme.ts`, `src/scripts/theme.ts`). Un color nuevo va en los dos
+bloques de `global.css` (el de `@theme` y el oscuro, que está dos veces: con
+`prefers-color-scheme` y con `data-theme='dark'`).
 
 ```
-Fondo base:        #14110D  (noche cálida)          umber-base
-Superficie:        #1C1813  (fichas, el cuadro)     umber-surface
-Superficie +1:     #262019  (tus burbujas)          umber-raised
-Filetes:           #2E261F  (separan; decorativos)  umber-line
-Borde de control:  #7B6C5E               3,4:1      umber-rule
-Texto principal:   #EFE6D8  (crema)      15:1       umber-cream
-Texto secundario:  #AB9B88  (ceniza)     7:1        umber-ash
-Acento:            #D9893D  (ámbar)      6,8:1      umber-amber (+ umber-amber-hover)
+                   Claro     Oscuro
+Fondo base:        #F3EEE5   #14110E   (papel / noche)            umber-base
+Superficie:        #EBE4D8   #1D1915   (el buscador, campos)      umber-surface
+Superficie +1:     #E2D9CA   #26211B   (tus mensajes, teclas)     umber-raised
+Filetes:           #CFC6B8   #39322A   (separan; decorativos)     umber-line
+Borde de control:  #8A8073   #7D7265   3:1 o más                  umber-rule
+Texto principal:   #16130F   #EDE6DA   (tinta / papel)  14:1+     umber-ink
+Texto secundario:  #5E564C   #A39A8D   6,5:1+                     umber-muted
+Acento:            #B8321C   #E8664C   (bermellón)      5:1+      umber-accent (+ -hover)
+Errores:           #9F1D1D   #F2998A   siempre con texto          umber-danger
 
-Titulares:         Newsreader de titular (opsz 72), 300 y cursiva   font-display
+Titulares:         Instrument Serif 400 y cursiva                   font-display
 Lo que se lee:     Newsreader de lectura (opsz 16), 400 y 600       font-serif
-Interfaz:          Schibsted Grotesk 400–600                        font-sans
+Interfaz:          Archivo 400–700                                  font-sans
+Rótulos, botones:  Archivo estrecha (wdth 75), 600–700, mayúsculas  font-label
 ```
 
-- **El ámbar, medido**: la acción principal, lo elegido (la línea de una
-  pestaña) y los títulos que recomienda Umber. Rótulos, enlaces secundarios y
-  todo lo demás, en crema o ceniza
+- **El rojo, medido**: la acción principal, lo elegido (la línea de una
+  pestaña), el rótulo de un titular (`eyebrow-rule`) y los títulos que
+  recomienda Umber. Lo demás, en tinta o gris. Sobre el rojo, el texto va en
+  `umber-base` (papel en claro, noche en oscuro): pasa AA en los dos
 - **La regla de la tipografía**: lo que se dice va en serif (Umber, lo que
-  escribes, las sinopsis, los títulos); la interfaz, en sans. La cursiva de
-  titular marca una palabra por titular, no más («¿Qué te apetece ver *hoy*?»)
-- Contraste contra el fondo base; todos pasan AA. Los campos llevan solo la
-  línea de abajo, en `umber-rule`: lo que identifica un control pide 3:1
+  escribes, las sinopsis); los titulares, en Instrument Serif, que es de
+  titular y en texto largo cansa; la interfaz, en sans, y sus rótulos y botones
+  en mayúsculas estrechas. La cursiva marca una palabra por titular, no más
+  («¿Qué te apetece ver *hoy*?»)
+- Contraste contra el fondo base, en los dos modos; todos pasan AA. Los campos
+  llevan solo la línea de abajo, en `umber-rule`: lo que identifica un control
+  pide 3:1
+- Esquinas rectas: botones, chips y el cuadro de escribir sin radio. El cuadro
+  de escribir (`composer`) es un filete grueso arriba y uno fino abajo, como un
+  formulario impreso
 - Piezas comunes en `global.css`: usarlas antes que repetir clases.
-  Titulares `display-1/2/3`; `eyebrow` (y `eyebrow-rule`, con filete), `lead`,
+  Titulares `display-1/2/3`; `eyebrow` (y `eyebrow-rule`, en rojo), `lead`,
   `reading`; `btn-primary`, `btn-secondary` y `.arrow` (la flecha que se
   adelanta); `link`, `link-quiet`; `field`, `field-label`, `select-wrap`;
-  `chip`; `tabs`/`tab` (pestañas con línea, en enlaces o en radios); `composer`
-  (el cuadro donde se escribe a Umber); `graded` (el etalonado de los
-  fotogramas); `dot-list`
+  `chip`; `tabs`/`tab` (pestañas con línea, en enlaces o en radios, y la
+  navegación); `composer` (el cuadro donde se escribe a Umber); `graded` (el
+  etalonado de los fotogramas); `dot-list`; `legal-text`
 - Imágenes: carteles con radio de 3 px, no de tarjeta. Los fotogramas de
   ambiente (portada, cuenta, fondo de la ficha) llevan `graded`, para que
   fotogramas muy distintos parezcan de la misma película. Salen de
@@ -910,7 +933,7 @@ Interfaz:          Schibsted Grotesk 400–600                        font-sans
   textos generales (portada, pie, título y descripción por defecto). La
   especialidad tiene su sección en la portada, con la etiqueta «Nuevo», y lleva a
   `/chat?…&especialidad=otono` y a `/explorar?sort=autumn`
-- Grano de película encima de todo (`/grain.svg`, al 4 %), con mezcla normal:
+- Grano encima de todo (`/grain.svg`, al 4 %), con mezcla normal:
   un modo de fusión en una capa fija hace que el scroll recomponga la página
 - **Movimiento**, siempre lento y apagado con `prefers-reduced-motion`:
   `rise` al cargar (escalonado con `[animation-delay:…]`), `develop` (un
@@ -919,12 +942,14 @@ Interfaz:          Schibsted Grotesk 400–600                        font-sans
   chat. Entre páginas, `@view-transition` funde una con otra sin JavaScript, y el
   cartel pulsado en una rejilla viaja hasta la ficha (`src/scripts/transitions.ts`,
   con `data-poster-link`, `data-poster` y `data-poster-target`)
-- Fuentes: solo `latin` (cubre el español). Newsreader en dos cortes fijos de
-  su eje óptico, no el eje entero: 45 + 56 kB en vez de 272. La de lectura no se
-  precarga: solo la bajan las páginas que la usan. Un peso o una cursiva nuevos
-  hay que añadirlos en `fonts` de `astro.config.mjs`
-- La marca es una hoja (`LeafMark`): en la cabecera, como avatar de Umber y en
-  el favicon
+- Fuentes: solo `latin` (cubre el español). Cortes fijos de los ejes variables,
+  no el eje entero: Newsreader en opsz 16 y Archivo estrecha en wdth 75 (un
+  rótulo ocupa un 21 % menos). La de lectura no se precarga: solo la bajan las
+  páginas que la usan. Un peso o una cursiva nuevos hay que añadirlos en
+  `fonts` de `astro.config.mjs`
+- La marca: en la cabecera, «Umber» en Instrument Serif con un punto rojo; la
+  hoja (`LeafMark`) queda como avatar de Umber en el chat, en el pie y en el
+  favicon
 
 ---
 

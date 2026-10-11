@@ -110,7 +110,7 @@ const firstImage = daily === null ? null : await posterImagePath('poster', day, 
                   class="bg-umber-surface border-umber-line absolute inset-x-0 top-full z-20 mt-2 max-h-80 overflow-y-auto rounded-[3px] border py-1 shadow-[0_30px_60px_-24px_rgb(0_0_0/0.95)]"
                 />
               </div>
-              <p id="guess-help" class="text-umber-ash mt-3 text-xs">
+              <p id="guess-help" class="text-umber-muted mt-3 text-xs">
                 Elige una película de la lista. Vale en español o en inglés.
               </p>
               <div class="mt-6 flex flex-wrap items-center gap-3">
@@ -121,11 +121,11 @@ const firstImage = daily === null ? null : await posterImagePath('poster', day, 
               </div>
             </form>
 
-            <p data-game-status role="status" class="text-umber-ash mt-5 min-h-[1.5rem] text-sm" />
+            <p data-game-status role="status" class="text-umber-muted mt-5 min-h-[1.5rem] text-sm" />
 
             <ol data-guess-list aria-label="Tus intentos" class="border-umber-line mt-4 max-w-xl divide-y divide-umber-line" />
             <noscript>
-              <p class="text-umber-ash mt-6 text-sm">Para jugar hace falta JavaScript.</p>
+              <p class="text-umber-muted mt-6 text-sm">Para jugar hace falta JavaScript.</p>
             </noscript>
 
             <div class="max-w-xl">
@@ -134,7 +134,7 @@ const firstImage = daily === null ? null : await posterImagePath('poster', day, 
           </div>
 
           <template data-leaf>
-            <LeafMark class="burst-leaf text-umber-amber" />
+            <LeafMark class="burst-leaf text-umber-accent" />
           </template>
         </section>
       )

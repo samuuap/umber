@@ -117,17 +117,17 @@ if (root !== null) {
         item.className = 'flex items-baseline gap-4 py-3';
         const icon = document.createElement('span');
         icon.setAttribute('aria-hidden', 'true');
-        icon.className = result === 'correct' ? 'text-umber-amber w-4 font-semibold' : 'text-umber-ash w-4';
+        icon.className = result === 'correct' ? 'text-umber-accent w-4 font-semibold' : 'text-umber-muted w-4';
         icon.textContent = RESULT_ICON[result];
         const text = document.createElement('span');
         text.className = 'min-w-0 flex-1';
         const title = document.createElement('span');
-        title.className = result === 'skip' ? 'text-umber-ash' : 'font-serif text-umber-cream';
+        title.className = result === 'skip' ? 'text-umber-muted' : 'font-serif text-umber-ink';
         title.textContent = result === 'skip' ? 'Pasaste' : (labels[index] ?? '');
         text.append(title);
         if (result !== 'skip') {
           const verdict = document.createElement('span');
-          verdict.className = `ml-3 text-xs ${result === 'saga' ? 'text-umber-amber' : 'text-umber-ash'}`;
+          verdict.className = `ml-3 text-xs ${result === 'saga' ? 'text-umber-accent' : 'text-umber-muted'}`;
           verdict.textContent = RESULT_TEXT[result];
           text.append(verdict);
         }

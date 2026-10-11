@@ -48,7 +48,7 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
     <div
       data-field="no-poster"
       hidden={posterUrl !== null}
-      class="text-umber-ash flex h-full items-center justify-center p-2 text-center font-serif text-sm italic"
+      class="text-umber-muted flex h-full items-center justify-center p-2 text-center font-serif text-sm italic"
     >
       Sin cartel
     </div>
@@ -63,15 +63,15 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
       <span
         data-field="year"
         hidden={description?.year == null}
-        class="text-umber-ash font-sans text-sm tracking-normal whitespace-nowrap"
+        class="text-umber-muted font-sans text-sm tracking-normal whitespace-nowrap"
       >
         {description?.year}
       </span>
     </h3>
-    <p data-field="credit" hidden={description?.credit == null} class="text-umber-ash mt-2 text-sm">
+    <p data-field="credit" hidden={description?.credit == null} class="text-umber-muted mt-2 text-sm">
       {description?.credit}
     </p>
-    <p data-field="genres" hidden={description?.genres == null} class="text-umber-ash/85 mt-0.5 text-xs">
+    <p data-field="genres" hidden={description?.genres == null} class="text-umber-muted/85 mt-0.5 text-xs">
       {description?.genres}
     </p>
 
@@ -81,7 +81,7 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
       <ul data-field="platforms" hidden={platforms !== null && platforms.length === 0} class="dot-list mt-1.5 text-sm">
         {platforms?.map((name) => <li>{name}</li>)}
       </ul>
-      <p data-field="no-platforms" hidden={platforms?.length !== 0} class="text-umber-ash mt-1.5 text-sm">
+      <p data-field="no-platforms" hidden={platforms?.length !== 0} class="text-umber-muted mt-1.5 text-sm">
         No está en plataformas de suscripción ahora mismo.
       </p>
     </div>
@@ -94,7 +94,7 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
             data-favorite-button
             data-content-id={item?.id}
             aria-pressed={favorite ? 'true' : 'false'}
-            class="group/fav border-umber-rule/70 text-umber-cream hover:border-umber-amber aria-pressed:border-umber-amber aria-pressed:text-umber-amber inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors duration-300"
+            class="group/fav border-umber-rule/70 text-umber-ink hover:border-umber-accent aria-pressed:border-umber-accent aria-pressed:text-umber-accent inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors duration-300"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" class="size-3.5 fill-transparent transition-colors group-aria-pressed/fav:fill-current">
               <path d="M6 4h12v17l-6-4-6 4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
@@ -123,7 +123,7 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
       >
         Más como esta <span class="arrow" aria-hidden="true">→</span><span class="sr-only"> (se abre en otra pestaña)</span>
       </a>
-      <p data-field="favorite-status" role="status" hidden class="text-umber-amber w-full text-xs"></p>
+      <p data-field="favorite-status" role="status" hidden class="text-umber-accent w-full text-xs"></p>
     </div>
   </div>
 </article>

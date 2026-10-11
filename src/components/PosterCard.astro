@@ -37,7 +37,7 @@ const sizes = '(min-width: 1024px) 183px, (min-width: 640px) 30vw, 46vw';
   >
     {
       small === null || large === null ? (
-        <div class="text-umber-ash flex h-full items-center justify-center p-3 text-center font-serif text-sm italic">
+        <div class="text-umber-muted flex h-full items-center justify-center p-3 text-center font-serif text-sm italic">
           Sin cartel
         </div>
       ) : (
@@ -56,11 +56,11 @@ const sizes = '(min-width: 1024px) 183px, (min-width: 640px) 30vw, 46vw';
     }
   </div>
   <p
-    class="group-hover:text-umber-amber mt-3.5 line-clamp-2 font-serif text-[0.98rem] leading-snug transition-colors duration-300"
+    class="group-hover:text-umber-accent mt-3.5 line-clamp-2 font-serif text-[0.98rem] leading-snug transition-colors duration-300"
   >
     {item.title}
   </p>
-  <p class="text-umber-ash mt-1 text-xs tracking-[0.02em]">
+  <p class="text-umber-muted mt-1 text-xs tracking-[0.02em]">
     {[item.year, CHAT_MODE_DEFINITIONS[item.type].label].filter((part) => part !== null).join(' · ')}
   </p>
 </a>

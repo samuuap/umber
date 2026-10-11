@@ -95,7 +95,7 @@ if (Astro.request.method === 'POST') {
       showResend && (
         <div class="border-umber-line rise mt-5 mb-2 border-l-2 pl-4 [animation-delay:200ms]">
           {resent ? (
-            <p class="text-umber-amber text-sm">Reenviado. Revisa también la carpeta de spam.</p>
+            <p class="text-umber-accent text-sm">Reenviado. Revisa también la carpeta de spam.</p>
           ) : (
             <form method="post" class="flex flex-wrap items-center gap-3">
               <input type="hidden" name="action" value="resend" />
@@ -118,7 +118,7 @@ if (Astro.request.method === 'POST') {
     <p class="rise [animation-delay:280ms] mt-5 text-sm">
       <a href="/recuperar" class="link-quiet">¿Has olvidado tu contraseña?</a>
     </p>
-    <p class="border-umber-line text-umber-ash mt-10 border-t pt-6 text-sm">
+    <p class="border-umber-line text-umber-muted mt-10 border-t pt-6 text-sm">
       ¿No tienes cuenta?{' '}
       <a href={`/registro?next=${encodeURIComponent(next)}`} class="link">Regístrate gratis</a>
     </p>

@@ -50,7 +50,7 @@ if (Astro.request.method === 'POST') {
           <form method="post" class="rise mt-10 space-y-7 [animation-delay:240ms]">
             {
               error !== null && (
-                <p role="alert" class="border-l-2 border-red-400/70 py-1 pl-4 text-sm leading-relaxed">
+                <p role="alert" class="border-l-2 border-umber-danger/70 py-1 pl-4 text-sm leading-relaxed">
                   {error.message}
                 </p>
               )
@@ -74,7 +74,7 @@ if (Astro.request.method === 'POST') {
               </button>
             </div>
           </form>
-          <p class="border-umber-line text-umber-ash mt-12 border-t pt-6 text-sm">
+          <p class="border-umber-line text-umber-muted mt-12 border-t pt-6 text-sm">
             <a href="/entrar" class="link">Volver a entrar</a>
           </p>
         </>
@@ -85,7 +85,7 @@ if (Astro.request.method === 'POST') {
             Enlace <em>enviado</em>
           </p>
           <p class="lead mt-6">
-            Si <strong class="text-umber-cream font-medium">{sentTo}</strong> tiene cuenta, te hemos enviado un
+            Si <strong class="text-umber-ink font-medium">{sentTo}</strong> tiene cuenta, te hemos enviado un
             enlace para elegir una contraseña nueva. Ábrelo en este mismo navegador.
           </p>
         </div>

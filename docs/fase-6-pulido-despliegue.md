@@ -2,7 +2,7 @@
 
 **Estado:** 🔄 En curso
 **Depende de:** [Fase 5](fase-5-frontend.md) ✅
-**Actualizado:** 2026-10-04
+**Actualizado:** 2026-10-11
 
 ## Objetivo
 
@@ -117,6 +117,32 @@ lanzamiento primero.
       `locale`, `markdown`) y de los flujos clave en el navegador, en el repo
 - [ ] GitHub Actions en cada push: typecheck, build y tests
 - [ ] `npm run check:guardrails` antes de cada cambio en `system.md`
+
+**Diseño: «Programa de mano»** (2026-10-11; ver «Estética» en CLAUDE.md)
+- [x] Elegir dirección: tres propuestas en maquetas (A, la de entonces
+      afinada; B, programa de mano en papel; C, producto moderno), en el lienzo
+      https://claude.ai/artifact/8tE1CS26eWqNEwdTaijD2m. El usuario eligió **B,
+      con modo oscuro**
+- [x] Paleta clara y oscura con los mismos tokens; `cream`, `ash` y `amber`
+      renombrados a `ink`, `muted` y `accent`; `umber-danger` en vez de los
+      rojos de Tailwind (`red-300` no se leía sobre papel)
+- [x] Tipografías: Instrument Serif (titulares), Newsreader de lectura y
+      Archivo, con un corte estrecho para rótulos y botones
+- [x] Piezas comunes de `global.css` (titulares, rótulos, botones, chips,
+      pestañas, el cuadro de escribir): todo el sitio cambia con ellas
+- [x] Modo oscuro: el del sistema, o el del botón de la cabecera (cookie
+      `umber_tema`, en la política de cookies). Probado sobre el build en 10
+      páginas, claro y oscuro, a 390 px: sin errores de CSP ni scroll horizontal
+- [ ] Repasar página a página: lo que heredan de los tokens se ve bien, pero
+      quedan restos del diseño anterior, como esquinas redondeadas
+      (`rounded-full`) y sombras negras grandes bajo los carteles, que sobre
+      papel pesan. La portada, la ficha de `/explorar` y los juegos, primero
+- [ ] La portada de la maqueta: sugerencias numeradas a la derecha, «Cómo
+      funciona» como banda de tinta con «Acto I, II, III», la línea de fecha
+      sobre la cabecera. Hoy la portada tiene la estructura de antes con el
+      estilo nuevo
+- [ ] El chat de la maqueta: los mensajes como un guion («TÚ» / «UMBER»), con
+      filetes, en vez de burbujas
 
 **SEO y difusión**
 - [ ] Metadatos y vista previa al compartir (Open Graph con el cartel) en cada
@@ -450,6 +476,8 @@ Descartado:
 |---|---|
 | `output: 'server'` con adaptador de Vercel | El chat necesita streaming en servidor. La portada podría prerenderizarse más adelante si interesa |
 | Fuentes autoalojadas | Sin terceros, sin salto de fuente y una petición externa menos |
+| **Rediseño «Programa de mano», claro y oscuro** (2026-10-11) | Decisión de producto: el diseño de antes gustaba, pero se quería «un diseño de verdad, muy profesional». De tres direcciones en maquetas, el usuario eligió B (papel, tinta y rojo) y pidió modo oscuro. El claro va por defecto; el oscuro, si lo pide el sistema o con el botón de la cabecera |
+| El modo elegido, en una cookie y no en localStorage (2026-10-11) | El servidor lo lee y pinta ya el modo bueno: con localStorage haría falta un script en línea antes de pintar, que la CSP bloquea, o la página parpadearía. Es una cookie técnica, exenta de consentimiento |
 | **Sin gastos fijos**: Vercel Hobby, Supabase Free, subdominio `vercel.app` y un SMTP con plan gratuito. Solo se paga DeepSeek, por uso | Decisión de producto. El plan Hobby de Vercel es para uso no comercial |
 | **Ni servidores ni dominio de pago, tampoco para el correo** (2026-10-04) | Decisión de producto, reafirmada al hablar del correo de la cuenta. El correo, con un servicio gratuito sin dominio (propuesta: Gmail, ver «Correo de la cuenta»). Si un día hace falta pagar algo, se dice y se deja para después |
 | **Correo de la cuenta con Gmail como SMTP**, aprobada y montada (2026-10-10) | El mailer de Supabase por defecto (2/hora, solo al equipo) no sirve para gente real; Resend y Brevo sin dominio quedaban descartados (ver «Correo de la cuenta»). Probado con un email externo al equipo: llega bien |

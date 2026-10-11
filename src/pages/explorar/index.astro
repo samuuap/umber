@@ -138,8 +138,8 @@ const chevron = 'M6 9l6 6 6-6';
     </div>
 
     <div class="mt-8 flex items-baseline justify-between gap-4">
-      <p class="text-umber-ash text-sm">
-        <span class="text-umber-cream">{total === 1 ? '1 título' : `${numberFormat.format(total)} títulos`}</span>
+      <p class="text-umber-muted text-sm">
+        <span class="text-umber-ink">{total === 1 ? '1 título' : `${numberFormat.format(total)} títulos`}</span>
         {pages > 1 && ` · página ${numberFormat.format(filters.page)} de ${numberFormat.format(pages)}`}
       </p>
       {
@@ -157,7 +157,7 @@ const chevron = 'M6 9l6 6 6-6';
           <p class="display-3">
             Nada con <em>esos filtros</em>
           </p>
-          <p class="text-umber-ash mt-3">Prueba con otra palabra u otro género.</p>
+          <p class="text-umber-muted mt-3">Prueba con otra palabra u otro género.</p>
         </div>
       ) : (
         <ul class="mt-8 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-x-6">
@@ -181,11 +181,11 @@ const chevron = 'M6 9l6 6 6-6';
               <span aria-hidden="true">←</span> Anterior
             </a>
           ) : (
-            <span class="text-umber-ash/50" aria-hidden="true">
+            <span class="text-umber-muted/50" aria-hidden="true">
               ← Anterior
             </span>
           )}
-          <span class="font-display text-umber-ash text-lg italic">
+          <span class="font-display text-umber-muted text-lg italic">
             Página {numberFormat.format(filters.page)} de {numberFormat.format(pages)}
           </span>
           {filters.page < pages ? (
@@ -193,7 +193,7 @@ const chevron = 'M6 9l6 6 6-6';
               Siguiente <span class="arrow" aria-hidden="true">→</span>
             </a>
           ) : (
-            <span class="text-umber-ash/50" aria-hidden="true">
+            <span class="text-umber-muted/50" aria-hidden="true">
               Siguiente →
             </span>
           )}

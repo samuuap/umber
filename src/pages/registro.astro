@@ -137,7 +137,7 @@ if (Astro.request.method === 'POST') {
           <div class="rise [animation-delay:240ms]">
             <AuthForm kind="signup" email={email} username={username} error={error} next={next} />
           </div>
-          <p class="border-umber-line text-umber-ash mt-12 border-t pt-6 text-sm">
+          <p class="border-umber-line text-umber-muted mt-12 border-t pt-6 text-sm">
             ¿Ya tienes cuenta?{' '}
             <a href={`/entrar?next=${encodeURIComponent(next)}`} class="link">
               Entra
@@ -151,13 +151,13 @@ if (Astro.request.method === 'POST') {
             Revisa tu <em>correo</em>
           </p>
           <p class="lead mt-6">
-            Si <strong class="text-umber-cream font-medium">{sentTo}</strong> no tenía cuenta, te hemos enviado un enlace
+            Si <strong class="text-umber-ink font-medium">{sentTo}</strong> no tenía cuenta, te hemos enviado un enlace
             para activarla. Ábrelo en este mismo navegador y entrarás directamente.
           </p>
-          {resent && <p class="text-umber-amber mt-4 text-sm">Reenviado. Revisa también la carpeta de spam.</p>}
+          {resent && <p class="text-umber-accent mt-4 text-sm">Reenviado. Revisa también la carpeta de spam.</p>}
           {
             error !== null && (
-              <p role="alert" class="mt-4 text-sm text-red-300">
+              <p role="alert" class="mt-4 text-sm text-umber-danger">
                 {error.message}
               </p>
             )

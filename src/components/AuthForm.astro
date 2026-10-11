@@ -26,8 +26,8 @@ const signup = kind === 'signup';
 
 const inputClass = 'field text-[1.05rem]';
 const labelClass = 'field-label';
-const helpClass = 'text-umber-ash text-xs';
-const errorClass = 'text-xs text-red-300';
+const helpClass = 'text-umber-muted text-xs';
+const errorClass = 'text-xs text-umber-danger';
 
 const errorFor = (field: AuthFormField): string | null => (error?.field === field ? error.message : null);
 const describedBy = (field: AuthFormField, help: boolean): string | undefined =>
@@ -50,7 +50,7 @@ const passwordFields = signup
 
 {
   error !== null && error.field === null && (
-    <p role="alert" class="mt-8 border-l-2 border-red-400/70 py-1 pl-4 text-sm leading-relaxed">
+    <p role="alert" class="mt-8 border-l-2 border-umber-danger/70 py-1 pl-4 text-sm leading-relaxed">
       {error.message}
     </p>
   )
@@ -142,7 +142,7 @@ const passwordFields = signup
             data-password-toggle
             aria-controls={field.name}
             hidden
-            class="text-umber-ash hover:text-umber-cream absolute right-0 bottom-1.5 rounded-full px-2 py-1 text-xs font-medium tracking-[0.06em] uppercase transition-colors"
+            class="text-umber-muted hover:text-umber-ink absolute right-0 bottom-1.5 rounded-full px-2 py-1 text-xs font-medium tracking-[0.06em] uppercase transition-colors"
           >
             <span data-label>Mostrar</span>
             <span class="sr-only"> la contraseña</span>
@@ -154,7 +154,7 @@ const passwordFields = signup
           </p>
         )}
         {field.name === 'password_confirm' && (
-          <p data-password-match aria-live="polite" hidden class="text-umber-amber text-xs data-[state=mismatch]:text-red-300" />
+          <p data-password-match aria-live="polite" hidden class="text-umber-accent text-xs data-[state=mismatch]:text-umber-danger" />
         )}
         {errorFor(field.name) !== null && (
           <p id={`${field.name}-error`} role="alert" class={errorClass}>
@@ -174,7 +174,7 @@ const passwordFields = signup
 
 <div class="mt-8 flex items-center gap-3" aria-hidden="true">
   <span class="bg-umber-line h-px flex-1" />
-  <span class="text-umber-ash text-xs">o</span>
+  <span class="text-umber-muted text-xs">o</span>
   <span class="bg-umber-line h-px flex-1" />
 </div>
 
@@ -187,7 +187,7 @@ const passwordFields = signup
 
 {
   signup && (
-    <p class="text-umber-ash mt-6 text-xs leading-relaxed">
+    <p class="text-umber-muted mt-6 text-xs leading-relaxed">
       Al crear la cuenta aceptas las <a href="/condiciones" class="link-quiet underline underline-offset-4">condiciones de uso</a>{' '}
       y confirmas que tienes 14 años o más. Cómo tratamos tus datos:{' '}
       <a href="/privacidad" class="link-quiet underline underline-offset-4">privacidad</a>.

@@ -129,11 +129,11 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     <section aria-label="Conversación" class="flex-1 pt-10 pb-8">
       <div data-empty-state hidden={messages.length > 0 || initialMessage !== ''} class="rise pb-10">
         <p class="eyebrow flex items-center gap-2.5">
-          <LeafMark class="text-umber-amber size-3.5" />
+          <LeafMark class="text-umber-accent size-3.5" />
           Umber
         </p>
         <p class="display-3 mt-5">¿Cómo te <em>sientes</em>?</p>
-        <p class="reading text-umber-ash mt-4 max-w-[34rem]">
+        <p class="reading text-umber-muted mt-4 max-w-[34rem]">
           Cuéntamelo con tus palabras —el tiempo que hace, tu ánimo, con quién la vas a ver— y te busco algo
           que encaje.
         </p>
@@ -172,7 +172,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       hidden={ended}
       class="from-umber-base via-umber-base/95 sticky bottom-0 -mx-5 bg-gradient-to-t to-transparent px-5 pt-8 pb-4 sm:-mx-8 sm:px-8 sm:pb-5"
     >
-      <p data-turns-left hidden role="status" class="text-umber-amber pb-3 text-center text-xs font-medium"></p>
+      <p data-turns-left hidden role="status" class="text-umber-accent pb-3 text-center text-xs font-medium"></p>
       <label for="mensaje" class="sr-only">Cuéntale a Umber cómo te sientes</label>
       <div class="composer flex items-end gap-2 p-2.5 pl-4 sm:pl-5">
         <textarea
@@ -182,12 +182,12 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
           maxlength={MAX_MESSAGE_CHARS}
           required
           placeholder="Está lloviendo y me apetece algo que abrace…"
-          class="placeholder:text-umber-ash/70 max-h-48 min-h-12 flex-1 resize-none bg-transparent py-2 font-serif text-[1.08rem] leading-relaxed focus:outline-none"
+          class="placeholder:text-umber-muted/70 max-h-48 min-h-12 flex-1 resize-none bg-transparent py-2 font-serif text-[1.08rem] leading-relaxed focus:outline-none"
         ></textarea>
         <button type="button" data-stop hidden class="btn-secondary px-4 py-2.5">Detener</button>
         <button type="submit" data-send class="btn-primary px-5 py-2.5">Enviar</button>
       </div>
-      <p class="text-umber-ash mt-2.5 text-center text-[0.7rem] tracking-[0.02em]">
+      <p class="text-umber-muted mt-2.5 text-center text-[0.7rem] tracking-[0.02em]">
         <!-- AI Act, art. 50: decir que se habla con una IA -->
         Umber es una IA y puede equivocarse<span class="hidden sm:inline"
           >{' · '}Intro para enviar · Mayúsculas + Intro para un salto de línea</span
@@ -208,7 +208,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
             <p class="display-3 mt-4">
               Aquí termina tu conversación <em>de prueba</em>
             </p>
-            <p class="text-umber-ash mt-3 max-w-md leading-relaxed">
+            <p class="text-umber-muted mt-3 max-w-md leading-relaxed">
               Crea una cuenta gratis para seguir hablando con Umber, guardar tus conversaciones y tus favoritos.
             </p>
             <div class="mt-7 flex flex-wrap gap-3">
@@ -226,7 +226,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
             <p class="display-3 mt-4">
               Esta conversación ha llegado <em>a su final</em>
             </p>
-            <p class="text-umber-ash mt-3">Tus favoritos siguen guardados.</p>
+            <p class="text-umber-muted mt-3">Tus favoritos siguen guardados.</p>
             <a href="/" class="btn-primary mt-7">
               Empezar una nueva <span class="arrow" aria-hidden="true">→</span>
             </a>

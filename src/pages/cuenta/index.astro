@@ -110,12 +110,12 @@ const inputClass = 'field text-[1.05rem]';
       <h2 class="font-display text-xl">Nombre de usuario</h2>
       {
         usernameDone && (
-          <p role="status" class="text-umber-amber mt-3 text-sm">Nombre actualizado.</p>
+          <p role="status" class="text-umber-accent mt-3 text-sm">Nombre actualizado.</p>
         )
       }
       {
         usernameError !== null && usernameError.field === null && (
-          <p role="alert" class="mt-3 text-sm text-red-300">{usernameError.message}</p>
+          <p role="alert" class="mt-3 text-sm text-umber-danger">{usernameError.message}</p>
         )
       }
       <form method="post" class="mt-5 space-y-3">
@@ -136,7 +136,7 @@ const inputClass = 'field text-[1.05rem]';
         />
         {
           usernameError?.field === 'username' && (
-            <p role="alert" class="text-xs text-red-300">{usernameError.message}</p>
+            <p role="alert" class="text-xs text-umber-danger">{usernameError.message}</p>
           )
         }
         <button type="submit" class="btn-secondary py-2.5 text-sm">Guardar</button>
@@ -145,20 +145,20 @@ const inputClass = 'field text-[1.05rem]';
 
     <section class="border-umber-line mt-10 border-t pt-8">
       <h2 class="font-display text-xl">Email</h2>
-      <p class="text-umber-ash mt-2 text-sm">
+      <p class="text-umber-muted mt-2 text-sm">
         Al cambiarlo te mandamos un enlace de confirmación al nuevo email; puede que también te pidamos
         confirmarlo desde el actual.
       </p>
       {
         emailSentTo !== null && (
-          <p role="status" class="text-umber-amber mt-3 text-sm">
-            Revisa <strong class="text-umber-cream font-medium">{emailSentTo}</strong> para confirmar el cambio.
+          <p role="status" class="text-umber-accent mt-3 text-sm">
+            Revisa <strong class="text-umber-ink font-medium">{emailSentTo}</strong> para confirmar el cambio.
           </p>
         )
       }
       {
         emailError !== null && emailError.field === null && (
-          <p role="alert" class="mt-3 text-sm text-red-300">{emailError.message}</p>
+          <p role="alert" class="mt-3 text-sm text-umber-danger">{emailError.message}</p>
         )
       }
       <form method="post" class="mt-5 space-y-3">
@@ -174,7 +174,7 @@ const inputClass = 'field text-[1.05rem]';
         />
         {
           emailError?.field === 'email' && (
-            <p role="alert" class="text-xs text-red-300">{emailError.message}</p>
+            <p role="alert" class="text-xs text-umber-danger">{emailError.message}</p>
           )
         }
         <button type="submit" class="btn-secondary py-2.5 text-sm">Cambiar email</button>
@@ -185,12 +185,12 @@ const inputClass = 'field text-[1.05rem]';
       <h2 class="font-display text-xl">Contraseña</h2>
       {
         passwordDone && (
-          <p role="status" class="text-umber-amber mt-3 text-sm">Contraseña actualizada.</p>
+          <p role="status" class="text-umber-accent mt-3 text-sm">Contraseña actualizada.</p>
         )
       }
       {
         passwordError !== null && passwordError.field === null && (
-          <p role="alert" class="mt-3 text-sm text-red-300">{passwordError.message}</p>
+          <p role="alert" class="mt-3 text-sm text-umber-danger">{passwordError.message}</p>
         )
       }
       <form method="post" class="mt-5 space-y-3">
@@ -210,7 +210,7 @@ const inputClass = 'field text-[1.05rem]';
           />
           {
             passwordError?.field === 'password' && (
-              <p role="alert" class="text-xs text-red-300">{passwordError.message}</p>
+              <p role="alert" class="text-xs text-umber-danger">{passwordError.message}</p>
             )
           }
         </div>
@@ -227,7 +227,7 @@ const inputClass = 'field text-[1.05rem]';
           />
           {
             passwordError?.field === 'password_confirm' && (
-              <p role="alert" class="text-xs text-red-300">{passwordError.message}</p>
+              <p role="alert" class="text-xs text-umber-danger">{passwordError.message}</p>
             )
           }
         </div>
@@ -237,7 +237,7 @@ const inputClass = 'field text-[1.05rem]';
 
     <section class="border-umber-line mt-10 border-t pt-8">
       <h2 class="font-display text-xl">Tus datos</h2>
-      <p class="text-umber-ash mt-2 text-sm">
+      <p class="text-umber-muted mt-2 text-sm">
         Descarga una copia de tu cuenta, tus conversaciones y tus favoritos.
       </p>
       <a href="/api/account/export" class="link mt-4 inline-block text-sm" download>
@@ -245,12 +245,12 @@ const inputClass = 'field text-[1.05rem]';
       </a>
     </section>
 
-    <section class="mt-10 border-t border-red-400/30 pt-8">
-      <h2 class="font-display text-xl text-red-300">Borrar la cuenta</h2>
-      <p class="text-umber-ash mt-2 text-sm">
+    <section class="mt-10 border-t border-umber-danger/30 pt-8">
+      <h2 class="font-display text-xl text-umber-danger">Borrar la cuenta</h2>
+      <p class="text-umber-muted mt-2 text-sm">
         Borra tu cuenta, tus conversaciones y tus favoritos. No se puede deshacer.
       </p>
-      <a href="/cuenta/borrar" class="mt-4 inline-block text-sm text-red-300 underline decoration-1 underline-offset-[5px] hover:text-red-200">
+      <a href="/cuenta/borrar" class="mt-4 inline-block text-sm text-umber-danger underline decoration-1 underline-offset-[5px] hover:text-umber-danger">
         Borrar mi cuenta
       </a>
     </section>

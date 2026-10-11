@@ -119,13 +119,13 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
             <li>
               <a
                 href="?idioma=es"
-                class="group border-umber-line hover:border-umber-rule hover:bg-umber-cream/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
+                class="group border-umber-line hover:border-umber-rule hover:bg-umber-ink/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
               >
                 <span class="font-display block text-[2rem] leading-none">Español</span>
-                <span class="text-umber-ash mt-3 block text-sm leading-relaxed">
+                <span class="text-umber-muted mt-3 block text-sm leading-relaxed">
                   Como se estrenó en España: <i class="font-serif">Cadena perpetua</i>.
                 </span>
-                <span class="text-umber-amber mt-5 inline-flex items-center gap-2 text-sm font-semibold">
+                <span class="text-umber-accent mt-5 inline-flex items-center gap-2 text-sm font-semibold">
                   Jugar <span class="arrow" aria-hidden="true">→</span>
                 </span>
               </a>
@@ -134,13 +134,13 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
               <a
                 href="?idioma=en"
                 lang="en"
-                class="group border-umber-line hover:border-umber-rule hover:bg-umber-cream/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
+                class="group border-umber-line hover:border-umber-rule hover:bg-umber-ink/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
               >
                 <span class="font-display block text-[2rem] leading-none">English</span>
-                <span class="text-umber-ash mt-3 block text-sm leading-relaxed">
+                <span class="text-umber-muted mt-3 block text-sm leading-relaxed">
                   The English title: <i class="font-serif">The Shawshank Redemption</i>.
                 </span>
-                <span class="text-umber-amber mt-5 inline-flex items-center gap-2 text-sm font-semibold">
+                <span class="text-umber-accent mt-5 inline-flex items-center gap-2 text-sm font-semibold">
                   Play <span class="arrow" aria-hidden="true">→</span>
                 </span>
               </a>
@@ -171,7 +171,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
         >
           <div class="lg:col-span-8">
             <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-              <h2 id="tablero" class="text-umber-ash text-sm">
+              <h2 id="tablero" class="text-umber-muted text-sm">
                 {description}, en {LANGUAGE_NAMES[language]}
               </h2>
               <a href={`?idioma=${otherLanguage}`} class="link-quiet text-sm">
@@ -232,7 +232,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
               </div>
             </div>
 
-            <p data-game-status role="status" class="text-umber-ash mt-6 min-h-[1.5rem] text-center text-sm" />
+            <p data-game-status role="status" class="text-umber-muted mt-6 min-h-[1.5rem] text-center text-sm" />
             <ul data-misses aria-label="Lo que has probado" class="mt-2 flex flex-wrap justify-center gap-2" />
 
             <div data-keyboard role="group" aria-label="Teclado" class="mx-auto mt-8 grid max-w-xl gap-1.5">
@@ -257,7 +257,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
               ))}
             </div>
             <noscript>
-              <p class="text-umber-ash mt-6 text-center text-sm">Para jugar hace falta JavaScript.</p>
+              <p class="text-umber-muted mt-6 text-center text-sm">Para jugar hace falta JavaScript.</p>
             </noscript>
 
             <GameResult other={{ href: '/juegos/cartel', label: 'Juega también a El cartel del día' }} poster />
@@ -272,7 +272,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
               {TITLE_CLUES.map((kind, index) => (
                 <li class="clue border-umber-line border-b py-5" data-clue={kind}>
                   <p class="field-label">{CLUE_LABELS[kind]}</p>
-                  <p class="text-umber-ash/70 mt-2 text-sm" data-clue-locked>
+                  <p class="text-umber-muted/70 mt-2 text-sm" data-clue-locked>
                     Tras el {ORDINALS[index]} fallo
                   </p>
                   {kind === 'poster' ? (
@@ -286,7 +286,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
                       lang={kind === 'synopsis' ? language : undefined}
                       class:list={[
                         'mt-2',
-                        kind === 'synopsis' ? 'reading text-umber-cream/90 text-[1rem]!' : 'font-display text-3xl',
+                        kind === 'synopsis' ? 'reading text-umber-ink/90 text-[1rem]!' : 'font-display text-3xl',
                       ]}
                     />
                   )}
@@ -297,7 +297,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
           </aside>
 
           <template data-leaf>
-            <LeafMark class="burst-leaf text-umber-amber" />
+            <LeafMark class="burst-leaf text-umber-accent" />
           </template>
         </section>
       )

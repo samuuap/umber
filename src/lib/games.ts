@@ -85,7 +85,7 @@ export interface DailyGame {
   readonly synopsis: Readonly<Record<Locale, string | null>>;
   /** El cartel sin texto, para desenfocarlo. */
   readonly blurPosterPath: string;
-  /** El cartel de siempre, con el título: el que se enseña al acabar. */
+  /** El cartel de siempre, con el título: el que se enseña al acabar el del título. */
   readonly posterPath: string | null;
   readonly collectionId: number | null;
 }
@@ -152,7 +152,8 @@ function answerOf(daily: DailyGame, language: Locale): GameAnswer {
     title: daily.titles[language],
     year: daily.year,
     director: daily.director,
-    poster_url: posterUrl(daily.posterPath),
+    // En el del cartel, el mismo que se ha ido desenfocando: otro parecía un error.
+    poster_url: posterUrl(daily.game === 'poster' ? daily.blurPosterPath : daily.posterPath),
   };
 }
 
