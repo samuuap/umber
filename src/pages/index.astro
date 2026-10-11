@@ -142,22 +142,22 @@ const AUTUMN_POSITIONS = [
       </aside>
     </section>
 
-    {/* Una banda de tinta: en claro, papel sobre negro; en oscuro se invierte con los tokens. */}
-    <section aria-labelledby="como-funciona" class="bg-umber-ink text-umber-base">
+    {/* Una banda de tinta, oscura en los dos modos (`umber-band`): en oscuro, un tono por encima de la noche. */}
+    <section aria-labelledby="como-funciona" class="bg-umber-band text-umber-band-ink">
       <div class="mx-auto max-w-[80rem] px-5 py-24 sm:px-8 lg:py-28">
-        <p class="eyebrow text-umber-base/70 reveal">Cómo funciona</p>
+        <p class="eyebrow text-umber-band-ink/70 reveal">Cómo funciona</p>
         <h2 id="como-funciona" class="display-2 reveal mt-7 max-w-3xl">
           Como hablar con alguien que ha visto <em>mucho</em> cine.
         </h2>
         <ol class="mt-16 grid gap-10 md:grid-cols-3 md:gap-x-10">
           {
             STEPS.map((step, position) => (
-              <li class="reveal border-umber-base border-t pt-5">
-                <p class="font-label text-umber-base/70 text-xs font-bold tracking-[0.16em] uppercase">
+              <li class="reveal border-umber-band-ink border-t pt-5">
+                <p class="font-label text-umber-band-ink/70 text-xs font-bold tracking-[0.16em] uppercase">
                   Acto {ACTS[position]}
                 </p>
                 <h3 class="font-display mt-3 text-[1.75rem] leading-tight tracking-[-0.01em]">{step.title}</h3>
-                <p class="text-umber-base/75 mt-2 leading-relaxed">{step.text}</p>
+                <p class="text-umber-band-ink/75 mt-2 leading-relaxed">{step.text}</p>
               </li>
             ))
           }
