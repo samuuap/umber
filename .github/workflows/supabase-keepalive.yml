@@ -2,13 +2,18 @@ name: Supabase — mantener activo y copia semanal
 
 # El plan gratuito de Supabase pausa el proyecto tras 7 días sin actividad, y
 # no da copias descargables. Esto hace una lectura trivial cada semana (para
-# que nunca pasen esos 7 días) y guarda un dump como artefacto del workflow.
+# que nunca pasen esos 7 días) y guarda un dump cifrado como artefacto.
 #
 # Secretos que hacen falta en Settings → Secrets and variables → Actions:
 #   SUPABASE_URL              (de .env.local; no es secreto, pero así va junto)
 #   SUPABASE_PUBLISHABLE_KEY  (idem)
 #   SUPABASE_DB_URL           (Project Settings → Database → Connection string,
 #                              modo «Session», con la contraseña de la base)
+#   BACKUP_PASSPHRASE         (la contraseña de la copia: guardarla también fuera
+#                              de GitHub, que no deja leer los secretos)
+#
+# Restaurar: gpg --decrypt umber-backup.dump.gpg > umber-backup.dump
+#            pg_restore --no-owner --dbname "<url de la base>" umber-backup.dump
 
 on:
   schedule:
@@ -35,14 +40,23 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
 
-      - name: Copia de la base
-        run: /usr/lib/postgresql/17/bin/pg_dump "${DB_URL}" --no-owner --no-privileges --format=custom --file=umber-backup.dump
+      # El repositorio es público: cualquiera con cuenta de GitHub puede bajar
+      # los artefactos. La copia solo sale cifrada, y sin contraseña no sale
+      - name: Copia de la base, cifrada
+        run: |
+          test -n "${BACKUP_PASSPHRASE}" || { echo "Falta el secreto BACKUP_PASSPHRASE"; exit 1; }
+          /usr/lib/postgresql/17/bin/pg_dump "${DB_URL}" --no-owner --no-privileges --format=custom --file=umber-backup.dump
+          printf '%s' "${BACKUP_PASSPHRASE}" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --output umber-backup.dump.gpg umber-backup.dump
+          rm umber-backup.dump
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
 
       - name: Subir la copia
         uses: actions/upload-artifact@v4
         with:
           name: umber-backup-${{ github.run_id }}
-          path: umber-backup.dump
+          path: umber-backup.dump.gpg
+          if-no-files-found: error
           retention-days: 90
