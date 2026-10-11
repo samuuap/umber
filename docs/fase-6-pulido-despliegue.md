@@ -88,8 +88,9 @@ lanzamiento primero.
       10 de la LSSI; el RGPD pide identidad y contacto). Al cobrar, añadirlos. Pendiente de criterio legal: la
       base de la **transferencia a DeepSeek (China)**, sin decisión de
       adecuación; está marcada en `/privacidad`
-- [ ] Decir en el chat que Umber es una IA (AI Act, art. 50, en vigor desde
-      agosto de 2026): hoy solo lo dicen las condiciones y el aviso legal
+- [x] Decir en el chat que Umber es una IA (AI Act, art. 50, en vigor desde
+      agosto de 2026): «Umber es una IA y puede equivocarse» bajo el cuadro de
+      escribir, también en móvil (2026-10-11)
 
 **Operación**
 - [x] **Correo de la cuenta sin coste** (2026-10-10): Gmail como SMTP, ver

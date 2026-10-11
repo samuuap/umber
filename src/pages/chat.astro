@@ -187,8 +187,11 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
         <button type="button" data-stop hidden class="btn-secondary px-4 py-2.5">Detener</button>
         <button type="submit" data-send class="btn-primary px-5 py-2.5">Enviar</button>
       </div>
-      <p class="text-umber-ash mt-2.5 hidden text-center text-[0.7rem] tracking-[0.02em] sm:block">
-        Intro para enviar · Mayúsculas + Intro para un salto de línea
+      <p class="text-umber-ash mt-2.5 text-center text-[0.7rem] tracking-[0.02em]">
+        <!-- AI Act, art. 50: decir que se habla con una IA -->
+        Umber es una IA y puede equivocarse<span class="hidden sm:inline"
+          >{' · '}Intro para enviar · Mayúsculas + Intro para un salto de línea</span
+        >
       </p>
     </form>
 

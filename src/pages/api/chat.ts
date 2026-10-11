@@ -253,11 +253,17 @@ async function prepareChat(
     .filter((message) => message.role === 'user')
     .map((message) => normalizeTitle(message.content))
     .join(' ')} `;
+  // También la saga, sin subtítulo ni número: quien dice «algo tipo Mad Max» ya
+  // la conoce, y le llegaban «Mad Max: Furia en la carretera» y «Mad Max II».
+  const sagaOf = (title: string): string =>
+    (title.split(/[:.]/)[0] ?? '').replace(/\s+(\d+|[ivx]+)\s*$/i, '');
   const namedByUser = (candidate: ContentCandidate): boolean =>
-    [candidate.title, candidate.title_en].some((title) => {
-      const normalized = title === null ? '' : normalizeTitle(title);
-      return normalized.length >= 5 && userText.includes(` ${normalized} `);
-    });
+    [candidate.title, candidate.title_en]
+      .flatMap((title) => (title === null ? [] : [title, sagaOf(title)]))
+      .some((title) => {
+        const normalized = normalizeTitle(title);
+        return normalized.length >= 5 && userText.includes(` ${normalized} `);
+      });
   // Los que le quedan de la última búsqueda, para «otra»: de la base, sin
   // vectorizar. Su caché de plataformas solo necesita los ids: se lee a la vez.
   const cache = readPlatformsCache(

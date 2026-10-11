@@ -250,7 +250,10 @@ Lo que destapó la prueba con personas, y está arreglado:
   *Mindhunter*. `buscar_por_titulo` lleva ahora una intención obligatoria,
   «verlo» o «parecido»; con «parecido», lo nombrado no llega como candidato. Y
   un título que la persona ha nombrado en la conversación no se le recomienda en
-  una búsqueda por ánimo (nombres de 5 letras o más, para no confundir *Up*)
+  una búsqueda por ánimo (nombres de 5 letras o más, para no confundir *Up*).
+  Desde el 2026-10-11, también la saga: con «algo tipo Mad Max» salían
+  *Furia en la carretera* y *Mad Max II*; ahora cuenta el título sin subtítulo
+  ni número
 - **Búsquedas que pasaban de los 3 s** del rol `anon` con la base en frío y
   varias a la vez: `search_content` cuenta antes lo que dejan los filtros (unos
   30 ms) y va exacta si son 4.000 o menos y por el índice si no; y el servidor
@@ -396,6 +399,7 @@ de fuera del equipo puede activar su cuenta, y hay una propuesta sin coste
 | Los filtros de búsqueda los pone el modelo, y solo con lo pedido de forma explícita (2026-10-04) | Son condiciones duras: adivinarlos dejaba sin candidatos. Si sobran, el servidor los quita por orden y se lo dice |
 | ~~Se mantienen de 2 a 4 preguntas~~ **De 3 a 5 preguntas antes de buscar**, salvo que pida que le recomiende ya (2026-10-04) | Propuesta del usuario, medida con personas simuladas: los fallos claros bajan del 18 % al 7 % (60 conversaciones por configuración). La salida rápida evita castigar a quien tiene prisa |
 | `buscar_por_titulo` con intención obligatoria, «verlo» o «parecido» (2026-10-04) | Con un título nombrado como referencia («me encantó X»), X llegaba como candidato y acababa recomendándolo. Con «parecido» no llega |
+| Preguntas sin cuestionario fijo, y «solo» en vez de «sin nadie» (2026-10-11) | Propuesta del usuario: el flujo sonaba repetitivo (siempre ánimo → con quién → conocida, repetía cada respuesta, «Última cosa»). `system.md` pide elegir la pregunta que más importe, no repetir ni contar preguntas ni resumir al recomendar. Con 60 conversaciones: juez 3,81 (antes 3,97), ≥ 4 en 47/59, ≤ 2 en 9 (antes 4), 2,2 preguntas (antes 2,4). Varios de esos fallos son errores del juez (*El cartero siempre llama dos veces* no es *Perdición*) o recomendar lo ya visto, que no depende del prompt |
 
 ## Preguntas abiertas
 
