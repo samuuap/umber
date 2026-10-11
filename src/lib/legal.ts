@@ -21,6 +21,15 @@ export const LEGAL_OWNER = {
   email: 'samuel.aos@hotmail.com',
 } as const;
 
+/**
+ * Consentimiento explícito para que DeepSeek trate los mensajes del chat en
+ * China, sin decisión de adecuación (art. 49.1.a del RGPD). Lo pide
+ * `/antes-de-hablar` antes de abrir el chat. Cambiar la versión si cambia lo que
+ * se informa: obliga a aceptarlo de nuevo.
+ */
+export const AI_CONSENT_COOKIE = 'umber_consentimiento_ia';
+export const AI_CONSENT_VERSION = '2026-10-11';
+
 /** La fecha de la versión en vigor de los textos. */
 export const LEGAL_UPDATED = '11 de octubre de 2026';
 

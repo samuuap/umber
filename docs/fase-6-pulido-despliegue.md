@@ -85,9 +85,15 @@ lanzamiento primero.
 - [ ] **Revisar los textos legales** y, después, `LEGAL_DRAFT = false`. Titular
       (2026-10-11): solo nombre y email, en `src/lib/legal.ts`; sin NIF ni
       domicilio mientras sea un proyecto personal sin ingresos (fuera del art.
-      10 de la LSSI; el RGPD pide identidad y contacto). Al cobrar, añadirlos. Pendiente de criterio legal: la
-      base de la **transferencia a DeepSeek (China)**, sin decisión de
-      adecuación; está marcada en `/privacidad`
+      10 de la LSSI; el RGPD pide identidad y contacto). Al cobrar, añadirlos.
+      **Transferencia a DeepSeek (China)**, decidido el 2026-10-11: consentimiento
+      explícito (art. 49.1.a) en `/antes-de-hablar`, que `/chat` exige con la
+      cookie `umber_consentimiento_ia` (versión en `AI_CONSENT_VERSION`). Se
+      descartó cambiar de proveedor: DeepSeek es barato y rinde bien. Es la base
+      más débil de las posibles (el RGPD la piensa para transferencias
+      ocasionales); `/api/chat` no la exige, para los scripts con Bearer.
+      `/privacidad` añade además las copias cifradas en GitHub (90 días), la IP
+      de la sesión de Supabase y que el registro de peticiones se pide por email
 - [x] Decir en el chat que Umber es una IA (AI Act, art. 50, en vigor desde
       agosto de 2026): «Umber es una IA y puede equivocarse» bajo el cuadro de
       escribir, también en móvil (2026-10-11)

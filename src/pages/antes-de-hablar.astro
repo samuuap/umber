@@ -1,0 +1,62 @@
+---
+/**
+ * Antes de abrir el chat: consentimiento explícito para que DeepSeek trate los
+ * mensajes en China (art. 49.1.a del RGPD). `/chat` manda aquí sin la cookie;
+ * al aceptar se guarda un año y se vuelve a `next`, con su `q` si lo traía.
+ * Funciona sin JavaScript.
+ */
+import Layout from '@/layouts/Layout.astro';
+import { safeRedirectPath } from '@/lib/auth';
+import { AI_CONSENT_COOKIE, AI_CONSENT_VERSION } from '@/lib/legal';
+
+const YEAR_SECONDS = 365 * 24 * 60 * 60;
+
+// Solo de vuelta al chat: cualquier otro destino, o uno de fuera, va a la portada.
+const asked = safeRedirectPath(Astro.url.searchParams.get('next'), '/');
+const next = asked.startsWith('/chat') ? asked : '/';
+
+if (Astro.request.method === 'POST') {
+  Astro.cookies.set(AI_CONSENT_COOKIE, AI_CONSENT_VERSION, {
+    path: '/',
+    maxAge: YEAR_SECONDS,
+    sameSite: 'lax',
+    httpOnly: true,
+    secure: Astro.url.protocol === 'https:',
+  });
+  return Astro.redirect(next, 303);
+}
+---
+
+<Layout title="Antes de hablar — Umber" description="Dónde se tratan tus mensajes cuando hablas con Umber.">
+  <main class="mx-auto w-full max-w-[46rem] flex-1 px-5 py-12 sm:px-8 sm:py-20">
+    <p class="eyebrow eyebrow-rule rise">Antes de hablar</p>
+    <h1 class="display-2 rise mt-6 [animation-delay:80ms]">Dónde van <em>tus mensajes</em></h1>
+
+    <div class="reading rise mt-8 space-y-4 [animation-delay:160ms]">
+      <p>
+        Las respuestas de Umber las escribe <strong>DeepSeek</strong>, un modelo de inteligencia artificial de una
+        empresa china. Para responderte, recibe lo que escribes en el chat y lo trata <strong>en China</strong>.
+      </p>
+      <p>
+        China no tiene una decisión de adecuación de la Unión Europea: tus mensajes no tendrán allí las mismas
+        garantías de protección de datos que en Europa, y las autoridades chinas podrían llegar a acceder a ellos.
+        DeepSeek no recibe tu email, tu nombre ni tu dirección IP.
+      </p>
+      <p>
+        Por eso, <strong>no escribas datos personales</strong>, tuyos o de otros: para recomendarte una película no
+        hacen falta.
+      </p>
+      <p class="text-umber-muted text-base">
+        Puedes retirar tu consentimiento cuando quieras borrando las cookies de Umber en tu navegador. Más detalle en la
+        <a href="/privacidad" class="link">política de privacidad</a>.
+      </p>
+    </div>
+
+    <form method="post" class="rise mt-10 flex flex-wrap gap-3 [animation-delay:240ms]">
+      <button type="submit" class="btn-primary">
+        Acepto, vamos al chat <span class="arrow" aria-hidden="true">→</span>
+      </button>
+      <a href="/" class="btn-secondary">Ahora no</a>
+    </form>
+  </main>
+</Layout>

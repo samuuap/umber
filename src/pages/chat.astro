@@ -18,6 +18,7 @@ import { UUID_PATTERN } from '@/lib/api';
 import { loadConversation, type StoredConversation } from '@/lib/conversations';
 import { NotFoundError } from '@/lib/errors';
 import { listFavoriteIds } from '@/lib/favorites';
+import { AI_CONSENT_COOKIE, AI_CONSENT_VERSION } from '@/lib/legal';
 import { regionFromAcceptLanguage } from '@/lib/locale';
 import { loadRecommendations } from '@/lib/recommendations';
 import { TMDB_DEFAULT_REGION } from '@/lib/tmdb';
@@ -31,6 +32,13 @@ import {
 } from '@/lib/types';
 
 const { user, supabase } = Astro.locals;
+
+// Sin el consentimiento para tratar los mensajes en China, no se abre el chat.
+// shortcut: /api/chat no lo comprueba (los scripts entran con Bearer); exigirlo allí si se abre la API a terceros
+if (Astro.cookies.get(AI_CONSENT_COOKIE)?.value !== AI_CONSENT_VERSION) {
+  return Astro.redirect(`/antes-de-hablar?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`);
+}
+
 const conversationParam = Astro.url.searchParams.get('conversation');
 
 let conversation: StoredConversation | null = null;
