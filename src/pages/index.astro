@@ -130,7 +130,7 @@ const AUTUMN_POSITIONS = [
                   formnovalidate
                   class="group hover:text-umber-accent flex min-h-16 w-full items-baseline gap-4 py-4 text-left transition-colors"
                 >
-                  <span class="font-label text-umber-accent text-xs font-bold tabular-nums" aria-hidden="true">
+                  <span class="font-label text-umber-muted text-xs font-bold tabular-nums" aria-hidden="true">
                     {String(position + 1).padStart(2, '0')}
                   </span>
                   <span class="font-display text-[1.45rem] leading-[1.15] tracking-[-0.01em]">{suggestion}</span>
@@ -142,22 +142,21 @@ const AUTUMN_POSITIONS = [
       </aside>
     </section>
 
-    {/* Una banda de tinta, oscura en los dos modos (`umber-band`): en oscuro, un tono por encima de la noche. */}
-    <section aria-labelledby="como-funciona" class="bg-umber-band text-umber-band-ink">
+    <section aria-labelledby="como-funciona" class="border-umber-line border-t">
       <div class="mx-auto max-w-[80rem] px-5 py-24 sm:px-8 lg:py-28">
-        <p class="eyebrow text-umber-band-ink/70 reveal">Cómo funciona</p>
+        <p class="eyebrow eyebrow-rule reveal">Cómo funciona</p>
         <h2 id="como-funciona" class="display-2 reveal mt-7 max-w-3xl">
           Como hablar con alguien que ha visto <em>mucho</em> cine.
         </h2>
         <ol class="mt-16 grid gap-10 md:grid-cols-3 md:gap-x-10">
           {
             STEPS.map((step, position) => (
-              <li class="reveal border-umber-band-ink border-t pt-5">
-                <p class="font-label text-umber-band-ink/70 text-xs font-bold tracking-[0.16em] uppercase">
+              <li class="reveal border-umber-ink border-t pt-5">
+                <p class="font-label text-umber-muted text-xs font-bold tracking-[0.16em] uppercase">
                   Acto {ACTS[position]}
                 </p>
                 <h3 class="font-display mt-3 text-[1.75rem] leading-tight tracking-[-0.01em]">{step.title}</h3>
-                <p class="text-umber-band-ink/75 mt-2 leading-relaxed">{step.text}</p>
+                <p class="text-umber-muted mt-2 leading-relaxed">{step.text}</p>
               </li>
             ))
           }
@@ -273,7 +272,7 @@ const AUTUMN_POSITIONS = [
         <div class="reveal lg:col-span-6">
           <p class="eyebrow eyebrow-rule">
             Especialidad
-            <span class="border-umber-accent/60 text-umber-accent ml-2 border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+            <span class="border-umber-rule text-umber-ink ml-2 border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
               Nuevo
             </span>
           </p>
@@ -317,7 +316,7 @@ const AUTUMN_POSITIONS = [
         <div class="reveal lg:col-span-6">
           <p class="eyebrow eyebrow-rule">
             Juegos
-            <span class="border-umber-accent/60 text-umber-accent ml-2 border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
+            <span class="border-umber-rule text-umber-ink ml-2 border px-2 py-0.5 text-[0.6rem] tracking-[0.18em]">
               Nuevo
             </span>
           </p>

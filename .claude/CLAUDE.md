@@ -898,8 +898,6 @@ Texto principal:   #16130F   #EDE6DA   (tinta / papel)  14:1+     umber-ink
 Texto secundario:  #5E564C   #A39A8D   6,5:1+                     umber-muted
 Acento:            #B8321C   #E8664C   (bermellón)      5:1+      umber-accent (+ -hover)
 Errores:           #9F1D1D   #F2998A   siempre con texto          umber-danger
-Banda de tinta:    #16130F   #26211B   («Cómo funciona»), no se   umber-band
-                                       invierte; su texto, papel  (+ -ink)
 
 Titulares:         Instrument Serif 400 y cursiva                   font-display
 Lo que se lee:     Newsreader de lectura (opsz 16), 400 y 600       font-serif

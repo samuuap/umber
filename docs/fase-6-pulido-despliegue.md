@@ -144,8 +144,14 @@ lanzamiento primero.
       y la burbuja del chat. Queda una sombra corta en el desplegable del buscador del cartel, que flota. Comprobado
       sobre el build con capturas de Edge, claro y oscuro
 - [x] La portada de la maqueta (2026-10-11): sugerencias numeradas a la
-      derecha (debajo en el móvil), «Cómo funciona» como banda de tinta con
-      «Acto I, II, III» (en oscuro se invierte con los tokens) y la línea de
+      derecha (debajo en el móvil), «Cómo funciona» en tres actos («Acto I,
+      II, III») sobre el mismo fondo, separada con un filete como las demás
+      secciones. Se descartó la banda de tinta de la maqueta y también una de
+      `umber-surface` (decisión del usuario, con revisión de diseño: un
+      programa impreso es una sola hoja; un fondo distinto destacaba en claro y,
+      en oscuro, se invertía o parecía un error). El rojo, medido: los actos,
+      los números de las sugerencias y «Nuevo» van en gris o tinta, porque ya
+      están bajo un rótulo rojo y la línea de
       fecha sobre la cabecera, solo en la portada, con el día de Madrid. Como en
       la maqueta, sin el fotograma arriba: la película sigue en «Si te gustó…»
 - [x] El chat de la maqueta (2026-10-11): los mensajes como un guion, «Tú» en
