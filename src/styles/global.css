@@ -260,6 +260,11 @@
   .dot-list {
     @apply flex flex-wrap gap-x-2 gap-y-1 [&>li+li]:before:mr-2 [&>li+li]:before:text-umber-ash/60 [&>li+li]:before:content-['·'];
   }
+
+  /* Textos legales: lectura larga, con apartados y listas. */
+  .legal-text {
+    @apply text-umber-cream/90 max-w-[42rem] [&_a]:text-umber-amber [&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-[5px] [&_h2]:font-display [&_h2]:text-umber-cream [&_h2]:mt-14 [&_h2]:mb-4 [&_h2]:text-[1.9rem] [&_h2]:leading-tight [&_h3]:font-sans [&_h3]:text-umber-cream [&_h3]:mt-8 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_li]:mt-2 [&_p]:mt-4 [&_strong]:text-umber-cream [&_strong]:font-semibold [&_table]:mt-5 [&_table]:w-full [&_table]:font-sans [&_table]:text-sm [&_td]:border-umber-line [&_td]:border-t [&_td]:py-3 [&_td]:pr-4 [&_td]:align-top [&_th]:text-umber-ash [&_th]:pb-2 [&_th]:pr-4 [&_th]:text-left [&_th]:font-medium [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6;
+  }
 }
 
 /* ─── Movimiento ─────────────────────────────────────────────────────────────

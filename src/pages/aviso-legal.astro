@@ -1,0 +1,44 @@
+---
+/** Aviso legal: quién responde de Umber. Con ingresos, el art. 10 de la LSSI pide además NIF y domicilio. */
+import LegalPage from '@/components/LegalPage.astro';
+import { LEGAL_OWNER } from '@/lib/legal';
+---
+
+<LegalPage title="Aviso legal" description="Quién está detrás de Umber y las condiciones básicas de esta web.">
+  <h2>Titular</h2>
+  <p>Umber es un proyecto personal, gratuito y sin publicidad.</p>
+  <ul>
+    <li><strong>Titular:</strong> {LEGAL_OWNER.name}</li>
+    <li>
+      <strong>Contacto:</strong> <a href={`mailto:${LEGAL_OWNER.email}`}>{LEGAL_OWNER.email}</a>
+    </li>
+    <li><strong>Web:</strong> umber365.vercel.app</li>
+  </ul>
+
+  <h2>Qué es Umber</h2>
+  <p>
+    Umber recomienda películas y series conversando contigo, con un asistente de inteligencia artificial, y propone
+    dos juegos diarios sobre cine. El uso de la web se rige por las <a href="/condiciones">condiciones de uso</a>, y
+    el tratamiento de tus datos, por la <a href="/privacidad">política de privacidad</a>.
+  </p>
+
+  <h2>Propiedad intelectual</h2>
+  <p>
+    El diseño, los textos propios y el código de Umber pertenecen a su titular. Los datos de películas y series, los
+    carteles y las imágenes proceden de <a href="https://www.themoviedb.org/">TMDB</a> y pertenecen a sus
+    respectivos titulares; Umber usa la API de TMDB, pero no está respaldado ni certificado por TMDB. Los datos de
+    plataformas de streaming proceden de <a href="https://www.justwatch.com/">JustWatch</a>.
+  </p>
+
+  <h2>Responsabilidad</h2>
+  <p>
+    Las recomendaciones son orientativas y las redacta un modelo de inteligencia artificial, que puede equivocarse.
+    La disponibilidad en cada plataforma cambia a menudo: compruébala en la propia plataforma. Los enlaces a webs de
+    terceros se ofrecen por comodidad; Umber no responde de su contenido.
+  </p>
+
+  <h2>Ley aplicable</h2>
+  <p>
+    Esta web se rige por la ley española. Si eres consumidor, puedes acudir a los tribunales de tu domicilio.
+  </p>
+</LegalPage>

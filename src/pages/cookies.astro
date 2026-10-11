@@ -1,0 +1,65 @@
+---
+/**
+ * Política de cookies (LSSI, artículo 22.2). Solo hay almacenamiento técnico o
+ * pedido por la persona: exento de consentimiento, por eso no hay banner. Una
+ * cookie de analítica o de terceros obligaría a pedirlo.
+ */
+import LegalPage from '@/components/LegalPage.astro';
+---
+
+<LegalPage title="Cookies" description="Qué cookies y qué almacenamiento del navegador usa Umber, y para qué.">
+  <p>
+    Umber <strong>no usa cookies de publicidad, de analítica ni de terceros</strong>. Solo guarda en tu navegador
+    lo imprescindible para que funcione lo que tú usas, y por eso no te pedimos que las aceptes: la ley no lo exige
+    para este tipo de almacenamiento.
+  </p>
+
+  <h2>Qué guardamos en tu navegador</h2>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Nombre</th>
+        <th scope="col">Para qué</th>
+        <th scope="col">Cuánto dura</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>sb-…-auth-token</code></td>
+        <td>Tu sesión, si has entrado con tu cuenta. Puede dividirse en varias partes (<code>.0</code>, <code>.1</code>…)</td>
+        <td>Hasta que sales o caduca la sesión</td>
+      </tr>
+      <tr>
+        <td><code>sb-…-auth-token-code-verifier</code></td>
+        <td>Completar el inicio de sesión con Google o desde un enlace del correo, de forma segura</td>
+        <td>Lo que dura ese inicio de sesión</td>
+      </tr>
+      <tr>
+        <td><code>umber_juego_idioma</code></td>
+        <td>Recordar en qué idioma juegas a «El título del día»</td>
+        <td>Un año</td>
+      </tr>
+      <tr>
+        <td><code>umber:games:v1</code> (almacenamiento local, no es una cookie)</td>
+        <td>Tus partidas y tu racha en los juegos, para que sigan ahí al volver</td>
+        <td>Hasta que borres los datos del sitio</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Las cookies son propias, de Umber, y se envían solo a Umber. Las de la sesión no las puede leer el código de la
+    página, solo el servidor.
+  </p>
+
+  <h2>Imágenes de TMDB</h2>
+  <p>
+    Los carteles se descargan de los servidores de TMDB, que, como cualquier servidor, ve tu dirección IP. Umber no
+    le pide que guarde cookies.
+  </p>
+
+  <h2>Cómo borrarlas</h2>
+  <p>
+    Puedes borrarlas, o impedir que se guarden, desde la configuración de tu navegador. Si lo haces, se cerrará tu
+    sesión y perderás tus partidas de los juegos y tu racha.
+  </p>
+</LegalPage>

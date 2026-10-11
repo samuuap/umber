@@ -5,6 +5,7 @@
  */
 import LeafMark from '@/components/LeafMark.astro';
 import { EXPLORE_PATH } from '@/lib/explore';
+import { LEGAL_PAGES } from '@/lib/legal';
 
 const user = Astro.locals.user;
 const year = new Date().getFullYear();
@@ -68,11 +69,24 @@ const links = [
     </div>
   </div>
   <div class="border-umber-line border-t">
-    <p
+    <div
       class="text-umber-ash mx-auto flex max-w-[80rem] flex-wrap justify-between gap-x-6 gap-y-1 px-5 py-6 text-xs sm:px-8"
     >
       <span>Umber, {year}</span>
+      <nav aria-label="Legal">
+        <ul class="flex flex-wrap gap-x-5 gap-y-1">
+          {
+            LEGAL_PAGES.map((page) => (
+              <li>
+                <a href={page.href} class="link-quiet">
+                  {page.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
       <span>Hecho con calma y mucho cine</span>
-    </p>
+    </div>
   </div>
 </footer>

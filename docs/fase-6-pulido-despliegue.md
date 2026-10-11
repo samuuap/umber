@@ -74,9 +74,22 @@ lanzamiento primero.
       `email_address_not_authorized`
 
 **Legal**
-- [ ] Aviso legal, política de privacidad, cookies (solo técnicas: sin banner)
-      y condiciones de uso, enlazados desde el pie. Borradores para que los
-      revise alguien
+- [x] **Borradores** (2026-10-11): `/aviso-legal`, `/privacidad`, `/cookies` y
+      `/condiciones`, con `LegalPage` y el estilo `legal-text`; enlazados desde
+      el pie y, en el registro, «aceptas las condiciones y tienes 14 años o
+      más». Escritos sobre lo que hace el código: plazos de `prune_traces` (30 y
+      90 días), la IP en claro solo en `rate_limits` (un día como mucho),
+      `client_hash` en las trazas, proveedores y sus regiones, cookies de
+      Supabase, `umber_juego_idioma` y `umber:games:v1`. Probados sobre el
+      build: sin violaciones de CSP, 390 y 1280 px
+- [ ] **Revisar los textos legales** y, después, `LEGAL_DRAFT = false`. Titular
+      (2026-10-11): solo nombre y email, en `src/lib/legal.ts`; sin NIF ni
+      domicilio mientras sea un proyecto personal sin ingresos (fuera del art.
+      10 de la LSSI; el RGPD pide identidad y contacto). Al cobrar, añadirlos. Pendiente de criterio legal: la
+      base de la **transferencia a DeepSeek (China)**, sin decisión de
+      adecuación; está marcada en `/privacidad`
+- [ ] Decir en el chat que Umber es una IA (AI Act, art. 50, en vigor desde
+      agosto de 2026): hoy solo lo dicen las condiciones y el aviso legal
 
 **Operación**
 - [x] **Correo de la cuenta sin coste** (2026-10-10): Gmail como SMTP, ver

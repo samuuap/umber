@@ -423,6 +423,8 @@ export const POSTER_MAX_ATTEMPTS = 6;
 
 /** Las letras que se eligen al empezar «El título del día», distintas. */
 export const TITLE_LETTER_PICKS = 4;
+/** Vocales como mucho entre esas letras: con cuatro, el título salía casi solo. */
+export const TITLE_MAX_VOWELS = 2;
 /** Las pistas del título, en orden: cada fallo (o pedir pista) destapa la siguiente. */
 export const TITLE_CLUES = ['year', 'director', 'synopsis', 'poster'] as const;
 export type TitleClueKind = (typeof TITLE_CLUES)[number];
@@ -455,7 +457,10 @@ export interface TitleGameRequestBody {
   /** `YYYY-MM-DD`, el día de Madrid de la partida: hoy o uno anterior. */
   readonly day: string;
   readonly language: Locale;
-  /** `TITLE_LETTER_PICKS` letras distintas, en mayúscula y sin tilde (la Ñ es una letra). */
+  /**
+   * `TITLE_LETTER_PICKS` letras distintas, en mayúscula y sin tilde (la Ñ es una
+   * letra), con `TITLE_MAX_VOWELS` vocales como mucho.
+   */
   readonly letters: readonly string[];
   /**
    * El título entero en cada intento, con las mismas letras (las destapadas

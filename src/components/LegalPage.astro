@@ -1,0 +1,55 @@
+---
+/**
+ * Marco común de los textos legales: titular, fecha, aviso de borrador y el
+ * texto, con el estilo `legal-text` de `global.css`.
+ */
+import Layout from '@/layouts/Layout.astro';
+import { LEGAL_DRAFT, LEGAL_PAGES, LEGAL_UPDATED } from '@/lib/legal';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const current = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<Layout title={`${title} — Umber`} description={description}>
+  <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 sm:px-8">
+    <header class="pt-10 pb-10 sm:pt-14">
+      <p class="eyebrow eyebrow-rule rise">Legal</p>
+      <h1 class="display-1 rise mt-7 [animation-delay:80ms]">{title}</h1>
+      <p class="text-umber-ash rise mt-5 text-sm [animation-delay:160ms]">Última actualización: {LEGAL_UPDATED}</p>
+      <nav aria-label="Textos legales" class="rise mt-8 [animation-delay:200ms]">
+        <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {
+            LEGAL_PAGES.map((page) => (
+              <li>
+                <a
+                  href={page.href}
+                  class={page.href === current ? 'text-umber-cream' : 'link-quiet'}
+                  aria-current={page.href === current ? 'page' : undefined}
+                >
+                  {page.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </header>
+
+    {
+      LEGAL_DRAFT && (
+        <p role="note" class="border-umber-amber/70 text-umber-cream mb-10 max-w-[42rem] border-l-2 py-1 pl-4 text-sm leading-relaxed">
+          Borrador pendiente de revisión. Puede cambiar antes de su versión definitiva.
+        </p>
+      )
+    }
+
+    <article class="legal-text reading pb-8">
+      <slot />
+    </article>
+  </main>
+</Layout>

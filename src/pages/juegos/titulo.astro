@@ -1,7 +1,8 @@
 ---
 /**
  * «El título del día»: el título de una película muy conocida, en español (el
- * de su estreno en España) o en inglés. Se eligen cuatro letras y se destapan
+ * de su estreno en España) o en inglés. Se eligen cuatro letras (dos vocales
+ * como mucho) y se destapan
  * donde salen; después se escribe el título entero. Cada fallo, o pedir pista,
  * destapa la siguiente: el año, el director, la sinopsis y, al final, el
  * cartel, poco desenfocado. Cinco intentos.
@@ -20,6 +21,7 @@ import {
   TITLE_CLUES,
   TITLE_LETTER_PICKS,
   TITLE_MAX_ATTEMPTS,
+  TITLE_MAX_VOWELS,
   isLocale,
   type Locale,
   type TitleClueKind,
@@ -96,7 +98,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
         <h1 class="display-1 mt-7">El título <em>del día</em></h1>
       </div>
       <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
-        Elige cuatro letras y mira dónde salen. Si no sacas el título, cada fallo trae una pista: el año, el director,
+        Elige cuatro letras, dos vocales como mucho, y mira dónde salen. Si no sacas el título, cada fallo trae una pista: el año, el director,
         la sinopsis y, al final, el cartel.
       </p>
     </header>
@@ -199,7 +201,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
 
             {/* Paso 1: las cuatro letras. */}
             <div data-pick-panel class="mt-12 text-center">
-              <p class="field-label">Elige {TITLE_LETTER_PICKS} letras</p>
+              <p class="field-label">Elige {TITLE_LETTER_PICKS} letras, {TITLE_MAX_VOWELS} vocales como mucho</p>
               <div class="mt-4 flex justify-center gap-2.5" data-pick-slots>
                 {Array.from({ length: TITLE_LETTER_PICKS }, () => (
                   <span class="pick-slot" data-pick-slot />

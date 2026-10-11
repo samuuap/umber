@@ -1,19 +1,21 @@
 /**
  * «El título del día» en el navegador (`/juegos/titulo`).
  *
- * Dos pasos. Primero se eligen cuatro letras con el teclado y se destapan: el
+ * Dos pasos. Primero se eligen cuatro letras con el teclado (dos vocales como
+ * mucho) y se destapan: el
  * servidor dice en qué casillas salen y cuáles no están. Después se escribe el
  * título en las casillas que quedan; cada fallo, o pedir pista, destapa la
  * siguiente (año, director, sinopsis, cartel). Quien corrige es
  * `/api/games/title`, que recibe la partida entera cada vez. La partida se
  * guarda en el navegador (`src/scripts/games.ts`): al volver, sale como estaba.
  */
-import { foldLetter, titleLetters } from '@/lib/game-rules';
+import { countVowels, foldLetter, titleLetters } from '@/lib/game-rules';
 import { celebrate, loadPlay, pageUrl, playKey, postJson, savePlay, showResult } from '@/scripts/games';
 import {
   TITLE_CLUES,
   TITLE_LETTER_PICKS,
   TITLE_MAX_ATTEMPTS,
+  TITLE_MAX_VOWELS,
   isLocale,
   type TitleClue,
   type TitleClueKind,
@@ -129,6 +131,9 @@ if (root !== null) {
   function togglePick(letter: string): void {
     if (picks.includes(letter)) {
       picks = picks.filter((picked) => picked !== letter);
+    } else if (picks.length < TITLE_LETTER_PICKS && countVowels([...picks, letter]) > TITLE_MAX_VOWELS) {
+      say(`Solo ${String(TITLE_MAX_VOWELS)} vocales. Toca una para cambiarla.`);
+      return;
     } else if (picks.length < TITLE_LETTER_PICKS) {
       picks = [...picks, letter];
     } else {
@@ -457,7 +462,12 @@ if (root !== null) {
 
   // Al volver a la página, la partida de antes.
   const stored = loadPlay(key);
-  if (stored !== null && (stored.picks ?? []).length === TITLE_LETTER_PICKS) {
+  // Una partida de antes de limitar las vocales ya no la acepta el servidor: se empieza de nuevo.
+  if (
+    stored !== null &&
+    (stored.picks ?? []).length === TITLE_LETTER_PICKS &&
+    countVowels(stored.picks ?? []) <= TITLE_MAX_VOWELS
+  ) {
     picks = [...stored.picks];
     paintPicks();
     void send([...stored.guesses], false);

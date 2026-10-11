@@ -63,9 +63,15 @@ DeepSeek ni embeddings, solo lecturas de la base.
       publishable key, `daily_games` responde 401 (`permission denied`)
 - [x] **Días rellenados**: 365 de cartel (2026-10-08 → 2027-10-07) y 169 de
       título (2026-10-08 → 2027-03-25)
-- [ ] **Probarlo en el navegador** a 390 y 1280 px: los dos juegos de principio a
-      fin, ganar y perder, volver a la página a mitad de partida, teclado físico,
-      movimiento reducido, y la CSP sobre el build
+- [x] **Probado en el navegador** (2026-10-11, Edge sin interfaz con patchright):
+      el título en español a 390 px (fallo con pista, recarga a mitad de partida y
+      acierto) y en inglés a 1280 px (perdido con las cuatro pistas); el cartel a
+      1280 px con movimiento reducido (pasar, fallo, elegir con flechas e Intro,
+      acierto) y perdido pasando hasta el final. Sin errores de consola ni de red.
+      Sobre el build, con la CSP real de cabecera: ninguna violación. `astro
+      preview` no funciona con el adaptador de Vercel: se sirvió
+      `.vercel/output` con un servidor de Node de usar y tirar. Arreglado: «100 %»
+      de las estadísticas se partía en dos líneas a 390 px
 - [ ] **Antes del 25 de marzo de 2027**: el título se queda sin películas de
       10.000 votos que valgan (169). `games.py --min-votes 8000` añade más. El
       cartel llega hasta el 31 de octubre de 2027
@@ -82,7 +88,7 @@ DeepSeek ni embeddings, solo lecturas de la base.
 | El título no es un Wordle tal cual: cuatro letras y luego pistas (2026-10-08) | Decisión de producto, tras ver la propuesta de Wordle. Con títulos de 15 letras, un Wordle era un ahorcado lento |
 | Solo películas con 10.000 votos o más (2026-10-08) | Decisión de producto: «muy muy muy conocidas». Son unas 390; con un cartel sin título o cuatro letras, una menos conocida no la saca nadie |
 | El título se escribe entero en las casillas; las destapadas quedan fijas | Es lo que da sentido a las letras elegidas. Elegirlo de una lista con autocompletado, con títulos tan conocidos, sería demasiado fácil |
-| Las cuatro letras, libres y distintas | Lo que se pidió. Si resulta fácil, limitar a una vocal es un cambio de una constante. Para que no destapen el título entero, solo entran títulos con seis letras distintas o más |
+| ~~Las cuatro letras, libres y distintas~~ **Cuatro letras distintas, dos vocales como mucho** (2026-10-11, `TITLE_MAX_VOWELS`) | Decisión de producto: con cuatro vocales el título salía casi solo, muy guiado. Lo valida el servidor (400) y el teclado avisa al elegir la tercera. Una partida guardada de antes con más vocales se empieza de nuevo. Para que no destapen el título entero, solo entran títulos con seis letras distintas o más |
 | El título de España sale de las traducciones de TMDB, no de `content.title` | El corpus tiene 1.249 títulos con el latinoamericano cuando TMDB deja vacío el de España (*Joker* → «Guasón», *Pulp Fiction* → «Tiempos violentos»). Ver la Fase 8 |
 | Carteles sin texto (`/movie/<id>/images`, idioma nulo) | Con el texto, el título se leería al desenfocarlo menos. Las 389 películas tienen uno |
 | El desenfoque, en el servidor y firmado | Con `filter: blur()` en el navegador bastaría abrir la imagen. Con la firma, cada nivel solo se consigue gastando los intentos de antes |

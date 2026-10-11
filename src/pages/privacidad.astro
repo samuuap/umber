@@ -1,0 +1,178 @@
+---
+/**
+ * Política de privacidad (RGPD y LOPDGDD). Describe lo que hace el código de
+ * verdad: si cambia qué se guarda, cuánto o con quién, cambiar también esto.
+ */
+import LegalPage from '@/components/LegalPage.astro';
+import { LEGAL_OWNER } from '@/lib/legal';
+---
+
+<LegalPage
+  title="Privacidad"
+  description="Qué datos trata Umber, para qué, cuánto tiempo los guarda, con quién los comparte y cómo ejercer tus derechos."
+>
+  <p>
+    Esta política explica qué datos personales trata Umber cuando lo usas, para qué, durante cuánto tiempo y qué
+    derechos tienes. La hemos escrito para que se entienda: si algo no queda claro, escríbenos.
+  </p>
+
+  <h2>Quién es el responsable</h2>
+  <p>
+    {LEGAL_OWNER.name}. Contacto para todo lo relacionado con tus datos: <a href={`mailto:${LEGAL_OWNER.email}`}>{LEGAL_OWNER.email}</a>.
+  </p>
+
+  <h2>Qué datos tratamos y para qué</h2>
+
+  <h3>Si creas una cuenta</h3>
+  <ul>
+    <li>
+      <strong>Email, nombre de usuario y contraseña</strong> (la contraseña se guarda cifrada con un hash; nadie
+      puede leerla). Si entras con Google, recibimos de Google tu email y los datos básicos de tu perfil que Google
+      comparte al iniciar sesión.
+    </li>
+    <li>
+      <strong>Tus conversaciones con Umber</strong>, para que puedas retomarlas, y <strong>tus favoritos</strong>.
+    </li>
+  </ul>
+  <p>
+    <strong>Finalidad y base legal:</strong> darte el servicio que pides al registrarte (artículo 6.1.b del RGPD,
+    ejecución del contrato).
+  </p>
+
+  <h3>Cuando hablas con Umber, con o sin cuenta</h3>
+  <p>
+    Guardamos un <strong>registro de cada petición</strong> al chat y al buscador: el mensaje que escribes, la
+    respuesta, qué títulos se buscaron y recomendaron, el tiempo que tardó y lo que costó. Si tienes cuenta, el
+    registro va unido a ella; si no, a un código que calculamos a partir de tu dirección IP con una función
+    irreversible (un HMAC), de modo que <strong>la IP no se guarda en el registro</strong>.
+  </p>
+  <p>
+    <strong>Finalidad y base legal:</strong> detectar abusos, corregir errores y mejorar las recomendaciones; es
+    nuestro interés legítimo en que el servicio funcione bien y no se use de forma abusiva (artículo 6.1.f del RGPD).
+    Puedes oponerte escribiéndonos.
+  </p>
+
+  <h3>Para limitar el uso</h3>
+  <p>
+    Para que nadie pueda agotar el servicio, contamos las peticiones por cuenta o, sin cuenta, por
+    <strong>dirección IP</strong>. Esos contadores guardan la IP tal cual, solo durante la ventana de tiempo que
+    cuentan (como mucho, un día), y se borran solos al caducar. Base legal: interés legítimo en la seguridad del
+    servicio (artículo 6.1.f).
+  </p>
+
+  <h3>Los juegos</h3>
+  <p>
+    Los juegos no necesitan cuenta ni guardan nada de ti en nuestros servidores: tu partida y tu racha viven solo en
+    tu navegador. El servidor corrige cada intento y no lo guarda.
+  </p>
+
+  <h2>Cuánto tiempo los guardamos</h2>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Dato</th>
+        <th scope="col">Plazo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Cuenta, conversaciones y favoritos</td>
+        <td>Hasta que borres la conversación o la cuenta</td>
+      </tr>
+      <tr>
+        <td>Texto de los mensajes y respuestas en el registro de peticiones</td>
+        <td>30 días; después se borra el texto</td>
+      </tr>
+      <tr>
+        <td>Resto del registro de peticiones</td>
+        <td>90 días</td>
+      </tr>
+      <tr>
+        <td>Contadores de uso con la IP</td>
+        <td>Como mucho, un día</td>
+      </tr>
+      <tr>
+        <td>Estadísticas diarias (peticiones, tokens y coste)</td>
+        <td>Sin plazo: no contienen datos de nadie</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Si borras tu cuenta, se borran con ella tus conversaciones, tus favoritos y tu registro de peticiones.
+  </p>
+
+  <h2>Con quién los compartimos</h2>
+  <p>
+    No vendemos tus datos ni los usamos para publicidad. Para funcionar, Umber se apoya en estos proveedores, que los
+    tratan por cuenta nuestra y solo para prestarnos su servicio:
+  </p>
+  <ul>
+    <li>
+      <strong>Supabase</strong> (base de datos y cuentas). Los datos se alojan en Irlanda (Unión Europea).
+    </li>
+    <li>
+      <strong>Vercel</strong> (alojamiento de la web). Las funciones se ejecutan en Dublín; como cualquier
+      servidor web, ve tu dirección IP al atender cada petición.
+    </li>
+    <li>
+      <strong>DeepSeek</strong> (el modelo de lenguaje que redacta las respuestas de Umber). Recibe el texto de la
+      conversación, sin tu email, tu nombre ni tu IP. <strong>Está en China</strong>, un país sin decisión de
+      adecuación de la Comisión Europea: ver «Transferencias internacionales».
+    </li>
+    <li>
+      <strong>Cloudflare</strong> (convierte en números el resumen de búsqueda que escribe Umber, para buscar en el
+      catálogo). Recibe ese resumen, no tus datos de cuenta.
+    </li>
+    <li>
+      <strong>Google</strong>, si entras con tu cuenta de Google, y como servicio de correo con el que enviamos los
+      emails de la cuenta (confirmación, recuperar la contraseña).
+    </li>
+    <li>
+      <strong>TMDB</strong> (The Movie Database): de ahí salen los datos y carteles de las películas. Tu navegador
+      descarga las imágenes directamente de sus servidores, así que TMDB ve tu dirección IP.
+    </li>
+  </ul>
+
+  <h2>Transferencias internacionales</h2>
+  <p>
+    Vercel, Cloudflare, Google y Supabase son empresas de Estados Unidos. Cuando sus servicios tratan datos fuera
+    de la Unión Europea, la transferencia se ampara en el Marco de Privacidad de Datos UE-EE. UU. o en las cláusulas
+    contractuales tipo de la Comisión Europea.
+  </p>
+  <p>
+    DeepSeek trata el texto de las conversaciones en China. [PENDIENTE DE REVISIÓN: base legal de esta
+    transferencia.] Por eso te pedimos que <strong>no escribas en el chat datos personales</strong> (tuyos o de
+    otros) que no hagan falta para recomendarte una película.
+  </p>
+
+  <h2>Tus derechos</h2>
+  <p>Puedes, en cualquier momento:</p>
+  <ul>
+    <li><strong>Acceder</strong> a tus datos y llevártelos (portabilidad): desde tu cuenta, «Descargar tus datos».</li>
+    <li><strong>Corregirlos</strong>: tu nombre de usuario, email y contraseña se cambian en tu cuenta.</li>
+    <li>
+      <strong>Borrarlos</strong>: cada conversación se borra desde «Conversaciones», y la cuenta entera desde tu
+      cuenta, «Borrar la cuenta».
+    </li>
+    <li><strong>Oponerte</strong> al registro de peticiones, o pedir que limitemos su uso.</li>
+  </ul>
+  <p>
+    Para lo que no puedas hacer desde la web, escríbenos a
+    <a href={`mailto:${LEGAL_OWNER.email}`}>{LEGAL_OWNER.email}</a>. Si sin cuenta quieres ejercer un derecho sobre
+    el registro de tus peticiones, dinos aproximadamente cuándo hablaste con Umber y qué le escribiste, para
+    encontrarlo. Si crees que no hemos atendido bien tu petición, puedes reclamar ante la
+    <a href="https://www.aepd.es/">Agencia Española de Protección de Datos</a>.
+  </p>
+
+  <h2>Menores</h2>
+  <p>
+    Para crear una cuenta tienes que tener al menos 14 años, la edad a partir de la cual la ley española permite
+    dar el consentimiento por uno mismo.
+  </p>
+
+  <h2>Cambios en esta política</h2>
+  <p>
+    Si cambiamos algo importante, lo diremos en la web antes de que se aplique. La fecha de arriba indica la versión
+    en vigor.
+  </p>
+</LegalPage>

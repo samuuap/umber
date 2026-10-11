@@ -694,8 +694,8 @@ Los otros dos endpoints, con el mismo formato de error:
   entre todos: protege la cuota gratuita de Cloudflare, que comparte con el chat)
 - **Juegos del día** (contratos en `src/lib/types.ts`), sin sesión ni rate
   limit, como `/explorar`: no llaman a ningún modelo. `POST /api/games/title`
-  (`{ day, language, letters, guesses }`: las cuatro letras destapan casillas y
-  cada fallo, una pista) y `POST /api/games/poster` (`{ day, guesses }`: ids del
+  (`{ day, language, letters, guesses }`: las cuatro letras, distintas y con
+  dos vocales como mucho, destapan casillas y cada fallo, una pista) y `POST /api/games/poster` (`{ day, guesses }`: ids del
   corpus o `null` para pasar) corrigen la partida entera; la solución, solo al
   acabar. `GET /api/games/poster-image?game&day&level&sig`, el cartel
   desenfocado (firmado, una semana en la CDN), y `GET /api/games/titles?q=`, el

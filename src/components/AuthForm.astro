@@ -185,6 +185,16 @@ const passwordFields = signup
   {signup ? 'Crear cuenta con Google' : 'Seguir con Google'}
 </a>
 
+{
+  signup && (
+    <p class="text-umber-ash mt-6 text-xs leading-relaxed">
+      Al crear la cuenta aceptas las <a href="/condiciones" class="link-quiet underline underline-offset-4">condiciones de uso</a>{' '}
+      y confirmas que tienes 14 años o más. Cómo tratamos tus datos:{' '}
+      <a href="/privacidad" class="link-quiet underline underline-offset-4">privacidad</a>.
+    </p>
+  )
+}
+
 <script>
   import { initAuthForms } from '@/scripts/auth-form';
 

@@ -15,7 +15,7 @@ import sharp from 'sharp';
 import { UUID_PATTERN } from '@/lib/api';
 import { requireSupabaseSecretKey } from '@/lib/env';
 import { TmdbError, ValidationError, toError } from '@/lib/errors';
-import { redactTitle, revealLetters, titleLetters } from '@/lib/game-rules';
+import { countVowels, redactTitle, revealLetters, titleLetters } from '@/lib/game-rules';
 import { getSupabaseAdminClient, getSupabaseClient, unwrap } from '@/lib/supabase';
 import { TMDB_IMAGE_BASE_URL, posterUrl } from '@/lib/tmdb';
 import {
@@ -23,6 +23,7 @@ import {
   TITLE_CLUES,
   TITLE_LETTER_PICKS,
   TITLE_MAX_ATTEMPTS,
+  TITLE_MAX_VOWELS,
   isLocale,
   type GameAnswer,
   type GameKind,
@@ -201,6 +202,9 @@ export function parseTitlePlay(body: unknown): TitlePlay {
     new Set(letters).size !== letters.length
   ) {
     throw new ValidationError(`Elige ${String(TITLE_LETTER_PICKS)} letras distintas.`);
+  }
+  if (countVowels(letters) > TITLE_MAX_VOWELS) {
+    throw new ValidationError(`Elige ${String(TITLE_MAX_VOWELS)} vocales como mucho.`);
   }
 
   const guesses = parseGuessList(record['guesses'], TITLE_MAX_ATTEMPTS, true).map((guess) => {

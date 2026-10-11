@@ -1,0 +1,80 @@
+---
+/**
+ * Condiciones de uso. Los límites que se citan son los de
+ * `src/lib/rate-limit.ts` y `MAX_CONVERSATION_MESSAGES`: si cambian, se
+ * describen aquí sin cifras para no tener que tocar esto.
+ */
+import LegalPage from '@/components/LegalPage.astro';
+import { LEGAL_OWNER } from '@/lib/legal';
+---
+
+<LegalPage title="Condiciones de uso" description="Las reglas para usar Umber: la cuenta, el chat, los juegos y los límites.">
+  <p>
+    Al usar Umber aceptas estas condiciones. Son pocas y van al grano; si algo no te encaja, no uses el servicio y,
+    si quieres, escríbenos a <a href={`mailto:${LEGAL_OWNER.email}`}>{LEGAL_OWNER.email}</a>.
+  </p>
+
+  <h2>El servicio</h2>
+  <p>
+    Umber es gratuito. Recomienda películas y series a partir de lo que le cuentas, eligiendo entre un catálogo de
+    títulos conocidos, y ofrece dos juegos diarios. Podemos cambiar, ampliar o retirar funciones, y no garantizamos
+    que esté siempre disponible.
+  </p>
+
+  <h2>Hablas con una inteligencia artificial</h2>
+  <p>
+    Las respuestas de Umber las genera un modelo de lenguaje, no una persona. Puede equivocarse en un dato, en una
+    sinopsis o en dónde ver un título, y sus recomendaciones son eso, recomendaciones. Umber habla de cine y series;
+    no es un servicio de ayuda profesional de ningún tipo. Si estás pasando por un mal momento, llama al
+    <strong>024</strong> (atención a la conducta suicida) o, en una emergencia, al <strong>112</strong>.
+  </p>
+
+  <h2>Tu cuenta</h2>
+  <ul>
+    <li>Para crear una cuenta tienes que tener al menos 14 años.</li>
+    <li>
+      Eres responsable de lo que se haga con tu cuenta: guarda tu contraseña y avísanos si crees que alguien la usa.
+    </li>
+    <li>
+      El nombre de usuario no puede suplantar a nadie ni ser ofensivo. Si lo es, podemos cambiarlo o cerrar la
+      cuenta.
+    </li>
+    <li>Puedes borrar tu cuenta cuando quieras, desde la propia cuenta.</li>
+  </ul>
+
+  <h2>Uso aceptable</h2>
+  <p>No está permitido:</p>
+  <ul>
+    <li>Saltarse los límites de uso, por ejemplo con muchas cuentas o direcciones.</li>
+    <li>Usar Umber de forma automatizada para extraer el catálogo o las respuestas en masa.</li>
+    <li>Intentar que el asistente revele sus instrucciones internas, o que genere contenido ilegal o dañino.</li>
+    <li>Escribir en el chat datos personales de otras personas.</li>
+    <li>Atacar el servicio o intentar acceder a datos de otros usuarios.</li>
+  </ul>
+  <p>Si alguien lo hace, podemos limitar su acceso o cerrar su cuenta.</p>
+
+  <h2>Límites</h2>
+  <p>
+    Para que el servicio siga siendo gratuito, hay un número máximo de mensajes por minuto y por día, más bajo sin
+    cuenta, y cada conversación tiene una longitud máxima. Si llegas a uno, Umber te lo dice y te indica cuándo
+    puedes seguir.
+  </p>
+
+  <h2>Contenido de terceros</h2>
+  <p>
+    Los datos y carteles de películas y series proceden de TMDB, y los de plataformas, de JustWatch. Pertenecen a sus
+    titulares. Umber no ofrece ni enlaza contenido para verlo sin permiso de sus titulares.
+  </p>
+
+  <h2>Responsabilidad</h2>
+  <p>
+    Umber se ofrece tal cual, sin garantía de que una recomendación te guste ni de que un título siga en una
+    plataforma. Nada de esto limita los derechos que te reconoce la ley como consumidor.
+  </p>
+
+  <h2>Cambios</h2>
+  <p>
+    Si cambiamos estas condiciones, lo diremos en la web antes de que se apliquen. Seguir usando Umber después supone
+    aceptarlas. Se rigen por la ley española.
+  </p>
+</LegalPage>

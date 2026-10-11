@@ -17,6 +17,11 @@ export function foldLetter(char: string): string | null {
   return /^[A-Z]$/u.test(base) ? base : null;
 }
 
+/** Cuántas vocales hay entre las letras elegidas (ya plegadas: sin tildes). */
+export function countVowels(letters: readonly string[]): number {
+  return letters.filter((letter) => 'AEIOU'.includes(letter)).length;
+}
+
 /** Las letras del título, en orden: lo que hay que adivinar. */
 export function titleLetters(title: string): string[] {
   return [...title.normalize('NFC')].flatMap((char) => {
