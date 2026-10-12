@@ -143,6 +143,16 @@ export function returnPath(url: URL): string {
 }
 
 /**
+ * El mensaje que traía quien llega a entrar o registrarse desde el chat (el `q`
+ * de `next`, el último con texto, como lee el chat), o `null`.
+ */
+export function pendingMessage(next: string): string | null {
+  const url = new URL(next, 'http://umber.invalid');
+  if (url.pathname !== '/chat') return null;
+  return url.searchParams.getAll('q').map((value) => value.trim()).findLast((value) => value.length > 0) ?? null;
+}
+
+/**
  * Para las páginas de `/admin`: 404 y no una redirección a `/entrar`, para no
  * revelar a quien no es admin que la ruta existe. `return` el resultado si no
  * es `null`.

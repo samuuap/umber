@@ -158,6 +158,16 @@ const chevron = 'M6 9l6 6 6-6';
             Nada con <em>esos filtros</em>
           </p>
           <p class="text-umber-muted mt-3">Prueba con otra palabra u otro género.</p>
+          <div class="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-4">
+            {filters.query !== '' && (
+              <a href={`/chat?mode=${filters.type === 'tv' ? 'tv' : 'movie'}&q=${encodeURIComponent(filters.query)}`} class="btn-primary">
+                Pregúntale a Umber por «{filters.query}» <span class="arrow" aria-hidden="true">→</span>
+              </a>
+            )}
+            <a href={exploreHref({ ...filters, query: '', type: null, genre: null })} class="link-quiet text-sm">
+              Quitar filtros
+            </a>
+          </div>
         </div>
       ) : (
         <ul class="mt-8 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-x-6">

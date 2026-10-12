@@ -9,9 +9,20 @@
  */
 import AuthScene from '@/components/AuthScene.astro';
 import Layout from '@/layouts/Layout.astro';
+import { readClientAddress } from '@/lib/api';
 import { authErrorMessage, type AuthFormError } from '@/lib/auth';
+import { RateLimitError } from '@/lib/errors';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
-let error: AuthFormError | null = null;
+// `/auth/confirm` vuelve aquí si el enlace del correo no sirve.
+let error: AuthFormError | null =
+  Astro.url.searchParams.get('error') === 'enlace'
+    ? {
+        message:
+          'Ese enlace ya no sirve: caduca a la hora, solo vale una vez y, a veces, solo en el navegador donde lo pediste. Pide uno nuevo.',
+        field: null,
+      }
+    : null;
 let email = '';
 let sentTo: string | null = null;
 
@@ -23,15 +34,24 @@ if (Astro.request.method === 'POST') {
   if (email.length === 0) {
     error = { message: 'Escribe tu email.', field: null };
   } else {
-    const redirectTo = `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent('/cuenta/contrasena')}`;
-    const { error: authError } = await Astro.locals.supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (authError === null) {
-      sentTo = email;
-    } else {
-      error = { message: authErrorMessage(authError), field: null };
+    try {
+      // Cada envío es un correo del SMTP: el mismo límite que reenviar la confirmación.
+      await enforceRateLimit('registro', { userId: null, clientAddress: readClientAddress(Astro) });
+      const redirectTo = `${Astro.url.origin}/auth/confirm?next=${encodeURIComponent('/cuenta/contrasena')}`;
+      const { error: authError } = await Astro.locals.supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (authError === null) {
+        sentTo = email;
+        error = null;
+      } else {
+        error = { message: authErrorMessage(authError), field: null };
+      }
+    } catch (rateLimitError: unknown) {
+      if (!(rateLimitError instanceof RateLimitError)) throw rateLimitError;
+      error = { message: rateLimitError.message, field: null };
+      Astro.response.status = 429;
     }
   }
-  if (error !== null) Astro.response.status = 400;
+  if (error !== null && Astro.response.status === 200) Astro.response.status = 400;
 }
 ---
 
@@ -86,7 +106,14 @@ if (Astro.request.method === 'POST') {
           </p>
           <p class="lead mt-6">
             Si <strong class="text-umber-ink font-medium">{sentTo}</strong> tiene cuenta, te hemos enviado un
-            enlace para elegir una contraseña nueva. Ábrelo en este mismo navegador.
+            enlace para elegir una contraseña nueva. Caduca en una hora.
+          </p>
+          <ul class="text-umber-muted mt-6 list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+            <li>Ábrelo en este mismo navegador: en otro puede no funcionar.</li>
+            <li>Si no llega en unos minutos, mira en la carpeta de spam.</li>
+          </ul>
+          <p class="border-umber-line text-umber-muted mt-10 border-t pt-6 text-sm">
+            ¿No ha llegado? <a href="/recuperar" class="link">Pedir otro enlace</a>
           </p>
         </div>
       )

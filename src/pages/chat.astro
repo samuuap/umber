@@ -70,8 +70,15 @@ const messages = conversation?.messages ?? [];
 // Una conversación guardada que ya llegó al tope se abre cerrada, sin cuadro de texto.
 const ended = remainingTurns(messages.length) === 0;
 // Sin recomendaciones hoy, el chat se abre cerrado hasta mañana. Admin y pruebas no tienen límite.
-const outOfRecommendations =
-  !user.isAdmin && !user.isTester && (await recommendationsLeft(user.id)).left === 0;
+const daily = user.isAdmin || user.isTester ? null : await recommendationsLeft(user.id);
+const outOfRecommendations = daily?.left === 0;
+/** A qué hora vuelven, en la de Madrid: el cupo cambia a medianoche UTC. */
+const resetsAt =
+  daily === null
+    ? null
+    : new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }).format(
+        new Date(Date.now() + daily.resetsInSeconds * 1000),
+      );
 /*
  * El mensaje con el que llega desde la portada: el chat lo envía al abrirse.
  * Puede venir dos veces `q`: el del cuadro y, si se pulsó una sugerencia, el de
@@ -104,18 +111,20 @@ const cardsOf = (message: (typeof messages)[number]) =>
 
 const SUGGESTIONS: Readonly<Record<'movie' | 'tv', readonly string[]>> = {
   movie: [
-    'Algo lento y con mucha atmósfera',
-    'Quiero pasar miedo esta noche',
-    'Una tarde de domingo sin prisa',
+    'Una comedia para ver en pareja',
     'Algo que me deje pensando un rato',
+    'Un thriller que no me deje respirar',
+    'Una para ver con niños',
   ],
   tv: [
-    'Misterio en un pueblo pequeño',
-    'Algo reconfortante para ver a trozos',
-    'Brujas, folclore y algo inquietante',
     'Una serie que enganche desde el principio',
+    'Algo ligero para ver a trozos',
+    'Una miniserie para el fin de semana',
+    'Un drama con buenos personajes',
   ],
 };
+const countText = (left: number): string =>
+  left === 1 ? 'Te queda 1 recomendación hoy' : `Te quedan ${String(left)} recomendaciones hoy`;
 const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
 ---
 
@@ -128,6 +137,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     data-message-count={messages.length}
     data-initial-message={initialMessage}
     data-favorites={JSON.stringify(favoriteIds)}
+    data-recommendations-left={daily?.left ?? ''}
     class="mx-auto flex w-full max-w-[46rem] flex-1 flex-col px-5 sm:px-8"
   >
     <header class="border-umber-line flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b pt-8 pb-7 sm:pt-12">
@@ -141,23 +151,26 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     </header>
 
     <section aria-label="Conversación" class="flex-1 pt-2 pb-8">
-      <div data-empty-state hidden={messages.length > 0 || initialMessage !== ''} class="rise pt-10 pb-10">
+      <div data-empty-state hidden={messages.length > 0 || initialMessage !== ''} class="rise pt-6 pb-6 sm:pt-10 sm:pb-10">
         <p class="eyebrow flex items-center gap-2.5">
           <LeafMark class="text-umber-accent size-3.5" />
           Umber
         </p>
         <p class="display-3 mt-5">¿Cómo te <em>sientes</em>?</p>
-        <p class="reading text-umber-muted mt-4 max-w-[34rem]">
+        <p class="reading text-umber-muted mt-4 hidden max-w-[34rem] sm:block">
           Cuéntamelo con tus palabras —el tiempo que hace, tu ánimo, con quién la vas a ver— y te busco algo
           que encaje.
         </p>
-        <div class="mt-10">
+        <div class="mt-6 sm:mt-10">
           <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
-          <ul class="mt-4 flex flex-wrap gap-2" aria-labelledby="sugerencias">
+          <ul
+            class="mt-4 flex gap-2 max-sm:-mx-5 max-sm:overflow-x-auto max-sm:px-5 max-sm:pb-1 sm:flex-wrap"
+            aria-labelledby="sugerencias"
+          >
             {
               suggestions.map((suggestion) => (
                 <li>
-                  <button type="button" data-suggestion class="chip">
+                  <button type="button" data-suggestion class="chip whitespace-nowrap">
                     {suggestion}
                   </button>
                 </li>
@@ -184,7 +197,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     <form
       data-composer
       hidden={ended || outOfRecommendations}
-      class="from-umber-base via-umber-base/95 sticky bottom-0 -mx-5 bg-gradient-to-t to-transparent px-5 pt-8 pb-4 sm:-mx-8 sm:px-8 sm:pb-5"
+      class="from-umber-base via-umber-base/95 sticky bottom-0 -mx-5 bg-gradient-to-t to-transparent px-5 pt-8 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]"
     >
       <p data-turns-left hidden role="status" class="text-umber-accent pb-3 text-center text-xs font-medium"></p>
       <label for="mensaje" class="sr-only">Cuéntale a Umber cómo te sientes</label>
@@ -195,13 +208,27 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
           rows="2"
           maxlength={MAX_MESSAGE_CHARS}
           required
-          placeholder="Está lloviendo y me apetece algo que abrace…"
-          class="placeholder:text-umber-muted/70 max-h-48 min-h-12 flex-1 resize-none bg-transparent py-2 font-serif text-[1.08rem] leading-relaxed focus:outline-none"
+          placeholder="Escribe aquí: cómo estás, con quién la vas a ver, algo que te encantó…"
+          class="placeholder:text-umber-muted max-h-48 min-h-12 flex-1 resize-none bg-transparent py-2 font-serif text-[1.08rem] leading-relaxed focus:outline-none"
         ></textarea>
         <button type="button" data-stop hidden class="btn-secondary px-4 py-2.5">Detener</button>
         <button type="submit" data-send class="btn-primary px-5 py-2.5">Enviar</button>
       </div>
-      <p class="text-umber-muted mt-2.5 text-center text-[0.7rem] tracking-[0.02em]">
+      <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs">
+        {/* Para quien tiene prisa: Umber lo reconoce y recomienda sin más preguntas (`wantsToSkipQuestions`). */}
+        <button
+          type="button"
+          data-skip-questions
+          hidden={messages.some((message) => (message.recommendation_ids ?? []).length > 0)}
+          class="text-umber-ink hover:text-umber-accent decoration-umber-rule min-h-8 font-medium underline underline-offset-4 transition-colors disabled:opacity-50"
+        >
+          Recomiéndame ya, sin preguntas
+        </button>
+        <p data-recommendations-count role="status" class="text-umber-muted ml-auto" hidden={daily === null}>
+          {daily !== null && countText(daily.left)}
+        </p>
+      </div>
+      <p class="text-umber-muted mt-1 text-center text-[0.7rem] tracking-[0.02em]">
         <!-- AI Act, art. 50: decir que se habla con una IA -->
         Umber es una IA y puede equivocarse<span class="hidden sm:inline"
           >{' · '}Intro para enviar · Mayúsculas + Intro para un salto de línea</span
@@ -213,7 +240,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       data-conversation-end
       hidden={!ended}
       role="status"
-      class="bg-umber-base/95 border-umber-line sticky bottom-0 -mx-5 border-t px-5 py-10 backdrop-blur sm:-mx-8 sm:px-8"
+      class="border-umber-line -mx-5 border-t px-5 py-10 sm:-mx-8 sm:px-8"
     >
       <p class="eyebrow eyebrow-rule">Fin de la conversación</p>
       <p class="display-3 mt-4">
@@ -229,14 +256,14 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       data-daily-end
       hidden={!outOfRecommendations}
       role="status"
-      class="bg-umber-base/95 border-umber-line sticky bottom-0 -mx-5 border-t px-5 py-10 backdrop-blur sm:-mx-8 sm:px-8"
+      class="border-umber-line -mx-5 border-t px-5 py-10 sm:-mx-8 sm:px-8"
     >
       <p class="eyebrow eyebrow-rule">Hasta mañana</p>
       <p class="display-3 mt-4">
         Ya tienes tus <em>{RECOMMENDATIONS_PER_DAY}</em> recomendaciones de hoy
       </p>
       <p class="text-umber-muted mt-3 max-w-md leading-relaxed">
-        Cada día puedes pedirle a Umber {RECOMMENDATIONS_PER_DAY}. Mientras, tus favoritos y tus conversaciones
+        Cada día puedes pedirle a Umber {RECOMMENDATIONS_PER_DAY}{resetsAt !== null && `; vuelven a las ${resetsAt}`}. Mientras, tus favoritos y tus conversaciones
         siguen aquí, y los juegos del día también.
       </p>
       <div class="mt-7 flex flex-wrap gap-3">

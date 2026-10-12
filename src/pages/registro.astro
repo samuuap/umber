@@ -18,6 +18,7 @@ import {
   authErrorMessage,
   isUsernameTaken,
   normalizeUsername,
+  pendingMessage,
   safeRedirectPath,
   type AuthFormError,
 } from '@/lib/auth';
@@ -25,6 +26,8 @@ import { RateLimitError } from '@/lib/errors';
 import { enforceRateLimit } from '@/lib/rate-limit';
 
 const next = safeRedirectPath(Astro.url.searchParams.get('next'));
+const pending = pendingMessage(next);
+const PENDING_HINT = 'Crea la cuenta, gratis, y Umber te contesta en cuanto la confirmes.';
 if (Astro.locals.user !== null) return Astro.redirect(next);
 
 let error: AuthFormError | null = null;
@@ -132,8 +135,17 @@ if (Astro.request.method === 'POST') {
             Crear <em>cuenta</em>
           </h1>
           <p class="lead rise mt-5 [animation-delay:160ms]">
-            Guarda tus conversaciones y tus favoritos, y habla con Umber todos los días.
+            Para hablar con Umber hace falta una cuenta gratis: guarda tus conversaciones y tus favoritos.
           </p>
+          {
+            pending !== null && (
+              <blockquote class="border-umber-accent rise mt-6 border-l-2 pl-4 [animation-delay:180ms]">
+                <p class="field-label">Tu pregunta te espera</p>
+                <p class="mt-1.5 font-serif text-[1.05rem] leading-relaxed">«{pending}»</p>
+                <p class="text-umber-muted mt-1.5 text-sm">{PENDING_HINT}</p>
+              </blockquote>
+            )
+          }
           <div class="rise [animation-delay:240ms]">
             <AuthForm kind="signup" email={email} username={username} error={error} next={next} />
           </div>

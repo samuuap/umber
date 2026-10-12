@@ -2,7 +2,8 @@
 /**
  * Portada: la acción primero. Se escribe cómo te sientes, se elige película o
  * serie, y el chat empieza con ese mensaje (`/chat?mode=…&q=…`, un formulario
- * GET que funciona sin JavaScript), con las sugerencias numeradas al lado. Debajo,
+ * GET que funciona sin JavaScript), con las sugerencias numeradas debajo y un
+ * fotograma de una muy conocida al lado. Debajo,
  * cómo funciona en tres actos, en una banda de tinta, una frase de Umber, «Si te
  * gustó…», el apartado de la especialidad de otoño y el de los juegos. Es la
  * maqueta «Programa de mano» (dirección B, ver Estética en CLAUDE.md).
@@ -14,7 +15,7 @@ import LeafMark from '@/components/LeafMark.astro';
 import Layout from '@/layouts/Layout.astro';
 import { EXPLORE_PATH } from '@/lib/explore';
 import { pickAutumn, pickKnown, pickRelated, pickStill, type ShowcaseTitle } from '@/lib/showcase';
-import { posterUrl } from '@/lib/tmdb';
+import { backdropUrl, posterUrl } from '@/lib/tmdb';
 import { CHAT_MODES, CHAT_MODE_DEFINITIONS, MAX_MESSAGE_CHARS } from '@/lib/types';
 
 const INDEX_SIZE = 6;
@@ -48,6 +49,7 @@ const upcoming = CHAT_MODES.filter((mode) => !CHAT_MODE_DEFINITIONS[mode].availa
 const signedIn = Astro.locals.user !== null;
 const credit = (item: ShowcaseTitle): string =>
   [item.director, item.year].filter((part) => part !== null).join(', ');
+const stillCaption = still === null ? null : [still.title, still.year].filter((part) => part !== null).join(', ');
 
 /** Las tres de otoño, montadas en escalera. */
 const AUTUMN_POSITIONS = [
@@ -62,7 +64,7 @@ const AUTUMN_POSITIONS = [
     <section
       class="mx-auto grid max-w-[80rem] gap-y-16 px-5 pt-10 pb-24 sm:px-8 lg:grid-cols-12 lg:gap-x-10 lg:pt-14 lg:pb-32"
     >
-      <div class="lg:col-span-8 lg:pt-12">
+      <div class="lg:col-span-7 lg:pt-12">
         <p class="eyebrow eyebrow-rule rise">Tu cinéfilo de confianza</p>
         <h1 class="display-1 rise mt-7 [animation-delay:90ms]">¿Qué te apetece ver <em>hoy</em>?</h1>
         <p class="lead rise mt-7 max-w-[33rem] [animation-delay:180ms]">
@@ -96,11 +98,11 @@ const AUTUMN_POSITIONS = [
             rows="3"
             maxlength={MAX_MESSAGE_CHARS}
             required
-            placeholder="Hoy no tengo el día y me apetece algo que abrace…"
-            class="placeholder:text-umber-muted/70 block w-full resize-none bg-transparent px-5 pt-3 pb-4 font-serif text-[1.2rem] leading-relaxed focus:outline-none sm:px-6"
+            placeholder="Escribe aquí cómo estás o qué te apetece. Por ejemplo: algo ligero para ver en pareja esta noche…"
+            class="placeholder:text-umber-muted block w-full resize-none bg-transparent px-5 pt-3 pb-4 font-serif text-[1.2rem] leading-relaxed focus:outline-none sm:px-6"
           ></textarea>
-          <div class="border-umber-line flex items-center justify-between gap-4 border-t px-5 py-3.5 sm:px-6">
-            <p class="text-umber-muted hidden text-xs sm:block">
+          <div class="border-umber-line flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t px-5 py-3.5 sm:px-6">
+            <p class="text-umber-muted text-xs">
               {signedIn ? 'Tus conversaciones se guardan en tu cuenta.' : 'Con una cuenta gratis: dos recomendaciones al día.'}
             </p>
             <button type="submit" class="btn-primary ml-auto">
@@ -109,37 +111,68 @@ const AUTUMN_POSITIONS = [
           </div>
         </form>
 
+        {/* Como en un programa de mano: las sugerencias, numeradas, bajo el cuadro. */}
+        <div aria-labelledby="sugerencias" role="group" class="rise mt-10 max-w-[38rem] [animation-delay:360ms]">
+          <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
+          <ol class="mt-5">
+            {
+              SUGGESTIONS.map((suggestion, position) => (
+                <li class="border-umber-line border-t last:border-b">
+                  {/* Fuera del cuadro pero de su formulario (`form`). `formnovalidate`: el cuadro puede ir vacío. */}
+                  <button
+                    form="portada"
+                    type="submit"
+                    name="q"
+                    value={suggestion}
+                    formnovalidate
+                    class="group hover:text-umber-accent flex min-h-16 w-full items-baseline gap-4 py-4 text-left transition-colors"
+                  >
+                    <span class="font-label text-umber-muted text-xs font-bold tabular-nums" aria-hidden="true">
+                      {String(position + 1).padStart(2, '0')}
+                    </span>
+                    <span class="font-display text-[1.45rem] leading-[1.15] tracking-[-0.01em]">{suggestion}</span>
+                  </button>
+                </li>
+              ))
+            }
+          </ol>
+        </div>
       </div>
 
-      {/* Como en un programa de mano: las sugerencias, numeradas, en la columna de al lado. */}
-      <aside
-        aria-labelledby="sugerencias"
-        class="rise border-umber-line [animation-delay:360ms] lg:col-span-4 lg:col-start-9 lg:mt-12 lg:border-l lg:pl-8"
-      >
-        <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
-        <ol class="mt-5">
-          {
-            SUGGESTIONS.map((suggestion, position) => (
-              <li class="border-umber-line border-t last:border-b">
-                {/* Fuera del cuadro pero de su formulario (`form`). `formnovalidate`: el cuadro puede ir vacío. */}
-                <button
-                  form="portada"
-                  type="submit"
-                  name="q"
-                  value={suggestion}
-                  formnovalidate
-                  class="group hover:text-umber-accent flex min-h-16 w-full items-baseline gap-4 py-4 text-left transition-colors"
-                >
-                  <span class="font-label text-umber-muted text-xs font-bold tabular-nums" aria-hidden="true">
-                    {String(position + 1).padStart(2, '0')}
-                  </span>
-                  <span class="font-display text-[1.45rem] leading-[1.15] tracking-[-0.01em]">{suggestion}</span>
-                </button>
-              </li>
-            ))
-          }
-        </ol>
-      </aside>
+      {
+        still !== null && still.backdrop_path !== null && (
+          <figure class="relative lg:col-span-5">
+            <a href={`${EXPLORE_PATH}/${still.id}`} class="group relative block" tabindex="-1" aria-hidden="true">
+              <div class="relative aspect-[4/3] overflow-hidden rounded-[3px] lg:aspect-[4/5]">
+                <img
+                  src={backdropUrl(still.backdrop_path, 'w1280')}
+                  srcset={`${backdropUrl(still.backdrop_path, 'w780')} 780w, ${backdropUrl(still.backdrop_path, 'w1280')} 1280w`}
+                  sizes="(min-width: 1024px) 40vw, 100vw"
+                  alt=""
+                  fetchpriority="high"
+                  class="graded develop h-full w-full object-cover transition-transform duration-[1.8s] ease-(--ease-soft) group-hover:scale-[1.03] motion-reduce:transition-none"
+                />
+              </div>
+              {/* Su cartel, montado sobre la esquina del fotograma. */}
+              <img
+                src={posterUrl(still.poster_path, 'w185')}
+                srcset={`${posterUrl(still.poster_path, 'w185')} 185w, ${posterUrl(still.poster_path, 'w342')} 342w`}
+                sizes="7.5rem"
+                alt=""
+                width="185"
+                height="278"
+                class="graded rise ring-umber-base absolute -bottom-14 -left-10 hidden aspect-[2/3] w-30 rounded-[3px] object-cover shadow-[0_30px_60px_-20px_rgb(0_0_0/0.6)] ring-[6px] [animation-delay:1100ms] lg:block"
+              />
+            </a>
+            <figcaption class="mt-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 lg:pl-26">
+              <span class="eyebrow">Fotograma</span>
+              <a href={`${EXPLORE_PATH}/${still.id}`} class="link-quiet font-display text-lg italic">
+                {stillCaption}
+              </a>
+            </figcaption>
+          </figure>
+        )
+      }
     </section>
 
     <section aria-labelledby="como-funciona" class="border-umber-line border-t">
@@ -278,8 +311,8 @@ const AUTUMN_POSITIONS = [
           </p>
           <h2 id="otono" class="display-2 mt-7">El Umber de <em>otoño</em></h2>
           <p class="lead mt-6 max-w-md">
-            Un Umber que solo recomienda cine y series de otoño: luz baja, lluvia, vuelta a las clases, cosechas. Y
-            Halloween, cuando la película va de eso.
+            Un Umber que solo recomienda cine y series para ver en otoño: luz baja, lluvia, vuelta a las clases,
+            cosechas. Sin sustos, salvo que se los pidas.
           </p>
           <div class="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4">
             <a href="/chat?mode=movie&especialidad=otono" class="btn-primary">

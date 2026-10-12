@@ -4,11 +4,13 @@ import AuthForm from '@/components/AuthForm.astro';
 import AuthScene from '@/components/AuthScene.astro';
 import Layout from '@/layouts/Layout.astro';
 import { readClientAddress } from '@/lib/api';
-import { authErrorMessage, safeRedirectPath, type AuthFormError } from '@/lib/auth';
+import { authErrorMessage, pendingMessage, safeRedirectPath, type AuthFormError } from '@/lib/auth';
 import { RateLimitError } from '@/lib/errors';
 import { enforceRateLimit } from '@/lib/rate-limit';
 
 const next = safeRedirectPath(Astro.url.searchParams.get('next'));
+const pending = pendingMessage(next);
+const PENDING_HINT = 'Entra y Umber te contesta.';
 if (Astro.locals.user !== null) return Astro.redirect(next);
 
 /** Errores que llegan en la URL desde `/auth/confirm`. */
@@ -89,8 +91,17 @@ if (Astro.request.method === 'POST') {
     <p class="eyebrow eyebrow-rule rise">Tu cuenta</p>
     <h1 class="display-1 rise mt-7 [animation-delay:80ms]">Entrar</h1>
     <p class="lead rise mt-5 [animation-delay:160ms]">
-      Con cuenta, Umber guarda tus conversaciones y lo que marques como favorito.
+      Entra para hablar con Umber. Tus conversaciones y favoritos te esperan en tu cuenta.
     </p>
+    {
+      pending !== null && (
+        <blockquote class="border-umber-accent rise mt-6 border-l-2 pl-4 [animation-delay:180ms]">
+          <p class="field-label">Tu pregunta te espera</p>
+          <p class="mt-1.5 font-serif text-[1.05rem] leading-relaxed">«{pending}»</p>
+          <p class="text-umber-muted mt-1.5 text-sm">{PENDING_HINT}</p>
+        </blockquote>
+      )
+    }
     {
       showResend && (
         <div class="border-umber-line rise mt-5 mb-2 border-l-2 pl-4 [animation-delay:200ms]">
@@ -99,9 +110,12 @@ if (Astro.request.method === 'POST') {
           ) : (
             <form method="post" class="flex flex-wrap items-center gap-3">
               <input type="hidden" name="action" value="resend" />
+              <label for="resend-email" class="sr-only">Tu email</label>
               <input
+                id="resend-email"
                 name="email"
                 type="email"
+                autocomplete="email"
                 placeholder="Tu email"
                 required
                 class="field max-w-[14rem] py-2 text-sm"

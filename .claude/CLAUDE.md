@@ -219,6 +219,7 @@ python scripts/seed/load-db.py --similar-only   # solo los parecidos, sin reescr
 npx supabase db query --linked "reindex index public.content_embedding_hnsw_idx"
 python scripts/seed/search.py "tarde de lluvia"   # búsquedas de control
 python scripts/seed/eval-similar.py                # «Más como esta», puntuado por un juez (céntimos)
+python scripts/seed/eval-autumn.py                 # «Más otoñales» contra una lista de referencia (--pilot: el prompt nuevo, céntimos)
 python scripts/seed/check-embeddings.py            # ¿da el servicio de .env.local los vectores del corpus?
 python scripts/seed/games.py                       # juegos del día: hasta tener los próximos 365 (--dry-run, --min-votes)
 ```
@@ -291,9 +292,20 @@ Qué contiene cada columna, tal como la rellena el seed:
 - `autumn_score` entre 0 y 1, **en todos los títulos**: la media de 3
   puntuaciones de deepseek-flash (0–100), en lotes distintos, / 100. Es la
   especialidad de otoño: ya no decide qué entra al corpus, solo lo de otoño.
-  El criterio de la puntuación es **otoño antes que Halloween**:
-  Halloween cuenta si la película va de él, y el terror sin Halloween ni ambiente
-  otoñal puntúa 40 como mucho. El prompt está en `scripts/seed/score.py`
+  El criterio (2026-10-12) es **lo que apetece ver una tarde de otoño**: cálido,
+  acogedor, nostálgico; la ambientación otoñal suma, pero no hace falta. La
+  Navidad es Navidad (10–25), Halloween familiar 60–80 y el terror 30 como mucho.
+  El prompt está en `scripts/seed/score.py`; se mide con `eval-autumn.py`, una
+  lista de referencia del usuario (parte va de ejemplo en el prompt; la cifra que
+  cuenta es la del resto)
+- **El terror puntúa la mitad** (2026-10-12): el otoño es lo que apetece ver en
+  esta época, no Halloween ni los slashers. Terror es el género `Terror` o una
+  keyword con «horror» o «slasher» (las series no tienen ese género en TMDB),
+  salvo lo familiar e infantil. Y **los especiales de Halloween infantiles que
+  conoce poca gente**, el 60 %: keyword «halloween», Familia, Infantil, Animación
+  o Película de TV, y menos de 1.000 votos (Scooby-Doo, Halloweentown). Lo aplica
+  `autumn_factor()` en `score.py` y, sobre lo ya cargado, las migraciones
+  `20261012130000` y `20261012160000`: tienen que coincidir
 - `embedding`: de un texto en inglés (título, sinopsis, géneros y keywords),
   con la sinopsis española solo si falta la inglesa. Lleva también el título
   español cuando es otro (unas tres cuartas partes): sin él, «Cadena perpetua» no
@@ -443,6 +455,10 @@ content_genres(p_type TEXT DEFAULT NULL) RETURNS TABLE (genre TEXT, titles BIGIN
 - `p_query` busca en el título (los dos idiomas) y en el director, **sin tildes
   ni mayúsculas**: «otono» encuentra «Otoño». Lo hace `fold_search_text()` con
   `translate`, no con la extensión unaccent. `%` y `_` del usuario son texto
+- `'autumn'` ordena por otoño **y fama**: `autumn_score × (0,25 + 0,75 × fama)`,
+  y la mitad si es un corto (película de menos de 40 minutos). La fama, en log de
+  los votos: 0 hasta 500 y 1 desde 20.000 (`20261012150000`). Solo por otoño, la
+  primera página se llenaba de títulos que casi nadie conoce
 - Expuestas a `anon` (el corpus es público) y con `p_limit` de 60 como mucho
 - Se usan desde `src/lib/explore.ts`; sus filas pasan por `ExploreItem` en
   `src/lib/types.ts`, por la misma razón que `search_content`
@@ -921,11 +937,11 @@ Rótulos, botones:  Archivo estrecha (wdth 75), 600–700, mayúsculas  font-lab
   en mayúsculas estrechas. La cursiva marca una palabra por titular, no más
   («¿Qué te apetece ver *hoy*?»)
 - Contraste contra el fondo base, en los dos modos; todos pasan AA. Los campos
-  llevan solo la línea de abajo, en `umber-rule`: lo que identifica un control
-  pide 3:1
+  van sobre `umber-surface` con la línea de abajo en `umber-rule` (lo que
+  identifica un control pide 3:1): el fondo dice que ahí se escribe (2026-10-12)
 - Esquinas rectas: botones, chips y el cuadro de escribir sin radio. El cuadro
-  de escribir (`composer`) es un filete grueso arriba y uno fino abajo, como un
-  formulario impreso
+  de escribir (`composer`) lleva un filete grueso de tinta arriba, borde de
+  control alrededor y el fondo de los campos; con el foco, todo en rojo
 - Piezas comunes en `global.css`: usarlas antes que repetir clases.
   Titulares `display-1/2/3`; `eyebrow` (y `eyebrow-rule`, en rojo), `lead`,
   `reading`; `btn-primary`, `btn-secondary` y `.arrow` (la flecha que se

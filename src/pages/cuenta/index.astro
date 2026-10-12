@@ -120,7 +120,9 @@ const inputClass = 'field text-[1.05rem]';
       }
       <form method="post" class="mt-5 space-y-3">
         <input type="hidden" name="action" value="username" />
+        <label for="username" class="sr-only">Nombre de usuario</label>
         <input
+          id="username"
           name="username"
           type="text"
           autocomplete="nickname"
@@ -163,7 +165,9 @@ const inputClass = 'field text-[1.05rem]';
       }
       <form method="post" class="mt-5 space-y-3">
         <input type="hidden" name="action" value="email" />
+        <label for="new_email" class="sr-only">Email nuevo</label>
         <input
+          id="new_email"
           name="email"
           type="email"
           autocomplete="email"
@@ -195,6 +199,8 @@ const inputClass = 'field text-[1.05rem]';
       }
       <form method="post" class="mt-5 space-y-3">
         <input type="hidden" name="action" value="password" />
+        {/* Para el gestor de contraseñas: a qué cuenta corresponde la contraseña nueva. */}
+        <input type="email" name="account_email" autocomplete="username" value={user.email ?? ''} hidden readonly />
         <div class="space-y-1.5">
           <label for="password" class="field-label">Contraseña nueva</label>
           <input

@@ -17,6 +17,11 @@ input?.addEventListener('keydown', (event) => {
   if (input.value.trim().length > 0) form?.requestSubmit();
 });
 
+// El cuadro entero parece un campo: pulsar en su margen también lleva a escribir.
+form?.addEventListener('click', (event) => {
+  if (event.target === form || event.target instanceof HTMLFieldSetElement) input?.focus();
+});
+
 const index = document.querySelector<HTMLElement>('[data-index]');
 const posters = index?.querySelectorAll<HTMLElement>('[data-index-poster]') ?? [];
 

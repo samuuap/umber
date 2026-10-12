@@ -401,6 +401,22 @@ de fuera del equipo puede activar su cuenta, y hay una propuesta sin coste
 | `buscar_por_titulo` con intención obligatoria, «verlo» o «parecido» (2026-10-04) | Con un título nombrado como referencia («me encantó X»), X llegaba como candidato y acababa recomendándolo. Con «parecido» no llega |
 | Preguntas sin cuestionario fijo, y «solo» en vez de «sin nadie» (2026-10-11) | Propuesta del usuario: el flujo sonaba repetitivo (siempre ánimo → con quién → conocida, repetía cada respuesta, «Última cosa»). `system.md` pide elegir la pregunta que más importe, no repetir ni contar preguntas ni resumir al recomendar. Con 60 conversaciones: juez 3,81 (antes 3,97), ≥ 4 en 47/59, ≤ 2 en 9 (antes 4), 2,2 preguntas (antes 2,4). Varios de esos fallos son errores del juez (*El cartero siempre llama dos veces* no es *Perdición*) o recomendar lo ya visto, que no depende del prompt |
 
+### La especialidad de otoño, recalibrada (2026-10-12)
+
+- [x] Terror a la mitad (`20261012130000`) y especiales de Halloween infantiles
+      con menos de 1.000 votos al 60 % (`20261012160000`); las dos reglas, en
+      `autumn_factor()` de `score.py`
+- [x] «Más otoñales» por otoño y fama (`20261012150000`): `otoño × (0,25 + 0,75 ×
+      fama)`, la fama en log de los votos de 500 a 20.000, y los cortos a la mitad
+- [x] Criterio nuevo en `score.py`: lo que apetece ver una tarde de otoño, no solo
+      lo ambientado en otoño; la Navidad es Navidad. Medido con
+      `eval-autumn.py --pilot` sobre la lista de referencia del usuario: fuera del
+      prompt, de una media de unos 50 a 73/100; controles (Navidad, terror,
+      Halloween infantil) en 31. Antes, con el orden de la base, ninguna de las
+      35 de fuera del prompt entraba en la primera página (mediana: puesto 1.954)
+- [ ] Puntuar el universo con el criterio nuevo y cargarlo (en el Mac: los datos
+      del seed están allí), y medir el orden real con `eval-autumn.py`
+
 ## Preguntas abiertas
 
 Resueltas el 2026-10-04 (ver Decisiones): nombre, umbral del corpus, series y

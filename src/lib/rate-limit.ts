@@ -113,7 +113,7 @@ export const RATE_LIMITS: Readonly<Record<RateLimitScope, ScopeLimits>> = {
     user: REGISTRO_LIMITS,
     anonymous: REGISTRO_LIMITS,
     global: [{ windowSeconds: DAY, limit: 300 }],
-    noun: 'registros',
+    noun: 'correos',
   },
 };
 

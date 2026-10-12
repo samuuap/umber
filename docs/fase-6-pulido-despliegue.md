@@ -33,6 +33,32 @@ lanzamiento primero.
       pide el email (`resetPasswordForEmail`, misma respuesta exista o no la
       cuenta) y `/cuenta/contrasena` fija la nueva tras el enlace
       (`updateUser({ password })`). Mismo canje en `/auth/confirm`
+- [x] Recuperar, repasado (2026-10-12): probado de punta a punta en local con
+      un usuario temporal (enlace `token_hash` → `/cuenta/contrasena` → contraseña
+      nueva → entrar con ella; el mismo enlace dos veces, rechazado). Un enlace
+      que no sirve vuelve a `/recuperar?error=enlace` (antes, a `/entrar`, con el
+      mensaje y el «Reenviar» del registro), y `/recuperar` lleva el límite de
+      `registro`: cada envío es un correo del SMTP
+- [x] **Experiencia de usuario** (2026-10-12), de la auditoría del mismo día:
+      campos con fondo (`.field`, `.composer`); fotograma de vuelta en la portada;
+      el gestor de contraseñas guarda el email como usuario
+      (`autocomplete="username"`, y oculto en los cambios de contraseña); «Tu
+      pregunta te espera» en registro y entrar (`pendingMessage`); el enlace
+      caducado no pierde `next`; el chat cuenta las recomendaciones que quedan,
+      ofrece «Recomiéndame ya» y dice a qué hora vuelven; sugerencias generales;
+      paneles de fin no fijos; «Recomiéndame» en la cabecera y menú (`<details>`)
+      por debajo de `lg`; `/explorar` no recarga con cada flecha y su estado
+      vacío tiene salida; etiquetas en `/cuenta` y en el reenvío
+- [x] **iPhone** (2026-10-12): `viewport-fit=cover` con los márgenes de
+      `safe-area-inset-*` (cuadro del chat sobre la barra de inicio, pie y la
+      muesca en horizontal); campos a 16 px o más en iOS, que si no amplía la
+      página al tocarlos; icono de inicio (`apple-touch-icon.png`) y
+      `manifest.webmanifest`. Probado con la emulación de iPhone 15 en Chromium,
+      no en un Safari real
+- [ ] Plantilla *Reset Password* con
+      `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/cuenta/contrasena`:
+      con la de por defecto (`?code=`), el enlace solo funciona en el navegador
+      donde se pidió, y en móvil el correo se abre en la app de Gmail
 - [x] `/cuenta`: cambiar nombre de usuario, email y contraseña (2026-10-10).
       Tres formularios independientes (`updateUser`); el cambio de email manda
       confirmación al nuevo (y, según «Secure email change», también al

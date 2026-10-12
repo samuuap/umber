@@ -100,6 +100,25 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* iPhone (viewport-fit=cover): en horizontal, nada bajo la muesca. */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /*
+   * Safari de iOS amplía la página al tocar un campo con letra de menos de 16 px
+   * y no la devuelve. `-webkit-touch-callout` solo existe en iOS: en escritorio
+   * los campos pequeños siguen igual.
+   */
+  @supports (-webkit-touch-callout: none) {
+    input,
+    textarea,
+    select {
+      font-size: max(16px, 1em) !important;
+    }
   }
 
   /*
@@ -211,11 +230,12 @@
   }
 
   /*
-   * Campo con solo la línea de abajo, como en un formulario impreso. La línea es
+   * Campo sobre `umber-surface` y con la línea de abajo, como una casilla de un
+   * formulario impreso: el fondo dice que ahí se escribe. La línea es
    * `umber-rule` (3,4:1): lo que identifica un control pide 3:1.
    */
   .field {
-    @apply border-umber-rule text-umber-ink placeholder:text-umber-muted/75 focus:border-umber-accent block w-full rounded-none border-0 border-b bg-transparent px-0 py-2.5 transition-[border-color,box-shadow] duration-300 focus:shadow-[0_1px_0_0_var(--color-umber-accent)] focus:outline-none aria-invalid:border-umber-danger;
+    @apply border-umber-rule text-umber-ink placeholder:text-umber-muted hover:border-umber-ink focus:border-umber-accent bg-umber-surface block w-full cursor-text rounded-none border-0 border-b px-3 py-2.5 transition-[border-color,box-shadow] duration-300 focus:shadow-[0_1px_0_0_var(--color-umber-accent)] focus:outline-none aria-invalid:border-umber-danger;
   }
 
   /* El `<select>` sin su flecha nativa: la pone un SVG junto a él (`.select-wrap`). */
@@ -224,11 +244,11 @@
   }
 
   .select-wrap select {
-    @apply cursor-pointer appearance-none pr-7;
+    @apply cursor-pointer appearance-none pr-9;
   }
 
   .select-wrap svg {
-    @apply text-umber-muted pointer-events-none absolute right-0 bottom-3.5 size-3.5;
+    @apply text-umber-muted pointer-events-none absolute right-3 bottom-3.5 size-3.5;
   }
 
   .field-label {
@@ -271,9 +291,13 @@
     }
   }
 
-  /* El cuadro donde se le escribe a Umber, en la portada y en el chat. */
+  /*
+   * El cuadro donde se le escribe a Umber, en la portada y en el chat: filete de
+   * tinta arriba, borde de control alrededor y el fondo de los campos, para que
+   * se vea a la primera que ahí se escribe.
+   */
   .composer {
-    @apply border-umber-ink bg-umber-base border-t-2 border-b transition-[border-color] duration-500 focus-within:border-umber-accent;
+    @apply border-umber-rule border-t-umber-ink bg-umber-surface hover:border-umber-ink cursor-text border border-t-2 transition-[border-color,box-shadow] duration-500 focus-within:border-umber-accent focus-within:shadow-[0_0_0_1px_var(--color-umber-accent)];
   }
 
   /* Fotograma con el color de la casa: un poco de sepia y menos saturación, como impreso. */
@@ -777,4 +801,13 @@
   ::view-transition-new(*) {
     animation: none !important;
   }
+}
+
+/*
+ * Con el chat vacío, el cuadro va detrás de las sugerencias y no fijo abajo: en
+ * un móvil las taparía. Al enviar se oculta el estado vacío y vuelve a fijarse.
+ * Fuera de las capas: tiene que ganarle a la utilidad `sticky`.
+ */
+[data-chat]:has([data-empty-state]:not([hidden])) [data-composer] {
+  position: static;
 }

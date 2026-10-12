@@ -72,6 +72,8 @@ if (Astro.request.method === 'POST') {
             Elige una <em>contraseña</em>
           </h1>
           <form method="post" class="rise mt-10 space-y-7 [animation-delay:240ms]">
+            {/* Para el gestor de contraseñas: a qué cuenta corresponde la contraseña nueva. */}
+            <input type="email" name="account_email" autocomplete="username" value={Astro.locals.user?.email ?? ''} hidden readonly />
             {
               error !== null && error.field === null && (
                 <p role="alert" class="border-l-2 border-umber-danger/70 py-1 pl-4 text-sm leading-relaxed">

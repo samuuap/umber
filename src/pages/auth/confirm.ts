@@ -22,6 +22,9 @@ const EMAIL_OTP_TYPES: readonly EmailOtpType[] = [
   'email',
 ];
 
+/** Adonde manda `/recuperar`: con `?code=` no llega `type`, así que se reconoce por aquí. */
+const RECOVERY_NEXT = '/cuenta/contrasena';
+
 function isEmailOtpType(value: string | null): value is EmailOtpType {
   return EMAIL_OTP_TYPES.some((type) => type === value);
 }
@@ -51,5 +54,7 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
     return redirect(`/cuenta/nombre?next=${encodeURIComponent(next)}`, 303);
   }
   console.warn('[auth/confirm] Enlace rechazado:', failure);
-  return redirect('/entrar?error=enlace', 303);
+  // El de recuperar la contraseña no se arregla reenviando la confirmación: se pide otro.
+  if (type === 'recovery' || next === RECOVERY_NEXT) return redirect('/recuperar?error=enlace', 303);
+  return redirect(`/entrar?error=enlace&next=${encodeURIComponent(next)}`, 303);
 };

@@ -18,7 +18,8 @@ llegue al umbral general.
    prompt invalida la caché por sí solo.
 3. Entra al corpus lo conocido (`is_known`: votos y nota) y, para la
    especialidad, lo otoñal (`MIN_AUTUMN`) y relevante (`is_relevant`), con las
-   series de otoño hasta `AUTUMN_MAX_TV`. Todos llevan `autumn_score = media / 100`.
+   series de otoño hasta `AUTUMN_MAX_TV`. Todos llevan `autumn_score = media / 100`,
+   salvo el terror y los especiales de Halloween infantiles (`autumn_factor`).
 
 Hasta la versión anterior, una heurística de géneros y keywords decidía qué
 títulos llegaban al modelo. Premiaba el terror y dejaba fuera clásicos otoñales
@@ -66,6 +67,19 @@ KNOWN_MIN_RATING = 3.5
 MIN_AUTUMN = {"movie": 32, "tv": 40}
 MIN_VOTES = {"movie": 300, "tv": 300}
 MIN_RATING = {"movie": 6.0, "tv": 7.0}
+# El terror puntúa la mitad en la especialidad (2026-10-12): el otoño es lo que
+# apetece ver en esta época, no Halloween ni los slashers. Salvo lo familiar e
+# infantil. La misma regla está en la migración 20261012130000: tienen que coincidir.
+# Las dos, en `autumn_factor()`.
+HORROR_FACTOR = 0.5
+HORROR_KEYWORDS = ("horror", "slasher")
+NOT_HORROR_GENRES = {"Familia", "Infantil", "Animación"}
+# Los especiales de Halloween infantiles que conoce poca gente (Scooby-Doo,
+# Halloweentown) puntúan el 60 % (2026-10-12): el prompt da 85–100 a Halloween.
+# Migración 20261012160000.
+HALLOWEEN_SPECIAL_FACTOR = 0.6
+HALLOWEEN_SPECIAL_GENRES = {"Familia", "Infantil", "Animación", "Película de TV"}
+HALLOWEEN_SPECIAL_MAX_VOTES = 1000
 # Sin el mínimo de votos (la nota se exige igual): lo muy otoñal, que es el
 # centro de la especialidad, y lo de los dos últimos años, que aún no ha tenido
 # tiempo de acumularlos. Si no, salía *Cuando cae el otoño* (Ozon, 2024; otoño 82).
@@ -84,21 +98,26 @@ SCORES_PATH = DATA_DIR / "scores.jsonl"
 
 # ─── Puntuación con el modelo ────────────────────────────────────────────────
 
+# Criterio (2026-10-12): lo que apetece ver una tarde de otoño, acogedor y cálido,
+# y no solo lo que transcurre en otoño. La Navidad es Navidad, y el terror no
+# entra. Los ejemplos son parte de la lista de referencia de `eval-autumn.py`; el
+# resto de esa lista queda fuera del prompt para medir si el criterio generaliza.
+
 SYSTEM_PROMPT = """\
-You score how much films and TV series belong to autumn, for a recommendation app that only suggests what to watch in autumn.
+You score films and TV series for a recommendation app that only suggests what to watch in autumn.
 
-For each title, give an integer from 0 to 100: how clearly it is an autumn watch, something people reach for once September comes and the leaves start falling. Judge the work itself: when and where it is set, its atmosphere, its themes and the mood it leaves. Genre alone decides nothing.
+For each title, give an integer from 0 to 100: how much it is something people want to watch on an autumn evening, once September comes, the days get shorter and the rain starts. That is first a feeling: warm, cozy, gentle, nostalgic or bittersweet; a story to curl up with. An autumn setting (a new school year, New England in October, the harvest, Thanksgiving, falling leaves) adds to it, but is not required: a warm, gentle story set in another season can still be a perfect autumn watch. Judge the work itself: its mood, its themes, its setting and what it leaves you with. Genre alone decides nothing.
 
-- 90–100: an autumn classic, a must-watch of the season. Autumn is part of its identity: it is set in the fall (a new school year at a college or boarding school, New England in October, Thanksgiving, the harvest), or the whole work breathes falling leaves, rain, wool sweaters, warm drinks, books and early nights. E.g. Dead Poets Society, Gilmore Girls, the Harry Potter films, When Harry Met Sally..., You've Got Mail, Over the Garden Wall.
-- 70–89: strongly autumnal setting or mood without being a seasonal classic: cozy or classic mysteries, campus and academic life, small towns, rainy cities, family gatherings, nostalgia, melancholy, grief or coming of age with an autumn texture. E.g. Knives Out, Good Will Hunting, Little Women, The Holdovers, Fantastic Mr. Fox.
-- 40–69: fits an autumn evening reasonably well but has no seasonal identity: reflective dramas, romances, fantasies or thrillers with some autumn texture.
-- 10–39: seasonally neutral or at odds with autumn: mainstream action, bright comedies, most science fiction, stories centred on Christmas, winter, spring or summer holidays.
-- 0–9: the opposite of autumn: summer, beaches and tropics, superhero blockbusters, space opera. E.g. Mamma Mia!, Guardians of the Galaxy.
+- 90–100: an autumn classic, what people reach for every autumn: cozy, warm and nostalgic, often with school, books, rain or falling leaves. E.g. Dead Poets Society, When Harry Met Sally..., You've Got Mail, Good Will Hunting, Fantastic Mr. Fox, Practical Magic, Gilmore Girls, the Harry Potter films.
+- 70–89: a comfort watch that fits autumn very well: gentle comedies and romances, bittersweet coming-of-age, campus and school life, small towns and bookshops, food and wine, quiet family dramas, whimsical animation. E.g. The Perks of Being a Wallflower, About Time, Kiki's Delivery Service, My Neighbor Totoro, Julie & Julia, Midnight in Paris.
+- 40–69: fits an autumn evening reasonably well without being a comfort watch: reflective dramas, romances, fantasies, mysteries or thrillers with some warmth or melancholy.
+- 10–39: loud, bright or seasonally at odds with autumn: mainstream action, broad comedies, most science fiction, stories about summer holidays or spring break.
+- 0–9: the opposite of autumn: beach and party films, superhero blockbusters, space opera. E.g. Mamma Mia!, Guardians of the Galaxy.
 
-Horror and the supernatural are not autumnal by themselves: being spooky is not being autumnal.
-- Halloween and the Day of the Dead do count as autumn, but only when the story itself is about them or happens on them: trick-or-treating, costumes, jack-o'-lanterns, a Halloween night, the ofrenda. Those titles, horror or not, score 85–100. E.g. Hocus Pocus, Halloween (1978), Trick 'r Treat, Coco, It's the Great Pumpkin, Charlie Brown.
-- Horror, ghosts, witches, vampires or monsters with an autumn setting but no Halloween (a harvest, an October night, falling leaves in the story) score by that setting, like any other title. E.g. Sleepy Hollow.
-- Horror with neither Halloween nor an autumn setting scores 40 at most: haunted houses, possessions, gothic tales, folk horror, slashers. E.g. The Conjuring, Nosferatu.
+Holidays belong to their own season:
+- Christmas is Christmas, not autumn: when Christmas or the winter holidays are central to the story, score 10–25 however cozy it is. E.g. Love Actually, Klaus, Home Alone, Elf.
+- Halloween and the Day of the Dead are autumn, but not its centre: titles about them score 60–80 when warm and family-friendly (e.g. Coco, Hocus Pocus), and follow the horror rule otherwise.
+- Horror is not an autumn watch for this app: horror, slashers, possessions and haunted houses score 30 at most, on Halloween or not. Being spooky is not being autumnal. Dark fairy tales and family fantasy with a spooky edge are not horror: they score like any other title (e.g. Coraline).
 
 Score each title on its own merits; do not rank the titles in the list against each other.
 Reply with json only, in exactly this shape: {"scores": [{"id": 1, "score": 73}, ...]}, one entry per title, using the ids given."""
@@ -237,6 +256,19 @@ def is_relevant(row: dict[str, Any]) -> bool:
     )
 
 
+def autumn_factor(row: dict[str, Any]) -> float:
+    """Lo que se multiplica la puntuación de otoño: el terror y los especiales de Halloween."""
+    genres = set(row.get("genres") or [])
+    keywords = row.get("keywords") or []
+    horror = "Terror" in genres or any(word in keyword for keyword in keywords for word in HORROR_KEYWORDS)
+    if horror and not genres & NOT_HORROR_GENRES:
+        return HORROR_FACTOR
+    halloween = any("halloween" in keyword for keyword in keywords)
+    if halloween and genres & HALLOWEEN_SPECIAL_GENRES and (row.get("vote_count") or 0) < HALLOWEEN_SPECIAL_MAX_VOTES:
+        return HALLOWEEN_SPECIAL_FACTOR
+    return 1.0
+
+
 def label(row: dict[str, Any]) -> str:
     return f"{row['llm_score']:>5.1f}  {row['title']} ({row['year']})"
 
@@ -292,7 +324,8 @@ def main() -> None:
         only_autumn = len(autumn_keys - known_keys)
         print(f"  {content_type}: {len(known)} conocidos (≥{KNOWN_MIN_VOTES[content_type]} votos, "
               f"nota >{KNOWN_MIN_RATING}) + {only_autumn} de otoño que no llegan = {len(selected)} al corpus")
-        corpus += [row | {"autumn_score": round(row["llm_score"] / 100, 3)} for row in selected]
+        # Qué entra lo decide la puntuación del modelo; la guardada lleva ya las reglas de `autumn_factor`.
+        corpus += [row | {"autumn_score": round(row["llm_score"] / 100 * autumn_factor(row), 3)} for row in selected]
 
     write_jsonl(CORPUS_PATH, corpus)
     print(f"\n{len(corpus)} títulos → {CORPUS_PATH.relative_to(DATA_DIR.parent)}")

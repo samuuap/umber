@@ -43,7 +43,18 @@ const stopButton = required<HTMLButtonElement>(form, '[data-stop]');
 const turnsLeftNotice = required<HTMLElement>(form, '[data-turns-left]');
 const conversationEnd = required<HTMLElement>(root, '[data-conversation-end]');
 const dailyEnd = required<HTMLElement>(root, '[data-daily-end]');
+const skipButton = required<HTMLButtonElement>(form, '[data-skip-questions]');
+const recommendationsCount = required<HTMLElement>(form, '[data-recommendations-count]');
+/** Las recomendaciones que le quedan hoy, o `null` si no tiene límite (admin y pruebas). */
+let recommendationsLeft: number | null =
+  root.dataset.recommendationsLeft === '' || root.dataset.recommendationsLeft === undefined
+    ? null
+    : Number(root.dataset.recommendationsLeft);
 const emptyState = root.querySelector<HTMLElement>('[data-empty-state]');
+// El cuadro entero parece un campo: pulsar en su margen también lleva a escribir.
+form.querySelector('.composer')?.addEventListener('click', (event) => {
+  if (event.target === event.currentTarget) input.focus();
+});
 const templates = {
   user: required<HTMLTemplateElement>(root, 'template[data-template="user"]'),
   assistant: required<HTMLTemplateElement>(root, 'template[data-template="assistant"]'),
@@ -196,6 +207,20 @@ function updateTurnsLeft(): void {
       : `Te quedan ${String(turns)} mensajes en esta conversación.`;
 }
 
+/** El contador del día y «Recomiéndame ya», que sobra cuando ya ha recomendado. */
+function updateRecommendations(): void {
+  if (recommendationsLeft !== null) {
+    recommendationsCount.textContent =
+      recommendationsLeft === 0
+        ? 'Era tu última recomendación de hoy'
+        : recommendationsLeft === 1
+          ? 'Te queda 1 recomendación hoy'
+          : `Te quedan ${String(recommendationsLeft)} recomendaciones hoy`;
+  }
+  // Oculto ya desde el servidor si la conversación guardada tenía recomendaciones.
+  skipButton.hidden ||= pastMessages.some((message) => (message.recommendation_ids ?? []).length > 0);
+}
+
 /** Animación de entrada; el CSS está en `global.css`. */
 function revealCard(card: HTMLElement, index: number): void {
   card.style.setProperty('--reveal-delay', `${String(index * 150)}ms`);
@@ -224,6 +249,7 @@ function renderCards(bubble: HTMLElement, recommendations: readonly Recommendati
 
 function setBusy(busy: boolean): void {
   sendButton.disabled = busy;
+  skipButton.disabled = busy;
   stopButton.hidden = !busy;
   list.setAttribute('aria-busy', String(busy));
 }
@@ -348,6 +374,11 @@ async function send(message: string, bubble?: HTMLElement): Promise<void> {
           renderCards(target, event.data.recommendations);
         });
         updateTurnsLeft();
+        // Cada respuesta que recomienda gasta una del día (`countRecommendation` en el servidor).
+        if (event.data.recommendations.length > 0) {
+          if (recommendationsLeft !== null) recommendationsLeft = Math.max(0, recommendationsLeft - 1);
+          updateRecommendations();
+        }
       } else {
         flush();
         finished = true;
@@ -421,6 +452,10 @@ document.addEventListener('click', (event) => {
   window.open(link.href, '_blank', 'noopener');
 });
 
+skipButton.addEventListener('click', () => {
+  void send('Recomiéndame ya, sin más preguntas');
+});
+
 root.querySelectorAll<HTMLButtonElement>('[data-suggestion]').forEach((button) => {
   button.addEventListener('click', () => {
     const text = button.textContent?.trim() ?? '';
@@ -431,6 +466,7 @@ root.querySelectorAll<HTMLButtonElement>('[data-suggestion]').forEach((button) =
 // En una conversación guardada, abrir la página lleva al último mensaje.
 if (list.children.length > 0) window.scrollTo({ top: document.documentElement.scrollHeight });
 updateTurnsLeft();
+updateRecommendations();
 
 // Llega desde la portada con su primer mensaje: se envía ya. Fuera de la URL,
 // para que recargar no lo vuelva a mandar.

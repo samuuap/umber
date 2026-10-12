@@ -35,6 +35,8 @@ const describedBy = (field: AuthFormField, help: boolean): string | undefined =>
     .filter((id) => id !== null)
     .join(' ') || undefined;
 
+// `autocomplete="username"` en el email: es con lo que se entra, así que es lo que
+// el gestor de contraseñas (Chrome, Safari, iCloud) guarda junto a la contraseña.
 const passwordFields = signup
   ? [
       {
@@ -99,7 +101,9 @@ const passwordFields = signup
       id="email"
       name="email"
       type="email"
-      autocomplete="email"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
       required
       value={email}
       aria-invalid={errorFor('email') === null ? undefined : 'true'}
