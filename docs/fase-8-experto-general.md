@@ -414,12 +414,37 @@ de fuera del equipo puede activar su cuenta, y hay una propuesta sin coste
       prompt, de una media de unos 50 a 73/100; controles (Navidad, terror,
       Halloween infantil) en 31. Antes, con el orden de la base, ninguna de las
       35 de fuera del prompt entraba en la primera página (mediana: puesto 1.954)
-- [ ] Puntuar el universo con el criterio nuevo y cargarlo (en el Mac: los datos
-      del seed están allí), y medir el orden real con `eval-autumn.py`
+- [x] Puntuar el universo con el criterio nuevo y cargarlo (en el Mac: los datos
+      del seed están allí), y medir el orden real con `eval-autumn.py`. Corpus de
+      16.035 a 16.086 títulos: salen 71 (68 series) y entran 122 (100 series).
+      Fuera del prompt (34): 1 en la primera página, 7 entre las 100, mediana en
+      el puesto 320 (antes 0 y 1.954). Controles desde el puesto 5.224. La saga de
+      *Halloween* y el terror de esa noche, en ~0,10; suben *Ponyo*, *Paddington*
+      o *Narnia*. Búsquedas de
+      0,2 a 0,8 s tras `vacuum full` y `reindex`
+
+Visto al cargar, sin decidir:
+
+- Las series por debajo de 500 votos solo entran por otoño (`AUTUMN_MAX_TV`), así
+  que el criterio cambia el corpus del Umber general: salieron *Happy Valley*,
+  *Babylon Berlin*, *Ripley* o *Dept. Q*, y entraron *Cosmos* o *Garfield*
+- La especialidad abarca más: películas con otoño ≥ 0,32 de 7.021 a 8.932 (el
+  60 %), series ≥ 0,40 de 580 a 776. Los umbrales se fijaron con el criterio
+  anterior
+- Primera página de «Más otoñales»: 8 de Harry Potter entre los 10 primeros (no
+  hay tope por saga), y *Forrest Gump*, *Cadena perpetua*, *Frozen* o *El señor
+  de los anillos*. Los controles no tienen ninguna muy conocida que no sea de
+  otoño, así que `eval-autumn.py` no lo mide. *Llámame por tu nombre* y *Luca*,
+  de verano, en 0,68 y 0,64
+- En series la fama (de 500 a 20.000 votos) lo decide casi todo: *Friends*, *Los
+  Simpson*, *Big Bang*; *Las chicas Gilmore* (0,95 y 1.315 votos), en el puesto 28
 
 ## Preguntas abiertas
 
 Resueltas el 2026-10-04 (ver Decisiones): nombre, umbral del corpus, series y
 registro de consultas de anónimos.
 
-Resuelta: cuántas preguntas (de 3 a 5, ver Decisiones). Ninguna abierta.
+Resuelta: cuántas preguntas (de 3 a 5, ver Decisiones).
+
+Abierta: lo visto al cargar la especialidad de otoño recalibrada (ver «La
+especialidad de otoño, recalibrada»).
