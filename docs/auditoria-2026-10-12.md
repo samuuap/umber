@@ -732,19 +732,19 @@ patrocinio y B2B.**
 
 ### Semanas 1–2 · Cerrar agujeros y desbloquear
 
-- [ ] S1 open redirect · S3 reservar el cupo antes · S2 techo global por USD y solo turnos con modelo
-- [ ] S4 rate limit en `/recuperar` · S5 formato canónico en `poster-image`
+- [ ] ~~S1 open redirect~~ (2026-10-12) · S3 reservar el cupo antes · S2 techo global por USD y solo turnos con modelo (de momento, 1.500 mensajes al día)
+- [ ] ~~S4 rate limit en `/recuperar`~~ (2026-10-12) · S5 formato canónico en `poster-image`
 - [ ] C1 timeouts en DeepSeek, Supabase y embeddings
 - [ ] D1 trazas de `search` sin candidatos y 7 días · alerta de tamaño de base
 - [ ] Correo a TMDB y alta en JustWatch Partners
 - [ ] Dominio propio + 301 + Search Console; SMTP con el dominio
 - [ ] Analítica sin cookies, Sentry y UptimeRobot
-- [ ] U2 enlace de confirmación · U1 contexto en el muro · U3 cupo visible
+- [x] U2 enlace de confirmación (plantillas hechas; falta pegarlas en el dashboard) · U1 contexto en el muro · U3 cupo visible (2026-10-12)
 - [ ] Verificar que Google OAuth funciona en producción (los docs se contradicen)
 
 ### Semanas 3–6 · Embudo, confianza y calidad
 
-- [ ] Consentimiento de IA en servidor, revocable, exigido en `/api/chat`; textos legales definitivos (`LEGAL_DRAFT = false`)
+- [x] Consentimiento de IA en servidor, revocable, exigido en `/api/chat`; textos legales definitivos (`LEGAL_DRAFT = false`) (2026-10-12)
 - [ ] U4 «otra» y «verlo» sin gastar cupo · R2 buscar antes con filtros explícitos · R6
 - [ ] R3 título por SQL · R4 tope por saga y suelo relativo
 - [ ] Rendimiento: hedging del embedding, TMDB fuera del camino crítico, preconnect, `sharp` dinámico

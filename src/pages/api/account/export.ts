@@ -37,6 +37,8 @@ export const GET: APIRoute = async ({ locals }) => {
           email: user.email,
           nombre_usuario: user.username,
           creada_el: profile.created_at,
+          // La constancia del consentimiento del chat: versión y fecha, o null si no lo dio o lo retiró.
+          consentimiento_chat: user.aiConsent,
         },
         conversaciones,
         favoritos,

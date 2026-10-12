@@ -423,14 +423,15 @@ de fuera del equipo puede activar su cuenta, y hay una propuesta sin coste
       o *Narnia*. Búsquedas de
       0,2 a 0,8 s tras `vacuum full` y `reindex`
 
-Visto al cargar, sin decidir:
+Visto al cargar. **Decidido (2026-10-12): todo se queda como está**, a propósito:
 
 - Las series por debajo de 500 votos solo entran por otoño (`AUTUMN_MAX_TV`), así
   que el criterio cambia el corpus del Umber general: salieron *Happy Valley*,
   *Babylon Berlin*, *Ripley* o *Dept. Q*, y entraron *Cosmos* o *Garfield*
 - La especialidad abarca más: películas con otoño ≥ 0,32 de 7.021 a 8.932 (el
   60 %), series ≥ 0,40 de 580 a 776. Los umbrales se fijaron con el criterio
-  anterior
+  anterior; el orden ya pesa el otoño. Para el mismo tamaño de antes harían
+  falta 0,40 y 0,48
 - Primera página de «Más otoñales»: 8 de Harry Potter entre los 10 primeros (no
   hay tope por saga), y *Forrest Gump*, *Cadena perpetua*, *Frozen* o *El señor
   de los anillos*. Los controles no tienen ninguna muy conocida que no sea de
@@ -444,7 +445,6 @@ Visto al cargar, sin decidir:
 Resueltas el 2026-10-04 (ver Decisiones): nombre, umbral del corpus, series y
 registro de consultas de anónimos.
 
-Resuelta: cuántas preguntas (de 3 a 5, ver Decisiones).
-
-Abierta: lo visto al cargar la especialidad de otoño recalibrada (ver «La
-especialidad de otoño, recalibrada»).
+Resueltas: cuántas preguntas (de 3 a 5, ver Decisiones) y lo visto al cargar la
+especialidad de otoño recalibrada (se queda así, ver «La especialidad de otoño,
+recalibrada»). Ninguna abierta.

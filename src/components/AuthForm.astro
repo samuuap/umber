@@ -158,7 +158,7 @@ const passwordFields = signup
           </p>
         )}
         {field.name === 'password_confirm' && (
-          <p data-password-match aria-live="polite" hidden class="text-umber-accent text-xs data-[state=mismatch]:text-umber-danger" />
+          <p data-password-match aria-live="polite" hidden class="text-umber-success text-xs data-[state=mismatch]:text-umber-danger" />
         )}
         {errorFor(field.name) !== null && (
           <p id={`${field.name}-error`} role="alert" class={errorClass}>

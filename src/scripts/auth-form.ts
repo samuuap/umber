@@ -4,6 +4,7 @@
  * formulario funciona igual y el servidor lo valida todo.
  */
 const MISMATCH = 'Las contraseñas no coinciden.';
+const MATCH = 'Las contraseñas coinciden.';
 
 function initPasswordToggles(form: HTMLFormElement): void {
   const inputs: HTMLInputElement[] = [];
@@ -40,7 +41,8 @@ function initPasswordMatch(form: HTMLFormElement): void {
     confirm.setCustomValidity(mismatch ? MISMATCH : '');
     status.hidden = !touched || confirm.value.length === 0;
     status.dataset.state = mismatch ? 'mismatch' : 'match';
-    status.textContent = mismatch ? MISMATCH : 'Las contraseñas coinciden.';
+    // El símbolo dice lo mismo que el color, para quien no distingue el verde del rojo.
+    status.textContent = mismatch ? `✕ ${MISMATCH}` : `✓ ${MATCH}`;
   };
 
   password.addEventListener('input', update);

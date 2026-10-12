@@ -33,6 +33,8 @@
   --color-umber-accent-hover: #9a2914;
   /* Errores: con texto siempre, el color solo no basta */
   --color-umber-danger: #9f1d1d;
+  /* Lo que está bien (las contraseñas coinciden): también con texto, nunca solo color */
+  --color-umber-success: #2f6b3a;
 
   /* Las variables `--font-*` las inyecta la API de fuentes de Astro */
   --font-display: var(--font-instrument);
@@ -63,6 +65,7 @@
       --color-umber-accent: #e8664c;
       --color-umber-accent-hover: #f07b62;
       --color-umber-danger: #f2998a;
+      --color-umber-success: #8cc79a;
     }
   }
 
@@ -78,6 +81,7 @@
     --color-umber-accent: #e8664c;
     --color-umber-accent-hover: #f07b62;
     --color-umber-danger: #f2998a;
+    --color-umber-success: #8cc79a;
   }
 
   html {

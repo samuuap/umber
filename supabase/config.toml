@@ -247,6 +247,21 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# Las plantillas de Umber (2026-10-12). Esto solo vale para el Supabase local: en
+# producción se pegan en el dashboard (Authentication → Emails → Templates), con
+# el mismo asunto. No usar `supabase config push`.
+[auth.email.template.confirmation]
+subject = "Confirma tu cuenta de Umber"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Elige una contraseña nueva para Umber"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirma el cambio de email en Umber"
+content_path = "./supabase/templates/email_change.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

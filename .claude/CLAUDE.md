@@ -610,6 +610,15 @@ lo comprueba con `buscar_por_titulo` en cualquier turno menos el forzado (4
 preguntas seguidas), que tiene que recomendar. Reglas y estado en
 `src/lib/turns.ts`.
 
+**Respuestas para pulsar** (2026-10-12): cada pregunta de Umber acaba con una
+línea `[[Una comedia loca | Una que me deje buen sabor de boca]]` (`system.md`),
+de 2 a 3 respuestas en la voz de la persona. El servidor no la escribe en el
+stream (`QuickReplySplitter` en `src/lib/chat.ts` retiene desde `[[`), la manda
+en `done.options` y la guarda con el mensaje (`options`); el chat las pinta como
+botones encima del cuadro y pulsar una la envía. Al recomendar no se ofrecen. En
+el historial que ve el modelo, cada pregunta lleva otra vez su línea: sin ella,
+al tercer turno dejaba de ponerla.
+
 **Especialidad** (`?especialidad=otono` en `/chat`, `specialty` en la API, y en
 la conversación guardada): solo títulos de otoño (`autumn_score` ≥ 0,32 en
 películas y 0,40 en series), el otoño pesa al ordenar y el system prompt lleva la
@@ -620,10 +629,13 @@ no pesa nada.
 Usuario escribe
       ↓
 POST /api/chat → validar (parseChatRequest) → sin sesión, 401 (hace falta
-cuenta desde el 2026-10-11; la página /chat ya manda a /registro)
+cuenta desde el 2026-10-11; la página /chat ya manda a /registro) → sin el
+consentimiento de DeepSeek, 403 `consent_required` (cookie o
+`user_metadata.ai_consent` de la versión en vigor, `hasAiConsent` en
+`src/lib/legal.ts`; admin y pruebas no lo necesitan)
       ↓
 A la vez:
-  - Rate limit (hit_rate_limit): 8/min y 50/día por cuenta y, si cabe, 300/día
+  - Rate limit (hit_rate_limit): 8/min y 50/día por cuenta y, si cabe, 1.500/día
     entre todos (techo del gasto de DeepSeek) → 429
   - Recomendaciones del día: 2 por cuenta (`RECOMMENDATIONS_PER_DAY`, clave
     `recommend:user:<id>`); sin ninguna, 429 `recommendations_used` y el chat
@@ -670,8 +682,8 @@ herramienta que no se le ofreció: el servidor la trata como buscar_titulos
 Stream SSE al cliente (los primeros 280 caracteres se retienen: un preámbulo
 antes de buscar se descarta)
       ↓
-Guardar en Supabase (si autenticado; append_conversation_messages) con search y
-recommendation_ids → evento `done` → traza (`record_trace`) → cerrar el stream
+Guardar en Supabase (si autenticado; append_conversation_messages) con search,
+recommendation_ids y options → evento `done` → traza (`record_trace`) → cerrar el stream
 ```
 
 La búsqueda ocurre con el stream ya abierto, detrás del evento `searching`: la
@@ -701,10 +713,11 @@ Contrato de `POST /api/chat`, tipado en `src/lib/types.ts`:
   inválido o caducado, 401
 - **Respuesta** (`ChatStreamEvent`): `text/event-stream` con `delta { text }`
   por fragmento, `searching {}` justo antes de buscar y, al final, `done {
-  conversation_id, recommendations, search }` o `error { code, message }`.
+  conversation_id, recommendations, search, options }` o `error { code, message }`.
   `recommendations` trae la ficha de cada título que Umber ha nombrado (vacío
   si ha preguntado): id del corpus, póster y plataformas. `search` es la
-  búsqueda del turno (resumen y candidatos), o `null`
+  búsqueda del turno (resumen y candidatos), o `null`. `options`, las respuestas
+  para pulsar si Umber ha preguntado (vacío si recomienda); ya no van en el texto
 - **Errores antes de abrir el stream** (validar, sesión, rate limit, historial,
   abrir DeepSeek): JSON `{ error: { code, message } }` con el `status` del error
   tipado (400, 401, 404, 409, 429, 502). `message` se puede mostrar tal cual. El
@@ -751,8 +764,14 @@ Los otros dos endpoints, con el mismo formato de error:
 - El proyecto **exige confirmar el email**. El enlace vuelve a `/auth/confirm`,
   que tiene que estar en *Redirect URLs* del dashboard (Authentication → URL
   Configuration), junto con la *Site URL*. Con la plantilla de email por
-  defecto (`?code=`) el enlace solo funciona en el navegador del registro; la
-  plantilla con `?token_hash=` funciona en cualquiera
+  defecto (`?code=`) el enlace solo funciona en el navegador del registro; las
+  de Umber (`supabase/templates/`, se pegan en el dashboard) usan `token_hash` y
+  funcionan en cualquiera
+- **Consentimiento del chat** (DeepSeek en China, art. 49.1.a RGPD):
+  `/antes-de-hablar` lo guarda en la cookie `umber_consentimiento_ia` y en la
+  cuenta (`user_metadata.ai_consent`: versión y fecha) y renueva la sesión para
+  que los claims lo lleven; `/cuenta` lo retira. `/chat` y `/api/chat` lo exigen.
+  Cambiar `AI_CONSENT_VERSION` si cambia lo que se informa
 - Registrar emails inventados hace rebotar el SMTP por defecto de Supabase, que
   limita los envíos. Para probar, crear usuarios ya confirmados con la Admin API
   (como hace `scripts/verify-rls.mjs`) y, si hace falta un enlace, sacarlo de
@@ -920,6 +939,7 @@ Texto principal:   #16130F   #EDE6DA   (tinta / papel)  14:1+     umber-ink
 Texto secundario:  #5E564C   #A39A8D   6,5:1+                     umber-muted
 Acento:            #B8321C   #E8664C   (bermellón)      5:1+      umber-accent (+ -hover)
 Errores:           #9F1D1D   #F2998A   siempre con texto          umber-danger
+Bien:              #2F6B3A   #8CC79A   siempre con texto          umber-success
 
 Titulares:         Instrument Serif 400 y cursiva                   font-display
 Lo que se lee:     Newsreader de lectura (opsz 16), 400 y 600       font-serif

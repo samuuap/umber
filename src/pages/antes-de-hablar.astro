@@ -1,13 +1,13 @@
 ---
 /**
  * Antes de abrir el chat: consentimiento explícito para que DeepSeek trate los
- * mensajes en China (art. 49.1.a del RGPD). `/chat` manda aquí sin la cookie;
- * al aceptar se guarda un año y se vuelve a `next`, con su `q` si lo traía.
- * Funciona sin JavaScript.
+ * mensajes en China (art. 49.1.a del RGPD). `/chat` manda aquí sin él; al
+ * aceptar se guarda en la cuenta (versión y fecha) y en una cookie de un año, y
+ * se vuelve a `next`, con su `q` si lo traía. Funciona sin JavaScript.
  */
 import Layout from '@/layouts/Layout.astro';
 import { safeRedirectPath } from '@/lib/auth';
-import { AI_CONSENT_COOKIE, AI_CONSENT_VERSION } from '@/lib/legal';
+import { AI_CONSENT_COOKIE, AI_CONSENT_VERSION, type AiConsentRecord } from '@/lib/legal';
 
 const YEAR_SECONDS = 365 * 24 * 60 * 60;
 
@@ -16,6 +16,14 @@ const asked = safeRedirectPath(Astro.url.searchParams.get('next'), '/');
 const next = asked.startsWith('/chat') ? asked : '/';
 
 if (Astro.request.method === 'POST') {
+  // Constancia en la cuenta, con versión y fecha (art. 7.1 RGPD), y en este navegador.
+  if (Astro.locals.user !== null) {
+    const record: AiConsentRecord = { version: AI_CONSENT_VERSION, accepted_at: new Date().toISOString() };
+    const { error } = await Astro.locals.supabase.auth.updateUser({ data: { ai_consent: record } });
+    // La sesión nueva lleva el consentimiento: sin renovarla, la de las cookies seguiría sin él.
+    if (error === null) await Astro.locals.supabase.auth.refreshSession();
+    else console.error('[antes-de-hablar] No se pudo guardar el consentimiento en la cuenta:', error.message);
+  }
   Astro.cookies.set(AI_CONSENT_COOKIE, AI_CONSENT_VERSION, {
     path: '/',
     maxAge: YEAR_SECONDS,
@@ -47,8 +55,9 @@ if (Astro.request.method === 'POST') {
         hacen falta.
       </p>
       <p class="text-umber-muted text-base">
-        Puedes retirar tu consentimiento cuando quieras borrando las cookies de Umber en tu navegador. Más detalle en la
-        <a href="/privacidad" class="link">política de privacidad</a>.
+        Guardamos en tu cuenta que lo has aceptado y cuándo. Puedes retirarlo cuando quieras desde
+        <a href="/cuenta" class="link">tu cuenta</a>; sin él no podrás usar el chat, pero sí el resto de Umber. Más
+        detalle en la <a href="/privacidad" class="link">política de privacidad</a>.
       </p>
     </div>
 

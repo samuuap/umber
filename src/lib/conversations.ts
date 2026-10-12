@@ -170,7 +170,7 @@ export interface SaveTurnOptions {
 
 /** El tipo `Json` del generador no acepta interfaces: hacen falta objetos literales. */
 function toJson(messages: readonly StoredChatMessage[]) {
-  return messages.map(({ role, content, created_at, recommendation_ids: ids, search, language }) => ({
+  return messages.map(({ role, content, created_at, recommendation_ids: ids, search, options, language }) => ({
     role,
     content,
     created_at,
@@ -183,6 +183,7 @@ function toJson(messages: readonly StoredChatMessage[]) {
             candidates: search.candidates.map(({ id, similarity }) => ({ id, similarity })),
           },
         }),
+    ...(options === undefined || options.length === 0 ? {} : { options: [...options] }),
     ...(language === undefined ? {} : { language }),
   }));
 }

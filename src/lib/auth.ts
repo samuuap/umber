@@ -8,6 +8,7 @@
  */
 import { isRecord } from '@/lib/api';
 import { AuthError, errorMessage } from '@/lib/errors';
+import { readAiConsent, type AiConsentRecord } from '@/lib/legal';
 import {
   createSupabaseUserClient,
   getSupabaseClient,
@@ -27,6 +28,8 @@ export interface SessionUser {
   readonly isAdmin: boolean;
   /** `app_metadata.role === 'tester'`: las cuentas que crean los scripts de evaluación. */
   readonly isTester: boolean;
+  /** El consentimiento para el chat guardado en la cuenta (`src/lib/legal.ts`), o `null`. */
+  readonly aiConsent: AiConsentRecord | null;
 }
 
 export const MIN_PASSWORD_CHARS = 8;
@@ -68,6 +71,8 @@ export interface RequestUser {
   readonly id: string;
   /** Admin o cuenta de prueba: fuera de los límites del chat (`rate-limit.ts`). */
   readonly unlimited: boolean;
+  /** El consentimiento para el chat guardado en la cuenta, o `null`. */
+  readonly aiConsent: AiConsentRecord | null;
   /** Cliente con la sesión del usuario: RLS se evalúa como él. */
   readonly client: UmberSupabaseClient;
 }
@@ -99,6 +104,7 @@ export async function getSessionUser(supabase: UmberSupabaseClient): Promise<Ses
       username: typeof username === 'string' ? username : null,
       isAdmin: roleOf(appMetadata) === 'admin',
       isTester: roleOf(appMetadata) === 'tester',
+      aiConsent: readAiConsent(claims.user_metadata),
     };
   } catch (error: unknown) {
     // Una cookie corrupta o un refresh token revocado no tumban la página: se
@@ -124,10 +130,17 @@ function readBearerToken(request: Request): string | null {
  * `?next=https://otra-web.com` convertiría el login en una redirección abierta.
  */
 export function safeRedirectPath(value: string | null, fallback = '/'): string {
-  if (value === null || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+  if (value === null || !value.startsWith('/')) return fallback;
+  // Se resuelve como lo haría el navegador, que quita tabuladores y saltos de
+  // línea y lee «\» como «/»: «/%09/otra-web.com» acababa en https://otra-web.com.
+  const base = 'https://umber.invalid';
+  let url: URL;
+  try {
+    url = new URL(value, base);
+  } catch {
     return fallback;
   }
-  return value;
+  return url.origin === base ? url.pathname + url.search + url.hash : fallback;
 }
 
 /**
@@ -204,7 +217,12 @@ export async function getRequestUser(context: RequestUserContext): Promise<Reque
     const user = context.locals.user;
     return user === null
       ? null
-      : { id: user.id, unlimited: user.isAdmin || user.isTester, client: context.locals.supabase };
+      : {
+          id: user.id,
+          unlimited: user.isAdmin || user.isTester,
+          aiConsent: user.aiConsent,
+          client: context.locals.supabase,
+        };
   }
 
   const { data, error } = await getSupabaseClient().auth.getClaims(token);
@@ -213,5 +231,10 @@ export async function getRequestUser(context: RequestUserContext): Promise<Reque
     throw new AuthError('La sesión no es válida o ha caducado.', error ?? undefined);
   }
   const role = roleOf(data?.claims.app_metadata);
-  return { id: userId, unlimited: role === 'admin' || role === 'tester', client: createSupabaseUserClient(token) };
+  return {
+    id: userId,
+    unlimited: role === 'admin' || role === 'tester',
+    aiConsent: readAiConsent(data?.claims.user_metadata),
+    client: createSupabaseUserClient(token),
+  };
 }

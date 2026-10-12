@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Confirma el cambio de email en Umber</title>
+</head>
+<body style="margin:0;padding:0;background:#F3EEE5;">
+<!-- Si Supabase cambia la vuelta por la Site URL (no estaba permitida), el enlace va sin `next`. Change Email Address. Asunto: Confirma el cambio de email en Umber. Con «Secure email change» llega a los dos emails. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F3EEE5;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+        <tr>
+          <td style="padding:0 0 28px;border-bottom:1px solid #CFC6B8;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1;color:#16130F;letter-spacing:-0.5px;">
+            Umber<span style="color:#B8321C;">.</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#B8321C;">
+            Tu cuenta
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:14px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.1;color:#16130F;letter-spacing:-0.5px;">
+            Confirma tu <em>nuevo</em> email
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.6;color:#16130F;">
+            Has pedido cambiar el email de tu cuenta de Umber de {{ .Email }} a {{ .NewEmail }}. Pulsa el botón para confirmarlo.
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 0 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td bgcolor="#B8321C" style="background:#B8321C;">
+                  <a href="{{ if or (eq .RedirectTo .SiteURL) (eq .RedirectTo "") }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change{{ else }}{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email_change{{ end }}" style="display:inline-block;padding:15px 26px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:#F3EEE5;text-decoration:none;">Confirmar el cambio &rarr;</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#5E564C;">
+            El enlace caduca en una hora. Si te llega este correo a los dos emails, confírmalo en los dos. Hasta entonces, sigues entrando con el de siempre.
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#5E564C;word-break:break-all;">
+            Si el botón no funciona, copia este enlace en el navegador:<br>
+            <a href="{{ if or (eq .RedirectTo .SiteURL) (eq .RedirectTo "") }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change{{ else }}{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email_change{{ end }}" style="color:#B8321C;">{{ if or (eq .RedirectTo .SiteURL) (eq .RedirectTo "") }}{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change{{ else }}{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email_change{{ end }}</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="height:36px;line-height:36px;font-size:0;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td style="padding:20px 0 0;border-top:1px solid #CFC6B8;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#5E564C;">
+            Umber &middot; Tu cinéfilo de confianza<br>
+            Si no lo has pedido tú, ignora este correo y cambia tu contraseña: alguien podría estar usando tu cuenta.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

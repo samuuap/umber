@@ -20,6 +20,7 @@
  */
 import { UUID_PATTERN } from '@/lib/api';
 import type { ToolChoice } from '@/lib/deepseek';
+import { MAX_QUICK_REPLIES, MAX_QUICK_REPLY_CHARS } from '@/lib/types';
 import type {
   AssistantTurnMeta,
   ChatHistoryMessage,
@@ -66,6 +67,16 @@ function parseSearch(value: unknown): TurnSearch | null {
     : null;
 }
 
+function isQuickReplies(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= MAX_QUICK_REPLIES &&
+    value.every(
+      (option) => typeof option === 'string' && option.length <= MAX_QUICK_REPLY_CHARS && !/[[\]|\n]/.test(option),
+    )
+  );
+}
+
 /**
  * Lo que recuerda un mensaje de Umber, venga de Supabase o del navegador. Lo mal
  * formado se descarta sin perder el mensaje: solo se pierde el estado de ese
@@ -75,11 +86,14 @@ function parseSearch(value: unknown): TurnSearch | null {
 export function parseTurnMeta(record: Readonly<Record<string, unknown>>): AssistantTurnMeta {
   const search = parseSearch(record['search']);
   const ids = record['recommendation_ids'];
+  const options = record['options'];
   return {
     ...(search === null ? {} : { search }),
     ...(Array.isArray(ids) && ids.length <= MAX_CANDIDATES && ids.every(isContentId)
       ? { recommendation_ids: ids }
       : {}),
+    // Vuelven al modelo dentro de su historial: solo texto corto, como las escribe él.
+    ...(isQuickReplies(options) ? { options } : {}),
   };
 }
 

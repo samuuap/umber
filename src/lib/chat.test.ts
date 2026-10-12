@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { parseChatRequest } from '@/lib/chat';
+import { QuickReplySplitter, parseChatRequest } from '@/lib/chat';
 import { ValidationError } from '@/lib/errors';
 import { MAX_MESSAGE_CHARS } from '@/lib/types';
 
@@ -51,5 +51,41 @@ describe('parseChatRequest', () => {
       { role: 'user', content: 'hola' },
       { role: 'assistant', content: 'Te propongo **Una**.', recommendation_ids: [id] },
     ]);
+  });
+});
+
+describe('QuickReplySplitter', () => {
+  const split = (chunks: string[]): { sent: string; text: string; options: string[] } => {
+    const splitter = new QuickReplySplitter();
+    const sent = chunks.map((chunk) => splitter.push(chunk)).join('');
+    const { text, options } = splitter.end();
+    return { sent, text, options };
+  };
+
+  test('separa las respuestas de la última línea, aunque lleguen partidas', () => {
+    const result = split(['¿Una comedia loca o algo tranquilo?\n', '[', '[Una comedia loca | Algo ', 'tranquilo]]']);
+    expect(result).toEqual({
+      sent: '¿Una comedia loca o algo tranquilo?\n',
+      text: '',
+      options: ['Una comedia loca', 'Algo tranquilo'],
+    });
+  });
+
+  test('sin respuestas, el texto pasa entero, también un corchete suelto al final', () => {
+    expect(split(['Te propongo **Intocable** (2011)', ' [sic', ']'])).toEqual({
+      sent: 'Te propongo **Intocable** (2011) [sic]',
+      text: '',
+      options: [],
+    });
+    expect(split(['Termina en [', ''])).toEqual({ sent: 'Termina en ', text: '[', options: [] });
+  });
+
+  test('lo que no tiene la forma esperada se devuelve como texto', () => {
+    expect(split(['Hola [[a | b] y más'])).toEqual({ sent: 'Hola ', text: '[[a | b] y más', options: [] });
+  });
+
+  test('como mucho tres, sin vacías ni demasiado largas', () => {
+    const long = 'x'.repeat(61);
+    expect(split([`¿Y?\n[[Uno | | ${long} | Dos | Tres | Cuatro]]`]).options).toEqual(['Uno', 'Dos', 'Tres']);
   });
 });

@@ -68,11 +68,12 @@ export const RATE_LIMITS: Readonly<Record<RateLimitScope, ScopeLimits>> = {
       { windowSeconds: DAY, limit: MAX_CONVERSATION_MESSAGES / 2 },
     ],
     /*
-     * Decisión de producto (2026-10-03): unos 0,30 USD de DeepSeek al día como
-     * mucho. Un mensaje cuesta algo menos de 0,001 USD, estimado de lo que costó
-     * puntuar el corpus con llamadas de tamaño parecido. Subirlo con el tráfico.
+     * Decisión de producto (2026-10-12, Friends and Family): 1.500 al día entre
+     * todos, unos 0,60 USD de DeepSeek como mucho. Medido: 0,0004 USD por
+     * petición de media (`llm_calls`, última semana). Con 300, unos 25 amigos el
+     * mismo día cerraban el chat para todos. Subirlo con el tráfico.
      */
-    global: [{ windowSeconds: DAY, limit: 300 }],
+    global: [{ windowSeconds: DAY, limit: 1500 }],
     noun: 'mensajes',
   },
   /*

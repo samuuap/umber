@@ -98,6 +98,13 @@ export class RateLimitError extends UmberError {
   }
 }
 
+/** Falta el consentimiento para que DeepSeek trate los mensajes en China (`/antes-de-hablar`). */
+export class ConsentRequiredError extends UmberError {
+  constructor(message: string) {
+    super(message, { code: 'consent_required', status: 403 });
+  }
+}
+
 /** La conversación ha llegado a su tope de mensajes: hay que empezar otra. */
 export class ConversationFullError extends UmberError {
   constructor(message: string) {

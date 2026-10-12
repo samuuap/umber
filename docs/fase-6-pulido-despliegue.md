@@ -49,16 +49,33 @@ lanzamiento primero.
       paneles de fin no fijos; «Recomiéndame» en la cabecera y menú (`<details>`)
       por debajo de `lg`; `/explorar` no recarga con cada flecha y su estado
       vacío tiene salida; etiquetas en `/cuenta` y en el reenvío
+- [x] **Respuestas para pulsar** (2026-10-12): las dos o tres opciones de cada
+      pregunta de Umber salen como botones encima del cuadro; pulsar una la
+      envía, y se puede seguir escribiendo. Umber las escribe en una línea
+      `[[a | b]]` que el servidor quita del texto y manda en `done.options`; se
+      guardan con el mensaje, así que vuelven al recargar. Probado con 9
+      conversaciones reales (todas las preguntas con opciones, ninguna al
+      recomendar ni en la crisis) y los guardarraíles (23/23)
 - [x] **iPhone** (2026-10-12): `viewport-fit=cover` con los márgenes de
       `safe-area-inset-*` (cuadro del chat sobre la barra de inicio, pie y la
       muesca en horizontal); campos a 16 px o más en iOS, que si no amplía la
       página al tocarlos; icono de inicio (`apple-touch-icon.png`) y
       `manifest.webmanifest`. Probado con la emulación de iPhone 15 en Chromium,
       no en un Safari real
-- [ ] Plantilla *Reset Password* con
-      `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/cuenta/contrasena`:
-      con la de por defecto (`?code=`), el enlace solo funciona en el navegador
-      donde se pidió, y en móvil el correo se abre en la app de Gmail
+- [ ] **Plantillas de correo** (hechas el 2026-10-12, falta pegarlas en el
+      dashboard: Authentication → Emails → Templates). En
+      `supabase/templates/`, con el aspecto de Umber y el asunto en
+      `supabase/config.toml`: *Confirm signup* (`confirmation.html`), *Reset
+      Password* (`recovery.html`) y *Change Email Address* (`email_change.html`).
+      Con `token_hash`, el enlace funciona en cualquier navegador; con la de por
+      defecto (`?code=`), solo en el que lo pidió, y en el móvil el correo se abre
+      en la app de Gmail. La de la cuenta y la del email usan `{{ .RedirectTo }}`,
+      que ya es `/auth/confirm?next=…`: vuelve a donde iba (el chat con su
+      pregunta). Si Supabase la cambia por la Site URL (una vuelta no permitida,
+      como un despliegue de vista previa), la plantilla lo detecta y manda a
+      `/auth/confirm` sin `next`. Probado el canje de cada enlace con la Admin API
+      (la vuelta de producción llega intacta); el del email nuevo de un cambio de
+      email no se puede generar bien con la Admin API: probarlo de verdad
 - [x] `/cuenta`: cambiar nombre de usuario, email y contraseña (2026-10-10).
       Tres formularios independientes (`updateUser`); el cambio de email manda
       confirmación al nuevo (y, según «Secure email change», también al
@@ -108,7 +125,8 @@ lanzamiento primero.
       `client_hash` en las trazas, proveedores y sus regiones, cookies de
       Supabase, `umber_juego_idioma` y `umber:games:v1`. Probados sobre el
       build: sin violaciones de CSP, 390 y 1280 px
-- [ ] **Revisar los textos legales** y, después, `LEGAL_DRAFT = false`. Titular
+- [x] **Textos legales en vigor** (2026-10-12, `LEGAL_DRAFT = false`), revisados
+      contra lo que hace el código, no por un abogado. Titular
       (2026-10-11): solo nombre y email, en `src/lib/legal.ts`; sin NIF ni
       domicilio mientras sea un proyecto personal sin ingresos (fuera del art.
       10 de la LSSI; el RGPD pide identidad y contacto). Al cobrar, añadirlos.
@@ -117,7 +135,13 @@ lanzamiento primero.
       cookie `umber_consentimiento_ia` (versión en `AI_CONSENT_VERSION`). Se
       descartó cambiar de proveedor: DeepSeek es barato y rinde bien. Es la base
       más débil de las posibles (el RGPD la piensa para transferencias
-      ocasionales); `/api/chat` no la exige, para los scripts con Bearer.
+      ocasionales). **Desde el 2026-10-12** se guarda también en la cuenta
+      (`user_metadata.ai_consent`, versión y fecha: la constancia del art. 7.1),
+      vale en otros dispositivos, se retira desde `/cuenta` («El chat y
+      DeepSeek», art. 7.3) y `/api/chat` la exige (403 `consent_required`; las
+      cuentas de admin y de prueba, no). Versión `2026-10-12`: todos lo aceptan
+      otra vez, y así queda constancia también de los de antes. Va en la
+      descarga de datos. Probado de punta a punta en el navegador
       `/privacidad` añade además las copias cifradas en GitHub (90 días), la IP
       de la sesión de Supabase y que el registro de peticiones se pide por email
 - [x] Decir en el chat que Umber es una IA (AI Act, art. 50, en vigor desde
@@ -435,10 +459,6 @@ Descartado:
       `registro.astro` pide volver a `${Astro.url.origin}/auth/confirm`, y
       Supabase solo lo respeta si está en la lista. Para desarrollar con registro
       en local, un proyecto de Supabase aparte
-- [ ] Plantilla *Confirm signup* con
-      `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`: con la
-      de por defecto (`?code=`), el enlace solo funciona en el navegador del
-      registro
 - [ ] **SMTP propio** (Authentication → Emails → SMTP Settings). El correo por
       defecto de Supabase es para pruebas: 2 correos por hora y solo al equipo
       del proyecto. Con qué, en «Correo de la cuenta»

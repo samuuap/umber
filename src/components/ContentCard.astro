@@ -76,7 +76,11 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
     </p>
 
     <div data-field="platforms-block" hidden={platforms === null} class="border-umber-line mt-4 border-t pt-3.5">
-      <p class="field-label">Dónde verla</p>
+      <p class="field-label">
+        Dónde verla
+        {/* TMDB pide acreditar a JustWatch junto a sus datos de plataformas. */}
+        <span class="text-umber-muted font-sans font-normal tracking-normal normal-case">· datos de JustWatch</span>
+      </p>
       {/* El estilo va en el padre: así vale también para los `<li>` que crea el chat. */}
       <ul data-field="platforms" hidden={platforms !== null && platforms.length === 0} class="dot-list mt-1.5 text-sm">
         {platforms?.map((name) => <li>{name}</li>)}

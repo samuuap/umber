@@ -26,6 +26,7 @@ import type { APIContext, APIRoute } from 'astro';
 import { publicError, readClientAddress, readJson } from '@/lib/api';
 import { getRequestUser, type RequestUser } from '@/lib/auth';
 import {
+  QuickReplySplitter,
   SEARCH_TOOL,
   TITLE_SEARCH_TOOL,
   buildChatMessages,
@@ -57,7 +58,8 @@ import {
   type ToolCall,
   type TurnEvent,
 } from '@/lib/deepseek';
-import { AuthError, ConversationFullError, DeepSeekError, ValidationError } from '@/lib/errors';
+import { AuthError, ConsentRequiredError, ConversationFullError, DeepSeekError, ValidationError } from '@/lib/errors';
+import { AI_CONSENT_COOKIE, hasAiConsent } from '@/lib/legal';
 import { readPlatformsCache } from '@/lib/platforms';
 import { PROMPT_VERSION } from '@/lib/prompts';
 import { countRecommendation, enforceRateLimit, enforceRecommendationsLeft } from '@/lib/rate-limit';
@@ -210,6 +212,13 @@ async function prepareChat(
   // La web ya manda a registrarse antes de abrir el chat; esto es para quien llama a la API.
   if (user === null) {
     throw new AuthError('Para hablar con Umber hace falta una cuenta. Crea una gratis o entra con la tuya.');
+  }
+  // Sin consentimiento, sus mensajes no pueden ir a DeepSeek (art. 49.1.a RGPD). Las
+  // cuentas de admin y de prueba (los scripts) no pasan por `/antes-de-hablar`.
+  if (!user.unlimited && !hasAiConsent(context.cookies.get(AI_CONSENT_COOKIE)?.value, user.aiConsent)) {
+    throw new ConsentRequiredError(
+      'Antes de hablar con Umber tienes que aceptar dónde se tratan tus mensajes.',
+    );
   }
 
   // Los límites van antes de cualquier llamada que cueste (embeddings, TMDB y
@@ -443,6 +452,7 @@ async function persist(
   prepared: PreparedChat,
   reply: string,
   recommendations: readonly Recommendation[],
+  options: readonly string[],
 ): Promise<string | null> {
   const { user, request, conversation } = prepared;
   if (user === null) return null;
@@ -472,6 +482,7 @@ async function persist(
           created_at: now,
           recommendation_ids: recommendations.map((item) => item.id),
           ...(prepared.outcome.search === null ? {} : { search: prepared.outcome.search }),
+          ...(options.length === 0 ? {} : { options }),
           language: prepared.language,
         },
       ],
@@ -511,16 +522,24 @@ function streamReply(
     async start(controller) {
       let reply = '';
       let outcome: TraceOutcome = { status: 200, errorCode: null };
+      const send = (text: string): void => {
+        if (text.length === 0) return;
+        reply += text;
+        trace.markFirstByte();
+        controller.enqueue(encodeEvent({ event: 'delta', data: { text } }));
+      };
+      // Las respuestas rápidas de la última línea no se escriben: van en `done`.
+      const splitter = new QuickReplySplitter();
       try {
         for await (const part of prepared.parts) {
           if (part.type === 'searching') {
             controller.enqueue(encodeEvent({ event: 'searching', data: {} }));
             continue;
           }
-          reply += part.text;
-          trace.markFirstByte();
-          controller.enqueue(encodeEvent({ event: 'delta', data: { text: part.text } }));
+          send(splitter.push(part.text));
         }
+        const tail = splitter.end();
+        send(tail.text);
         if (reply.trim().length === 0) {
           throw new DeepSeekError('DeepSeek cerró el stream sin texto.');
         }
@@ -541,11 +560,14 @@ function streamReply(
           trace.unknownTitles = titles;
         }
         trace.recommendationIds = recommendations.map((item) => item.id);
+        // Al recomendar no se ofrecen: lo siguiente lo decide la persona.
+        const options = recommendations.length > 0 ? [] : tail.options;
+        trace.meta['quick_replies'] = options;
         const { user } = prepared;
         const [conversationId] = await trace.time(
           'save',
           Promise.all([
-            persist(prepared, reply, recommendations),
+            persist(prepared, reply, recommendations, options),
             // Una recomendación hecha gasta una de las del día. Si el contador falla,
             // la respuesta ya está escrita: se avisa en el log y no se pierde.
             user !== null && !user.unlimited && recommendations.length > 0
@@ -559,7 +581,7 @@ function streamReply(
         controller.enqueue(
           encodeEvent({
             event: 'done',
-            data: { conversation_id: conversationId, recommendations, search },
+            data: { conversation_id: conversationId, recommendations, search, options },
           }),
         );
       } catch (error: unknown) {

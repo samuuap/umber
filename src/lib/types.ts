@@ -252,7 +252,13 @@ export interface AssistantTurnMeta {
   readonly search?: TurnSearch;
   /** Ids del corpus que recomendó; vacío en un turno de pregunta. */
   readonly recommendation_ids?: readonly string[];
+  /** Las respuestas para pulsar que propuso al preguntar (`options` de `done`). */
+  readonly options?: readonly string[];
 }
+
+/** Respuestas para pulsar: como mucho, las que se ofrecen, y su largo, para que quepan en un botón. */
+export const MAX_QUICK_REPLIES = 3;
+export const MAX_QUICK_REPLY_CHARS = 60;
 
 /** Un mensaje del historial con lo que recuerda el turno: así lo manda el navegador sin sesión. */
 export type ChatHistoryMessage = ChatMessage & AssistantTurnMeta;
@@ -350,6 +356,11 @@ export type ChatStreamEvent =
          * navegador la devuelve en el historial.
          */
         readonly search: TurnSearch | null;
+        /**
+         * Respuestas que la persona puede pulsar en vez de escribir, si Umber ha
+         * preguntado (de 2 a 3, en su voz); vacío si recomienda. Ya no van en el texto.
+         */
+        readonly options: readonly string[];
       };
     }
   | { readonly event: 'error'; readonly data: ApiErrorBody['error'] };

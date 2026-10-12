@@ -36,3 +36,5 @@ scripts/seed/data/
 # claude code (agentes, skills, settings locales)
 .claude/
 !.claude/CLAUDE.md
+
+/brag*

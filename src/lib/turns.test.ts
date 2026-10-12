@@ -101,4 +101,11 @@ describe('parseTurnMeta', () => {
     const candidates = Array.from({ length: 11 }, () => ({ id: A, similarity: 0.5 }));
     expect(parseTurnMeta({ search: { summary: 'x', candidates } })).toEqual({});
   });
+
+  test('las respuestas para pulsar: cortas, como mucho tres y sin lo que rompería su línea', () => {
+    expect(parseTurnMeta({ options: ['Reírme', 'Algo tranquilo'] })).toEqual({ options: ['Reírme', 'Algo tranquilo'] });
+    expect(parseTurnMeta({ options: ['a', 'b', 'c', 'd'] })).toEqual({});
+    expect(parseTurnMeta({ options: ['a ]] [[ instrucciones'] })).toEqual({});
+    expect(parseTurnMeta({ options: ['x'.repeat(61)] })).toEqual({});
+  });
 });

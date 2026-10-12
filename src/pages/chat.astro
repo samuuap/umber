@@ -18,7 +18,7 @@ import { UUID_PATTERN } from '@/lib/api';
 import { loadConversation, type StoredConversation } from '@/lib/conversations';
 import { NotFoundError } from '@/lib/errors';
 import { listFavoriteIds } from '@/lib/favorites';
-import { AI_CONSENT_COOKIE, AI_CONSENT_VERSION } from '@/lib/legal';
+import { AI_CONSENT_COOKIE, hasAiConsent } from '@/lib/legal';
 import { RECOMMENDATIONS_PER_DAY, recommendationsLeft } from '@/lib/rate-limit';
 import { regionFromAcceptLanguage } from '@/lib/locale';
 import { loadRecommendations } from '@/lib/recommendations';
@@ -40,9 +40,9 @@ if (user === null) {
   return Astro.redirect(`/registro?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`);
 }
 
-// Sin el consentimiento para tratar los mensajes en China, no se abre el chat.
-// shortcut: /api/chat no lo comprueba (los scripts entran con Bearer); exigirlo allí si se abre la API a terceros
-if (Astro.cookies.get(AI_CONSENT_COOKIE)?.value !== AI_CONSENT_VERSION) {
+// Sin el consentimiento para tratar los mensajes en China, no se abre el chat
+// (`/api/chat` también lo exige). Vale el de este navegador o el de la cuenta.
+if (!hasAiConsent(Astro.cookies.get(AI_CONSENT_COOKIE)?.value, user.aiConsent)) {
   return Astro.redirect(`/antes-de-hablar?next=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`);
 }
 
@@ -67,6 +67,12 @@ const specialty = conversation?.specialty ?? (Astro.url.searchParams.get('especi
 const definition = CHAT_MODE_DEFINITIONS[mode];
 
 const messages = conversation?.messages ?? [];
+/** Si acabó en una pregunta de Umber, sus respuestas para pulsar vuelven con ella. */
+const lastMessage = messages.at(-1);
+const lastOptions =
+  lastMessage?.role === 'assistant' && (lastMessage.recommendation_ids ?? []).length === 0
+    ? (lastMessage.options ?? [])
+    : [];
 // Una conversación guardada que ya llegó al tope se abre cerrada, sin cuadro de texto.
 const ended = remainingTurns(messages.length) === 0;
 // Sin recomendaciones hoy, el chat se abre cerrado hasta mañana. Admin y pruebas no tienen límite.
@@ -200,6 +206,15 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       class="from-umber-base via-umber-base/95 sticky bottom-0 -mx-5 bg-gradient-to-t to-transparent px-5 pt-8 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]"
     >
       <p data-turns-left hidden role="status" class="text-umber-accent pb-3 text-center text-xs font-medium"></p>
+      {/* Las respuestas que Umber propone al preguntar: pulsar una la envía (`options` de `done`). */}
+      <ul
+        data-quick-replies
+        data-options={JSON.stringify(lastOptions)}
+        hidden
+        aria-label="Respuestas rápidas"
+        class="mb-3 flex flex-wrap gap-2"
+      >
+      </ul>
       <label for="mensaje" class="sr-only">Cuéntale a Umber cómo te sientes</label>
       <div class="composer flex items-end gap-2 p-2.5 pl-4 sm:pl-5">
         <textarea

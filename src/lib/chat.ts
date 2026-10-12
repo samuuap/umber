@@ -37,6 +37,8 @@ import {
   DEFAULT_LOCALE,
   MAX_CONVERSATION_MESSAGES,
   MAX_MESSAGE_CHARS,
+  MAX_QUICK_REPLIES,
+  MAX_QUICK_REPLY_CHARS,
   NO_FILTERS,
   remainingTurns,
   isChatMode,
@@ -578,7 +580,7 @@ function quote(text: string): string {
 export interface ChatContext {
   readonly request: ChatRequest;
   /** Historial completo, para saber qué se ha recomendado ya. */
-  readonly history: readonly ChatMessage[];
+  readonly history: readonly ChatHistoryMessage[];
   readonly state: ConversationState;
   /** Los que le quedan de su última búsqueda, ya con plataformas; vacío si no ha buscado. */
   readonly candidates: readonly EnrichedCandidate[];
@@ -753,10 +755,18 @@ export function formatTitleResult(
  * solo le llegan rol y texto: los mensajes guardados llevan además fecha, ids y
  * idioma.
  */
-function historyWindow(history: readonly ChatMessage[]): ChatMessage[] {
+function historyWindow(history: readonly ChatHistoryMessage[]): ChatMessage[] {
   const window = history.slice(-HISTORY_WINDOW);
   const firstUser = window.findIndex((message) => message.role === 'user');
-  return firstUser === -1 ? [] : window.slice(firstUser).map(({ role, content }) => ({ role, content }));
+  // Sus preguntas, con la línea de respuestas que escribió: si no la ve en el
+  // historial, al tercer turno deja de ponerla.
+  return firstUser === -1
+    ? []
+    : window.slice(firstUser).map(({ role, content, options }) => ({
+        role,
+        content: options === undefined || options.length === 0 ? content : `${content.trimEnd()}
+${quickReplyLine(options)}`,
+      }));
 }
 
 /** system.md + historial reciente + la plantilla rellena como último mensaje. */
@@ -823,4 +833,57 @@ export function findRecommendations(
     poster_url: posterUrl(candidate.poster_path),
     platforms: candidate.platforms,
   }));
+}
+
+// ─── Respuestas rápidas ──────────────────────────────────────────────────────
+
+const QUICK_REPLY_OPEN = '[[';
+
+/** La línea de respuestas tal como la escribe Umber: así vuelve a verla en el historial. */
+export function quickReplyLine(options: readonly string[]): string {
+  return `[[${options.join(' | ')}]]`;
+}
+
+/**
+ * Separa del texto de Umber las respuestas rápidas que añade al preguntar, en su
+ * última línea: `[[Una comedia loca | Una que me deje buen sabor de boca]]`
+ * (`system.md`). Llegan en streaming: `push` devuelve lo que ya se puede enviar y
+ * retiene desde `[[` hasta el final; `end`, lo que queda y las respuestas. Si lo
+ * retenido no tiene esa forma, era texto y se devuelve entero.
+ */
+export class QuickReplySplitter {
+  private pending = '';
+  private captured: string | null = null;
+
+  push(text: string): string {
+    if (this.captured !== null) {
+      this.captured += text;
+      return '';
+    }
+    const joined = this.pending + text;
+    const start = joined.indexOf(QUICK_REPLY_OPEN);
+    if (start !== -1) {
+      this.pending = '';
+      this.captured = joined.slice(start);
+      return joined.slice(0, start);
+    }
+    // Un `[` al final puede ser el principio de `[[`: espera al fragmento siguiente.
+    const keep = joined.endsWith('[') ? 1 : 0;
+    this.pending = joined.slice(joined.length - keep);
+    return joined.slice(0, joined.length - keep);
+  }
+
+  end(): { readonly text: string; readonly options: string[] } {
+    const rest = this.pending;
+    this.pending = '';
+    if (this.captured === null) return { text: rest, options: [] };
+    const match = /^\[\[([^[\]]+)\]\]\s*$/.exec(this.captured);
+    const options =
+      match?.[1]
+        ?.split('|')
+        .map((option) => option.trim())
+        .filter((option) => option.length > 0 && option.length <= MAX_QUICK_REPLY_CHARS)
+        .slice(0, MAX_QUICK_REPLIES) ?? [];
+    return match === null ? { text: this.captured, options: [] } : { text: '', options };
+  }
 }

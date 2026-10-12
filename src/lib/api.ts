@@ -5,6 +5,7 @@
  */
 import {
   AuthError,
+  ConsentRequiredError,
   ConversationFullError,
   NotFoundError,
   RateLimitError,
@@ -46,7 +47,8 @@ export function publicError(error: unknown): PublicError {
     error instanceof AuthError ||
     error instanceof NotFoundError ||
     error instanceof RateLimitError ||
-    error instanceof ConversationFullError;
+    error instanceof ConversationFullError ||
+    error instanceof ConsentRequiredError;
   return {
     status: error.status,
     body: {

@@ -172,7 +172,11 @@ const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
             {
               itemPlatforms !== null && (
                 <div class="mt-10">
-                  <p class="field-label">Dónde verla</p>
+                  <p class="field-label">
+                    Dónde verla
+                    {/* TMDB pide acreditar a JustWatch junto a sus datos de plataformas. */}
+                    <span class="text-umber-muted font-sans font-normal tracking-normal normal-case">· datos de JustWatch</span>
+                  </p>
                   {itemPlatforms.length === 0 ? (
                     <p class="text-umber-muted mt-2 text-sm">No está en plataformas de suscripción ahora mismo.</p>
                   ) : (

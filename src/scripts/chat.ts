@@ -45,6 +45,7 @@ const conversationEnd = required<HTMLElement>(root, '[data-conversation-end]');
 const dailyEnd = required<HTMLElement>(root, '[data-daily-end]');
 const skipButton = required<HTMLButtonElement>(form, '[data-skip-questions]');
 const recommendationsCount = required<HTMLElement>(form, '[data-recommendations-count]');
+const quickReplies = required<HTMLUListElement>(form, '[data-quick-replies]');
 /** Las recomendaciones que le quedan hoy, o `null` si no tiene límite (admin y pruebas). */
 let recommendationsLeft: number | null =
   root.dataset.recommendationsLeft === '' || root.dataset.recommendationsLeft === undefined
@@ -180,6 +181,11 @@ function recoveryFor(code: string | null, retry: () => void): Recovery {
     const next = encodeURIComponent(window.location.pathname + window.location.search);
     return { retry: null, action: { href: `/entrar?next=${next}`, label: 'Entrar de nuevo' }, ends: null };
   }
+  // Retiró el consentimiento (en `/cuenta`, quizá en otra pestaña): se acepta y se vuelve aquí.
+  if (code === 'consent_required') {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    return { retry: null, action: { href: `/antes-de-hablar?next=${next}`, label: 'Leer y aceptar' }, ends: null };
+  }
   // La conversación ya no existe: la borró en otra pestaña.
   if (code === 'not_found') return { retry: null, action: { href: '/', label: 'Empezar una nueva' }, ends: null };
   // El mensaje no es válido: enviarlo otra vez daría lo mismo.
@@ -247,6 +253,26 @@ function renderCards(bubble: HTMLElement, recommendations: readonly Recommendati
   );
 }
 
+/** Las respuestas que Umber propone a su pregunta: pulsar una la envía, como si se escribiera. */
+function showQuickReplies(options: readonly string[]): void {
+  quickReplies.replaceChildren(
+    ...options.map((option) => {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      // Que se vean todas: son dos o tres, y una escondida a la derecha no se pulsa.
+      button.className = 'chip text-left';
+      button.textContent = option;
+      button.addEventListener('click', () => {
+        void send(option);
+      });
+      item.append(button);
+      return item;
+    }),
+  );
+  quickReplies.hidden = options.length === 0;
+}
+
 function setBusy(busy: boolean): void {
   sendButton.disabled = busy;
   skipButton.disabled = busy;
@@ -283,6 +309,7 @@ function requestBody(message: string): ChatRequestBody {
 async function send(message: string, bubble?: HTMLElement): Promise<void> {
   if (controller !== null) return;
   if (emptyState !== null) emptyState.hidden = true;
+  showQuickReplies([]);
   // Un mensaje nuevo deja atrás los fallidos: reintentarlos ahora los mandaría
   // después de este, y el historial quedaría desordenado.
   if (bubble === undefined) {
@@ -363,6 +390,7 @@ async function send(message: string, bubble?: HTMLElement): Promise<void> {
             content: text,
             recommendation_ids: event.data.recommendations.map((item) => item.id),
             ...(event.data.search === null ? {} : { search: event.data.search }),
+            ...(event.data.options.length === 0 ? {} : { options: event.data.options }),
           },
         );
         if (event.data.conversation_id !== null) {
@@ -372,6 +400,7 @@ async function send(message: string, bubble?: HTMLElement): Promise<void> {
         }
         keepPinned(() => {
           renderCards(target, event.data.recommendations);
+          showQuickReplies(event.data.options);
         });
         updateTurnsLeft();
         // Cada respuesta que recomienda gasta una del día (`countRecommendation` en el servidor).
@@ -462,6 +491,9 @@ root.querySelectorAll<HTMLButtonElement>('[data-suggestion]').forEach((button) =
     if (text.length > 0) void send(text);
   });
 });
+
+// Una conversación guardada que acabó en pregunta vuelve con sus respuestas para pulsar.
+showQuickReplies(JSON.parse(quickReplies.dataset.options ?? '[]') as string[]);
 
 // En una conversación guardada, abrir la página lleva al último mensaje.
 if (list.children.length > 0) window.scrollTo({ top: document.documentElement.scrollHeight });
