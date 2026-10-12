@@ -1,0 +1,356 @@
+{
+ "total": 16035,
+ "popular": [
+  {
+   "title": "Interestelar",
+   "year": 2014,
+   "type": "movie",
+   "poster": "/d1QKiYtceF3GDtxvTFXFAqwwah9.jpg"
+  },
+  {
+   "title": "Origen",
+   "year": 2010,
+   "type": "movie",
+   "poster": "/tXQvtRWfkUUnWJAn2tN3jERIUG.jpg"
+  },
+  {
+   "title": "Vengadores",
+   "year": 2012,
+   "type": "movie",
+   "poster": "/ugX4WZJO3jEvTOerctAWJLinujo.jpg"
+  },
+  {
+   "title": "El caballero oscuro",
+   "year": 2008,
+   "type": "movie",
+   "poster": "/8QDQExnfNFOtabLDKqfDQuHDsIg.jpg"
+  },
+  {
+   "title": "Avatar",
+   "year": 2009,
+   "type": "movie",
+   "poster": "/t5T3LPbLLgP2OP6kloM9p2PXpJL.jpg"
+  },
+  {
+   "title": "Deadpool",
+   "year": 2016,
+   "type": "movie",
+   "poster": "/3TUYy0XvhPQBhrXJwRIaOoYFOBO.jpg"
+  },
+  {
+   "title": "Vengadores: Infinity War",
+   "year": 2018,
+   "type": "movie",
+   "poster": "/ksBQ4oHQDdJwND8H90ay8CbMihU.jpg"
+  },
+  {
+   "title": "El club de la lucha",
+   "year": 1999,
+   "type": "movie",
+   "poster": "/sgTAWJFaB2kBvdQxRGabYFiQqEK.jpg"
+  },
+  {
+   "title": "Cadena perpetua",
+   "year": 1994,
+   "type": "movie",
+   "poster": "/uRRTV7p6l2ivtODWJVVAMRrwTn2.jpg"
+  },
+  {
+   "title": "Tiempos Violentos",
+   "year": 1994,
+   "type": "movie",
+   "poster": "/hNcQAuquJxTxl2fJFs1R42DrWcf.jpg"
+  },
+  {
+   "title": "Forrest Gump",
+   "year": 1994,
+   "type": "movie",
+   "poster": "/oiqKEhEfxl9knzWXvWecJKN3aj6.jpg"
+  },
+  {
+   "title": "Guardianes de la galaxia",
+   "year": 2014,
+   "type": "movie",
+   "poster": "/zqZNnuMtrmK99Xux91KiCdnZxgb.jpg"
+  },
+  {
+   "title": "Harry Potter y la piedra filosofal",
+   "year": 2001,
+   "type": "movie",
+   "poster": "/3MKK7vAJLtSkBTABMTjxf6TOCo3.jpg"
+  },
+  {
+   "title": "Iron man - El hombre de hierro",
+   "year": 2008,
+   "type": "movie",
+   "poster": "/tFCTNx7foAsUQpgu2x1KjAJD1wT.jpg"
+  },
+  {
+   "title": "Vengadores: Endgame",
+   "year": 2019,
+   "type": "movie",
+   "poster": "/br6krBFpaYmCSglLBWRuhui7tPc.jpg"
+  },
+  {
+   "title": "Matrix",
+   "year": 1999,
+   "type": "movie",
+   "poster": "/tpW2X2DvxtTHJ61iJ7zNYYrJihs.jpg"
+  },
+  {
+   "title": "Django desencadenado",
+   "year": 2012,
+   "type": "movie",
+   "poster": "/fIxAE6BKfAzhPRYm7DdldBaYu5T.jpg"
+  },
+  {
+   "title": "El señor de los anillos: La comunidad del anillo",
+   "year": 2001,
+   "type": "movie",
+   "poster": "/9xtH1RmAzQ0rrMBNUMXstb2s3er.jpg"
+  }
+ ],
+ "total_explore": 16035,
+ "intocable_similar": [
+  {
+   "rank": 1,
+   "year": 2006,
+   "title": "En busca de la felicidad",
+   "genres": [
+    "Drama"
+   ],
+   "vote_count": 10900,
+   "poster_path": "/qF6JFr6IdfNep0x6yw3i7S8avAb.jpg"
+  },
+  {
+   "rank": 2,
+   "year": 2018,
+   "title": "Green Book",
+   "genres": [
+    "Drama",
+    "Comedia",
+    "Historia"
+   ],
+   "vote_count": 13314,
+   "poster_path": "/phwmfaEe43uY2OAI2oeSZNlD4A9.jpg"
+  },
+  {
+   "rank": 3,
+   "year": 2007,
+   "title": "Ahora o nunca",
+   "genres": [
+    "Drama",
+    "Comedia"
+   ],
+   "vote_count": 4241,
+   "poster_path": "/bBgc1F5o6PMOxTPrOoZ3oIkP2KT.jpg"
+  },
+  {
+   "rank": 4,
+   "year": 2019,
+   "title": "The Upside (Amigos para siempre)",
+   "genres": [
+    "Comedia",
+    "Drama"
+   ],
+   "vote_count": 1439,
+   "poster_path": "/wztE6En13DkVbkcccv6p1Q0w57j.jpg"
+  },
+  {
+   "rank": 5,
+   "year": 2006,
+   "title": "Pequeña Miss Sunshine",
+   "genres": [
+    "Comedia",
+    "Drama"
+   ],
+   "vote_count": 8107,
+   "poster_path": "/qE2ii6o1ndrhpI5ZYpxStvF5sKN.jpg"
+  },
+  {
+   "rank": 6,
+   "year": 2001,
+   "title": "Amelie",
+   "genres": [
+    "Comedia",
+    "Romance"
+   ],
+   "vote_count": 12703,
+   "poster_path": "/mYvUib00miJWxWkiXhy3QnrCj96.jpg"
+  },
+  {
+   "rank": 7,
+   "year": 2017,
+   "title": "Patients",
+   "genres": [
+    "Drama",
+    "Comedia"
+   ],
+   "vote_count": 629,
+   "poster_path": "/sv2Xdpk4nzY2qKAg5oG2qZkTrY9.jpg"
+  },
+  {
+   "rank": 8,
+   "year": 2016,
+   "title": "Los principios del cuidado",
+   "genres": [
+    "Comedia",
+    "Drama"
+   ],
+   "vote_count": 2375,
+   "poster_path": "/gdt7U5COx9NgJL7048zfzK5KYjQ.jpg"
+  }
+ ],
+ "autumn": [
+  {
+   "title": "El indomable Will Hunting",
+   "year": 1997,
+   "genres": [
+    "Drama"
+   ],
+   "poster_path": "/4Yy63A10sPQZ9kd2kWj13S4WUkn.jpg",
+   "autumn_score": 0.783,
+   "vote_count": 14375
+  },
+  {
+   "title": "El club de los poetas muertos",
+   "year": 1989,
+   "genres": [
+    "Drama"
+   ],
+   "poster_path": "/vsLcmuk8KBN73spAIEwm1nLNSjc.jpg",
+   "autumn_score": 0.96,
+   "vote_count": 13010
+  },
+  {
+   "title": "Las ventajas de ser un marginado",
+   "year": 2012,
+   "genres": [
+    "Drama"
+   ],
+   "poster_path": "/vjWqQAe4cYdzDuqO4U0kiN7qO4r.jpg",
+   "autumn_score": 0.75,
+   "vote_count": 11482
+  },
+  {
+   "title": "Mujercitas",
+   "year": 2019,
+   "genres": [
+    "Drama",
+    "Romance"
+   ],
+   "poster_path": "/z2wBWFEQ9FE0RcjmWXz3vvSNPfT.jpg",
+   "autumn_score": 0.8,
+   "vote_count": 7027
+  },
+  {
+   "title": "Manchester frente al mar",
+   "year": 2016,
+   "genres": [
+    "Drama"
+   ],
+   "poster_path": "/A3yR6Mdz48elRI1pBOzbIbDyCRi.jpg",
+   "autumn_score": 0.76,
+   "vote_count": 6596
+  },
+  {
+   "title": "Esencia de mujer",
+   "year": 1992,
+   "genres": [
+    "Drama"
+   ],
+   "poster_path": "/o4SBXaqUV6Xo11GE9xiQrRW3PtG.jpg",
+   "autumn_score": 0.8,
+   "vote_count": 4109
+  },
+  {
+   "title": "Las vírgenes suicidas",
+   "year": 2000,
+   "genres": [
+    "Drama",
+    "Romance"
+   ],
+   "poster_path": "/bxxLf6waF2nKDQEoXuIhuGJTSP4.jpg",
+   "autumn_score": 0.707,
+   "vote_count": 3719
+  },
+  {
+   "title": "La sonrisa de Mona Lisa",
+   "year": 2003,
+   "genres": [
+    "Drama",
+    "Historia",
+    "Romance"
+   ],
+   "poster_path": "/aPG8VB1M39tI80z3w8wZveSaMSA.jpg",
+   "autumn_score": 0.75,
+   "vote_count": 1945
+  }
+ ],
+ "past_games": [
+  {
+   "game": "title",
+   "day": "2026-10-11",
+   "number": 4,
+   "title_es": "El lobo de Wall Street",
+   "title_en": "The Wolf of Wall Street",
+   "poster_path": "/uutxsGjxZfZhGCp9IjoR1PNXDZh.jpg"
+  },
+  {
+   "game": "poster",
+   "day": "2026-10-11",
+   "number": 4,
+   "title_es": "Interstellar",
+   "title_en": "Interstellar",
+   "poster_path": "/iolc5VLP4PFU0XvjTVRiCb80mUR.jpg"
+  },
+  {
+   "game": "title",
+   "day": "2026-10-10",
+   "number": 3,
+   "title_es": "V de Vendetta",
+   "title_en": "V for Vendetta",
+   "poster_path": "/auSKKOjVyR8RGd5BhfCu2vzGMCO.jpg"
+  },
+  {
+   "game": "poster",
+   "day": "2026-10-10",
+   "number": 3,
+   "title_es": "El silencio de los corderos",
+   "title_en": "The Silence of the Lambs",
+   "poster_path": "/5ylk0X0Md3ZBJAEXDF7Sgty2j4D.jpg"
+  },
+  {
+   "game": "poster",
+   "day": "2026-10-09",
+   "number": 2,
+   "title_es": "Star Wars: Los últimos Jedi",
+   "title_en": "Star Wars: The Last Jedi",
+   "poster_path": "/yfbrHAQZdKtfoYcFJCUs0063rLU.jpg"
+  },
+  {
+   "game": "title",
+   "day": "2026-10-09",
+   "number": 2,
+   "title_es": "Antes de ti",
+   "title_en": "Me Before You",
+   "poster_path": "/9G3un54vLjbmrRTHNaz6khECGZh.jpg"
+  },
+  {
+   "game": "title",
+   "day": "2026-10-08",
+   "number": 1,
+   "title_es": "Lobezno inmortal",
+   "title_en": "The Wolverine",
+   "poster_path": "/7rdzeyO8gW5YRgOPfw7cFWLDvcR.jpg"
+  },
+  {
+   "game": "poster",
+   "day": "2026-10-08",
+   "number": 1,
+   "title_es": "Troya",
+   "title_en": "Troy",
+   "poster_path": "/gmHpe4Yv8DgabUAeyiX4DH1fc0c.jpg"
+  }
+ ]
+}

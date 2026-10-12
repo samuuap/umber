@@ -1,0 +1,191 @@
+{
+ "Pequeña Miss Sunshine": {
+  "id": "692751b4-aa98-4599-9b29-3791d30e9765",
+  "tmdb_id": 773,
+  "type": "movie",
+  "title": "Pequeña Miss Sunshine",
+  "title_en": "Little Miss Sunshine",
+  "year": 2006,
+  "director": "Valerie Faris, Jonathan Dayton",
+  "genres": [
+   "Comedia",
+   "Drama"
+  ],
+  "runtime": 101,
+  "synopsis": "Los Hoover son una familia conflictiva: el abuelo esnifa cocaína y suelta palabrotas, el padre da cursos sobre el éxito con estrepitoso fracaso, la madre no da abasto, el tío se recupera de un suicidio frustrado al ser abandonado por su novio, el hijo adolescente lee a Nietzsche y se niega a hablar, y la hija pequeña, Olive, gafotas y ligeramente gordinflona, quiere ser una belleza. Cuando un golpe de suerte lleva a Olive a ser invitada a participar en el muy competitivo concurso de 'Pequeña Miss Sunshine' en California, toda la familia Hoover se reúne para ir con ella. Se apilan en su oxidada furgoneta Volkswagen y se dirigen hacia el Oeste en un trágicómico periplo de tres días lleno de locas sorpresas que les lleva al gran debut de Olive, el cual cambiará a esta familia de inadaptados de una forma que nunca hubieran imaginado.",
+  "poster_path": "/qE2ii6o1ndrhpI5ZYpxStvF5sKN.jpg",
+  "backdrop_path": "/twdtjJm31AExNx73DXaD4KRNU9c.jpg",
+  "top_cast": [
+   "Greg Kinnear",
+   "Toni Collette",
+   "Steve Carell",
+   "Paul Dano",
+   "Abigail Breslin",
+   "Alan Arkin"
+  ],
+  "platforms": [
+   "Disney Plus"
+  ]
+ },
+ "Cadena perpetua": {
+  "id": "654175c6-68e9-4fdd-b4b6-7cf116c22405",
+  "tmdb_id": 278,
+  "type": "movie",
+  "title": "Cadena perpetua",
+  "title_en": "The Shawshank Redemption",
+  "year": 1994,
+  "director": "Frank Darabont",
+  "genres": [
+   "Drama",
+   "Crimen"
+  ],
+  "runtime": 143,
+  "synopsis": "Acusado del asesinato de su mujer, Andrew Dufresne, tras ser condenado a cadena perpetua, es enviado a la prisión de Shawshank. Con el paso de los años conseguirá ganarse la confianza del director del centro y el respeto de sus compañeros presidiarios, especialmente de Red, el jefe de la mafia de los sobornos.",
+  "poster_path": "/uRRTV7p6l2ivtODWJVVAMRrwTn2.jpg",
+  "backdrop_path": "/pNjh59JSxChQktamG3LMp9ZoQzp.jpg",
+  "top_cast": [
+   "Tim Robbins",
+   "Morgan Freeman",
+   "Bob Gunton",
+   "William Sadler",
+   "Clancy Brown",
+   "Gil Bellows"
+  ],
+  "platforms": [
+   "Amazon Prime Video",
+   "Movistar Plus+ Ficción Total ",
+   "HBO Max",
+   "Amazon Prime Video with Ads",
+   "HBO Max Amazon Channel"
+  ],
+  "similar": [
+   {
+    "type": "movie",
+    "year": 1999,
+    "title": "La milla verde",
+    "poster_path": "/aBQiJRxGRrX0mXFMjxyzWYFtEnf.jpg"
+   },
+   {
+    "type": "movie",
+    "year": 1972,
+    "title": "El padrino",
+    "poster_path": "/5HlLUsmsv60cZVTzVns9ICZD6zU.jpg"
+   },
+   {
+    "type": "movie",
+    "year": 1990,
+    "title": "Uno de los nuestros",
+    "poster_path": "/3Yy0zBO9AlyAZH1cTI8Ko2ouCi.jpg"
+   },
+   {
+    "type": "movie",
+    "year": 1994,
+    "title": "Forrest Gump",
+    "poster_path": "/oiqKEhEfxl9knzWXvWecJKN3aj6.jpg"
+   },
+   {
+    "type": "movie",
+    "year": 1973,
+    "title": "Papillón",
+    "poster_path": "/vGlAIgHUk24aE4qD9LUVJXhtZXV.jpg"
+   },
+   {
+    "type": "movie",
+    "year": 1993,
+    "title": "La lista de Schindler",
+    "poster_path": "/3Ho0pXsnMxpGJWqdOi0KDNdaTkT.jpg"
+   }
+  ]
+ },
+ "El lobo de Wall Street": {
+  "id": "9a5c42dc-5d11-480b-93b4-8f77aa65ce25",
+  "tmdb_id": 106646,
+  "type": "movie",
+  "title": "El lobo de Wall Street",
+  "title_en": "The Wolf of Wall Street",
+  "year": 2013,
+  "director": "Martin Scorsese",
+  "genres": [
+   "Crimen",
+   "Drama",
+   "Comedia"
+  ],
+  "runtime": 180,
+  "synopsis": "Película basada en hechos reales del corredor de bolsa neoyorquino Jordan Belfort. A mediados de los años 80, Belfort era un joven honrado que perseguía el sueño americano, pero pronto en la agencia de valores aprendió que lo más importante no era hacer ganar a sus clientes, sino ser ambicioso y ganar una buena comisión. Su enorme éxito y fortuna le valió el mote de \"El lobo de Wall Street\". Dinero. Poder. Mujeres. Drogas. Las tentaciones abundaban y el temor a la ley era irrelevante. Jordan y su manada de lobos consideraban que la discreción era una cualidad anticuada; nunca se conformaban con lo que tenían.",
+  "poster_path": "/uthRoUeTtiep5HCoySlOjQSPCbJ.jpg",
+  "backdrop_path": "/7Nwnmyzrtd0FkcRyPqmdzTPppQa.jpg",
+  "top_cast": [
+   "Leonardo DiCaprio",
+   "Jonah Hill",
+   "Margot Robbie",
+   "Matthew McConaughey",
+   "Kyle Chandler",
+   "Rob Reiner"
+  ],
+  "platforms": [
+   "Amazon Prime Video",
+   "Amazon Prime Video with Ads"
+  ]
+ },
+ "El silencio de los corderos": {
+  "id": "de86892b-582b-4173-b974-35d10fcc1e63",
+  "tmdb_id": 274,
+  "type": "movie",
+  "title": "El silencio de los corderos",
+  "title_en": "The Silence of the Lambs",
+  "year": 1991,
+  "director": "Jonathan Demme",
+  "genres": [
+   "Crimen",
+   "Suspense",
+   "Drama"
+  ],
+  "runtime": 118,
+  "synopsis": "Clarice Starling, del FBI, se aventura a una prisión de máxima seguridad para analizar el cerebro enfermo de Hannibal Lecter, un psiquiatra convertido en caníbal.",
+  "poster_path": "/8FdQQ3cUCs9goEOr1qUFaHackoJ.jpg",
+  "backdrop_path": "/mbOx1wxMLikzwWUO9TKAcFIy6op.jpg",
+  "top_cast": [
+   "Jodie Foster",
+   "Anthony Hopkins",
+   "Scott Glenn",
+   "Ted Levine",
+   "Anthony Heald",
+   "Brooke Smith"
+  ],
+  "platforms": [
+   "Amazon Prime Video",
+   "Amazon Prime Video with Ads"
+  ]
+ },
+ "Seven": {
+  "id": "0a1fa349-a655-4f21-9401-63854cde35a1",
+  "tmdb_id": 807,
+  "type": "movie",
+  "title": "Seven",
+  "title_en": "Se7en",
+  "year": 1995,
+  "director": "David Fincher",
+  "genres": [
+   "Crimen",
+   "Misterio",
+   "Suspense"
+  ],
+  "runtime": 127,
+  "synopsis": "El teniente Somerset, del departamento de homicidios, está a punto de jubilarse y ser reemplazado por el ambicioso y brillante detective David Mills. Ambos tendrán que colaborar en la resolución de una serie de asesinatos cometidos por un psicópata que toma como base la relación de los siete pecados capitales: gula, pereza, soberbia, avaricia, envidia, lujuria e ira. Los cuerpos de las víctimas, sobre los que el asesino se ensaña de manera impúdica, se convertirán para los policías en un enigma que les obligará a viajar al horror y la barbarie más absoluta.",
+  "poster_path": "/uVPcVz4b2hnSGrXYLdIGRXwcivs.jpg",
+  "backdrop_path": "/i5H7zusQGsysGQ8i6P361Vnr0n2.jpg",
+  "top_cast": [
+   "Morgan Freeman",
+   "Brad Pitt",
+   "Gwyneth Paltrow",
+   "John Cassini",
+   "Peter Crombie",
+   "Reg E. Cathey"
+  ],
+  "platforms": [
+   "Amazon Prime Video",
+   "Movistar Plus+ Ficción Total ",
+   "Amazon Prime Video with Ads"
+  ]
+ }
+}
