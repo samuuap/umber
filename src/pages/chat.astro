@@ -128,7 +128,7 @@ const countText = (left: number): string =>
 const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
 ---
 
-<Layout title={`${definition.label} — Umber`} footer={false}>
+<Layout title={`${definition.label} — Umber`} footer={false} stickyHeader={false}>
   <main
     data-chat
     data-mode={mode}
@@ -144,7 +144,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       <div>
         <p class="eyebrow eyebrow-rule">{specialty === 'autumn' ? `${definition.label} · Otoño` : definition.label}</p>
         <h1 class="display-3 mt-4">
-          {mode === 'tv' ? <>Una serie para <em>estos días</em></> : <>Una película para <em>hoy</em></>}
+          {mode === 'tv' ? <>Una serie para estos días</> : <>Una película para hoy</>}
         </h1>
       </div>
       <a href="/" class="link-quiet text-sm">Nueva conversación <span class="arrow" aria-hidden="true">→</span></a>
@@ -156,7 +156,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
           <LeafMark class="text-umber-accent size-3.5" />
           Umber
         </p>
-        <p class="display-3 mt-5">¿Cómo te <em>sientes</em>?</p>
+        <p class="display-2 mt-5">¿Cómo te sientes?</p>
         <p class="reading text-umber-muted mt-4 hidden max-w-[34rem] sm:block">
           Cuéntamelo con tus palabras —el tiempo que hace, tu ánimo, con quién la vas a ver— y te busco algo
           que encaje.
@@ -164,7 +164,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
         <div class="mt-6 sm:mt-10">
           <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
           <ul
-            class="mt-4 flex gap-2 max-sm:-mx-5 max-sm:overflow-x-auto max-sm:px-5 max-sm:pb-1 sm:flex-wrap"
+            class="rail -mx-5 mt-4 gap-2 px-5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:[mask-image:none]"
             aria-labelledby="sugerencias"
           >
             {
@@ -208,7 +208,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
           rows="2"
           maxlength={MAX_MESSAGE_CHARS}
           required
-          placeholder="Escribe aquí: cómo estás, con quién la vas a ver, algo que te encantó…"
+          placeholder="Escribe aquí cómo estás…"
           class="placeholder:text-umber-muted max-h-48 min-h-12 flex-1 resize-none bg-transparent py-2 font-serif text-[1.08rem] leading-relaxed focus:outline-none"
         ></textarea>
         <button type="button" data-stop hidden class="btn-secondary px-4 py-2.5">Detener</button>
@@ -244,7 +244,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     >
       <p class="eyebrow eyebrow-rule">Fin de la conversación</p>
       <p class="display-3 mt-4">
-        Esta conversación ha llegado <em>a su final</em>
+        Esta conversación ha llegado a su final
       </p>
       <p class="text-umber-muted mt-3">Tus favoritos siguen guardados.</p>
       <a href="/" class="btn-primary mt-7">
@@ -260,7 +260,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     >
       <p class="eyebrow eyebrow-rule">Hasta mañana</p>
       <p class="display-3 mt-4">
-        Ya tienes tus <em>{RECOMMENDATIONS_PER_DAY}</em> recomendaciones de hoy
+        Ya tienes tus {RECOMMENDATIONS_PER_DAY} recomendaciones de hoy
       </p>
       <p class="text-umber-muted mt-3 max-w-md leading-relaxed">
         Cada día puedes pedirle a Umber {RECOMMENDATIONS_PER_DAY}{resetsAt !== null && `; vuelven a las ${resetsAt}`}. Mientras, tus favoritos y tus conversaciones

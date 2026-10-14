@@ -18,6 +18,7 @@ import {
   parseExploreFilters,
   type ExploreFilters,
 } from '@/lib/explore';
+import { posterUrl } from '@/lib/tmdb';
 import type { ContentType } from '@/lib/types';
 
 const requested = parseExploreFilters(Astro.url.searchParams);
@@ -43,14 +44,27 @@ const typeTabs: readonly { readonly type: ContentType | null; readonly label: st
 const detailSearch = exploreSearch(filters);
 
 const chevron = 'M6 9l6 6 6-6';
+/** La luz de la pantalla en la cabecera: el primer cartel de la vista, muy desenfocado. */
+const glow = items[0]?.poster_path ?? null;
 ---
 
 <Layout title="Explorar — Umber">
-  <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 sm:px-8">
-    <header class="grid gap-x-10 gap-y-6 pt-10 pb-12 sm:pt-14 lg:grid-cols-12 lg:items-end lg:pb-16">
+  <main class="relative isolate mx-auto w-full max-w-[80rem] flex-1 px-5 sm:px-8">
+    {
+      glow !== null && (
+        <div
+          class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] overflow-hidden [mask-image:radial-gradient(75%_100%_at_30%_0%,#000_25%,transparent_80%)]"
+          aria-hidden="true"
+        >
+          <img src={posterUrl(glow, 'w92')} alt="" width="92" height="138" class="size-full scale-125 object-cover opacity-30 blur-[90px] saturate-150" />
+          <div class="from-umber-base absolute inset-0 bg-gradient-to-t to-transparent" />
+        </div>
+      )
+    }
+    <header class="grid grid-cols-1 gap-x-10 gap-y-6 pt-12 pb-12 sm:pt-16 lg:grid-cols-12 lg:items-end lg:pb-16">
       <div class="rise lg:col-span-7">
         <p class="eyebrow eyebrow-rule">El catálogo</p>
-        <h1 class="display-1 mt-7">Explorar</h1>
+        <h1 class="display-1 mt-6">Explorar</h1>
       </div>
       <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
         Las películas y series que conoce Umber, de las más conocidas a las que menos. Si no sabes qué
@@ -58,8 +72,9 @@ const chevron = 'M6 9l6 6 6-6';
       </p>
     </header>
 
+    {/* En escritorio, los filtros bajan con la rejilla, justo debajo de la cabecera. */}
     <div
-      class="border-umber-line rise flex flex-col gap-x-10 gap-y-6 border-y py-5 [animation-delay:200ms] lg:flex-row lg:items-end lg:justify-between"
+      class="border-umber-line rise header-solid z-30 -mx-5 flex flex-col gap-x-10 gap-y-6 border-y px-5 py-5 [animation-delay:200ms] sm:-mx-8 sm:px-8 lg:sticky lg:top-(--header-h) lg:flex-row lg:items-end lg:justify-between"
     >
       <nav aria-label="Tipo" class="lg:pb-2">
         <ul class="tabs">
@@ -155,7 +170,7 @@ const chevron = 'M6 9l6 6 6-6';
       items.length === 0 ? (
         <div class="py-24 text-center">
           <p class="display-3">
-            Nada con <em>esos filtros</em>
+            Nada con esos filtros
           </p>
           <p class="text-umber-muted mt-3">Prueba con otra palabra u otro género.</p>
           <div class="mt-8 flex flex-wrap items-center justify-center gap-x-7 gap-y-4">
@@ -170,7 +185,7 @@ const chevron = 'M6 9l6 6 6-6';
           </div>
         </div>
       ) : (
-        <ul class="mt-8 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 lg:gap-x-6">
+        <ul class="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 sm:gap-x-5 md:grid-cols-4 lg:grid-cols-6 lg:gap-x-6">
           {items.map((item, index) => (
             <li>
               <PosterCard item={item} href={`${EXPLORE_PATH}/${item.id}${detailSearch}`} eager={index < EAGER_POSTERS} />
@@ -187,23 +202,23 @@ const chevron = 'M6 9l6 6 6-6';
           class="border-umber-line mt-20 flex items-center justify-between gap-4 border-t pt-6 text-sm"
         >
           {filters.page > 1 ? (
-            <a href={exploreHref(filters, { page: filters.page - 1 })} rel="prev" class="link-quiet">
+            <a href={exploreHref(filters, { page: filters.page - 1 })} rel="prev" class="btn-secondary px-4">
               <span aria-hidden="true">←</span> Anterior
             </a>
           ) : (
-            <span class="text-umber-muted/50" aria-hidden="true">
+            <span class="text-umber-muted/50 px-4 text-[0.9375rem] font-semibold" aria-hidden="true">
               ← Anterior
             </span>
           )}
-          <span class="font-display text-umber-muted text-lg italic">
+          <span class="text-umber-muted hidden text-sm sm:inline">
             Página {numberFormat.format(filters.page)} de {numberFormat.format(pages)}
           </span>
           {filters.page < pages ? (
-            <a href={exploreHref(filters, { page: filters.page + 1 })} rel="next" class="link-quiet">
+            <a href={exploreHref(filters, { page: filters.page + 1 })} rel="next" class="btn-secondary px-4">
               Siguiente <span class="arrow" aria-hidden="true">→</span>
             </a>
           ) : (
-            <span class="text-umber-muted/50" aria-hidden="true">
+            <span class="text-umber-muted/50 px-4 text-[0.9375rem] font-semibold" aria-hidden="true">
               Siguiente →
             </span>
           )}

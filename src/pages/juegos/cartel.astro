@@ -25,13 +25,13 @@ const firstImage = daily === null ? null : await posterImagePath('poster', day, 
   description="Adivina la película por su cartel, que se ve un poco más con cada intento. Uno nuevo cada día."
 >
   <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 pb-20 sm:px-8">
-    <header class="grid gap-x-10 gap-y-6 pt-10 pb-10 sm:pt-14 lg:grid-cols-12 lg:items-end">
+    <header class="grid grid-cols-1 gap-x-10 gap-y-6 pt-12 pb-10 sm:pt-16 lg:grid-cols-12 lg:items-end">
       <div class="rise lg:col-span-7">
         <p class="eyebrow eyebrow-rule">
           <a href="/juegos" class="link-quiet">Juegos</a>
           {daily !== null && <span class="ml-2">· N.º {daily.number}</span>}
         </p>
-        <h1 class="display-1 mt-7">El cartel <em>del día</em></h1>
+        <h1 class="display-1 mt-7">El cartel del día</h1>
       </div>
       <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
         Un cartel sin título y muy desenfocado. Con cada intento, o si pasas, se ve un poco más. Tienes seis.
@@ -42,7 +42,7 @@ const firstImage = daily === null ? null : await posterImagePath('poster', day, 
       daily === null || firstImage === null ? (
         <section class="border-umber-line rise border-t py-20 [animation-delay:150ms] lg:grid lg:grid-cols-12 lg:gap-x-10">
           <p class="display-2 lg:col-span-6">
-            Hoy no hay <em>cartel</em>
+            Hoy no hay cartel
           </p>
           <div class="mt-6 lg:col-span-5 lg:col-start-8 lg:mt-3">
             <p class="lead">Se nos ha acabado la lista de películas. Vuelve mañana, o prueba con el título del día.</p>

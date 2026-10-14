@@ -85,50 +85,33 @@ export default defineConfig({
   // Fuentes autoalojadas y optimizadas en build. Se exponen como variables CSS
   // que consume el tema de Tailwind en `src/styles/global.css`.
   //
-  // «Programa de mano» (rediseño del 2026-10-11): Instrument Serif para los
-  // titulares (solo tiene el 400, con cursiva), Newsreader de lectura (opsz 16)
-  // para lo que dicen Umber y las sinopsis, y Archivo para la interfaz, con un
-  // corte estrecho (wdth 75) para rótulos y botones. La de lectura no se
-  // precarga: solo la descargan las páginas que la usan. `latin` cubre el
-  // español entero (tildes, ñ, ¿¡); un nombre con otra letra sale con la de respaldo.
+  // «La sala a oscuras» (tipografía del 2026-10-14): Libre Franklin, la versión
+  // libre de la Franklin Gothic de la prensa y de los créditos de cine, para
+  // titulares e interfaz, con un solo archivo variable de 400 a 800; y
+  // Newsreader de lectura (opsz 16) para lo que dicen Umber y las sinopsis. La
+  // de lectura no se precarga: solo la descargan las páginas que la usan.
+  // `latin` cubre el español entero (tildes, ñ, ¿¡); un nombre con otra letra
+  // sale con la de respaldo.
   fonts: [
     {
       provider: fontProviders.google(),
-      name: 'Instrument Serif',
-      cssVariable: '--font-instrument',
-      weights: [400],
-      styles: ['normal', 'italic'],
+      name: 'Libre Franklin',
+      cssVariable: '--font-franklin',
+      weights: ['400 800'],
+      styles: ['normal'],
       subsets: ['latin'],
-      fallbacks: ['Georgia', 'serif'],
+      fallbacks: ['Helvetica Neue', 'Arial', 'sans-serif'],
     },
     {
       provider: fontProviders.google(),
       name: 'Newsreader',
       cssVariable: '--font-newsreader-text',
       weights: [400, 600],
-      styles: ['normal'],
+      // La cursiva, de verdad y no inclinada: el navegador solo la baja si un texto la usa.
+      styles: ['normal', 'italic'],
       subsets: ['latin'],
       fallbacks: ['Georgia', 'serif'],
       options: { experimental: { variableAxis: { opsz: ['16'] } } },
-    },
-    {
-      provider: fontProviders.google(),
-      name: 'Archivo',
-      cssVariable: '--font-archivo',
-      weights: ['400 700'],
-      styles: ['normal'],
-      subsets: ['latin'],
-      fallbacks: ['system-ui', 'sans-serif'],
-    },
-    {
-      provider: fontProviders.google(),
-      name: 'Archivo',
-      cssVariable: '--font-archivo-narrow',
-      weights: ['600 700'],
-      styles: ['normal'],
-      subsets: ['latin'],
-      fallbacks: ['Arial Narrow', 'system-ui', 'sans-serif'],
-      options: { experimental: { variableAxis: { wdth: ['75'] } } },
     },
   ],
 

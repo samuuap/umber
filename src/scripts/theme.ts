@@ -6,10 +6,9 @@ import { THEME_COOKIE, type Theme } from '@/lib/theme';
 
 const LABELS: Record<Theme, string> = { light: 'Cambiar a modo oscuro', dark: 'Cambiar a modo claro' };
 
+// Sin elegir, la sala: oscuro (`global.css`).
 function currentTheme(): Theme {
-  const chosen = document.documentElement.dataset['theme'];
-  if (chosen === 'light' || chosen === 'dark') return chosen;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return document.documentElement.dataset['theme'] === 'light' ? 'light' : 'dark';
 }
 
 function sync(button: HTMLButtonElement): void {

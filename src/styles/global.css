@@ -1,92 +1,140 @@
 @import 'tailwindcss';
 
-/* ─── Programa de mano ───────────────────────────────────────────────────────
+/* ─── La sala a oscuras ──────────────────────────────────────────────────────
    Paleta y tipografías de CLAUDE.md («Estética»), como tokens de Tailwind.
    Prefijo `umber-` para no chocar con las escalas por defecto de Tailwind.
-   Como el programa de una filmoteca: papel, tinta y un solo acento, el rojo,
-   y medido (la acción principal, lo elegido, los títulos que recomienda
-   Umber). Separan los filetes, no las cajas ni las sombras.
 
-   Dos modos con los mismos nombres: claro (papel) por defecto, y oscuro si lo
-   pide el sistema o la persona (`data-theme` en <html>, que pone Layout.astro
-   desde la cookie `umber_tema`). Contraste contra la base, en los dos: tinta
-   más de 14:1, secundario 6,5:1, acento 5:1 o más (AA); el borde de los
-   controles, 3:1 o más (WCAG 1.4.11).
+   Umber como una sala de cine: oscuro por defecto, la imagen manda (fotogramas
+   a sangre, carteles con su propia luz) y un solo acento, el rojo de butaca,
+   medido (la acción principal, lo elegido, los títulos que recomienda Umber).
+
+   Dos modos con los mismos nombres: oscuro («la sala») por defecto, y claro
+   («matiné», el papel del programa de mano) si la persona lo elige con el botón
+   de la cabecera (`data-theme='light'` en <html>, que pone Layout.astro desde la
+   cookie `umber_tema`). La pantalla (`.screen`: el fotograma de la portada, la
+   cabecera, el pie) es oscura en los dos, como en un cine.
+
+   Contraste contra la base, en los dos: tinta más de 14:1, secundario 5:1 o
+   más, acento 5:1 o más (AA); el borde de los controles, 3:1 o más (WCAG 1.4.11).
+   El texto sobre el relleno rojo de los botones pasa AA en los dos.
    -------------------------------------------------------------------------- */
 @theme {
-  /* Fondo: papel */
-  --color-umber-base: #f3eee5;
-  /* Superficies: el cuadro de texto, el buscador de los juegos */
-  --color-umber-surface: #ebe4d8;
+  /* Fondo: la sala */
+  --color-umber-base: #0b0a09;
+  /* Superficies: el cuadro de texto, el buscador, las fichas */
+  --color-umber-surface: #151311;
   /* Un nivel más: tus mensajes, las teclas */
-  --color-umber-raised: #e2d9ca;
+  --color-umber-raised: #201c19;
   /* Filetes: separan sin pesar. Decorativos, sin requisito de contraste */
-  --color-umber-line: #cfc6b8;
+  --color-umber-line: #2e2925;
   /* Borde de lo que se puede tocar: campos, botones secundarios */
-  --color-umber-rule: #8a8073;
-  /* Texto principal: tinta */
-  --color-umber-ink: #16130f;
+  --color-umber-rule: #7a7064;
+  /* Texto principal */
+  --color-umber-ink: #f3ede3;
   /* Texto secundario */
-  --color-umber-muted: #5e564c;
-  /* El acento: bermellón */
-  --color-umber-accent: #b8321c;
-  --color-umber-accent-hover: #9a2914;
+  --color-umber-muted: #a99f92;
+  /* El acento como texto y filete: rojo de butaca, encendido */
+  --color-umber-accent: #f26b50;
+  --color-umber-accent-hover: #ff8468;
+  /* El acento como relleno (el botón principal) y el texto que va encima */
+  --color-umber-accent-fill: #c63a22;
+  --color-umber-accent-fill-hover: #d23f26;
+  --color-umber-on-accent: #ffffff;
   /* Errores: con texto siempre, el color solo no basta */
-  --color-umber-danger: #9f1d1d;
+  --color-umber-danger: #f49a8a;
+  /* Las franjas negras del proyector: igual en los dos modos */
+  --color-umber-screen: #050404;
 
-  /* Las variables `--font-*` las inyecta la API de fuentes de Astro */
-  --font-display: var(--font-instrument);
+  /*
+   * Las variables `--font-*` las inyecta la API de fuentes de Astro. Una sola
+   * familia para titulares, interfaz y rótulos (Libre Franklin, en sus pesos), y
+   * la serif de lectura para lo que se dice. `display` y `label` siguen como
+   * nombres para distinguir el papel de cada texto.
+   */
+  --font-display: var(--font-franklin);
   --font-serif: var(--font-newsreader-text);
-  --font-sans: var(--font-archivo);
-  /* Rótulos y botones: Archivo estrecha, en mayúsculas */
-  --font-label: var(--font-archivo-narrow);
+  --font-sans: var(--font-franklin);
+  --font-label: var(--font-franklin);
 
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Lo que abre y cierra (las franjas del proyector): arranca y frena despacio */
+  --ease-cine: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-/* El modo oscuro: los mismos tokens, de noche. */
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: dark;
+    /* Alto de la cabecera: lo que se mete debajo de ella (`.under-header`) lo descuenta */
+    --header-h: 4rem;
+    --grain: 0.055;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) {
-      color-scheme: dark;
-      --color-umber-base: #14110e;
-      --color-umber-surface: #1d1915;
-      --color-umber-raised: #26211b;
-      --color-umber-line: #39322a;
-      --color-umber-rule: #7d7265;
-      --color-umber-ink: #ede6da;
-      --color-umber-muted: #a39a8d;
-      --color-umber-accent: #e8664c;
-      --color-umber-accent-hover: #f07b62;
-      --color-umber-danger: #f2998a;
+  @media (min-width: 40rem) {
+    :root {
+      --header-h: 4.75rem;
     }
   }
 
-  :root[data-theme='dark'] {
+  /* Matiné: el papel y la tinta del programa de mano, si se elige. */
+  :root[data-theme='light'] {
+    color-scheme: light;
+    --grain: 0.04;
+    --color-umber-base: #f3eee5;
+    --color-umber-surface: #ebe4d8;
+    --color-umber-raised: #e2d9ca;
+    --color-umber-line: #cfc6b8;
+    --color-umber-rule: #8a8073;
+    --color-umber-ink: #16130f;
+    --color-umber-muted: #5e564c;
+    --color-umber-accent: #b8321c;
+    --color-umber-accent-hover: #9a2914;
+    --color-umber-accent-fill: #b8321c;
+    --color-umber-accent-fill-hover: #9a2914;
+    --color-umber-on-accent: #f3eee5;
+    --color-umber-danger: #9f1d1d;
+  }
+
+  /*
+   * La pantalla: oscura siempre, también en matiné. Los mismos valores que el
+   * modo oscuro de `@theme`: un color nuevo va en los tres bloques.
+   */
+  .screen {
     color-scheme: dark;
-    --color-umber-base: #14110e;
-    --color-umber-surface: #1d1915;
-    --color-umber-raised: #26211b;
-    --color-umber-line: #39322a;
-    --color-umber-rule: #7d7265;
-    --color-umber-ink: #ede6da;
-    --color-umber-muted: #a39a8d;
-    --color-umber-accent: #e8664c;
-    --color-umber-accent-hover: #f07b62;
-    --color-umber-danger: #f2998a;
+    --color-umber-base: #0b0a09;
+    --color-umber-surface: #151311;
+    --color-umber-raised: #201c19;
+    --color-umber-line: #2e2925;
+    --color-umber-rule: #7a7064;
+    --color-umber-ink: #f3ede3;
+    --color-umber-muted: #a99f92;
+    --color-umber-accent: #f26b50;
+    --color-umber-accent-hover: #ff8468;
+    --color-umber-accent-fill: #c63a22;
+    --color-umber-accent-fill-hover: #d23f26;
+    --color-umber-on-accent: #ffffff;
+    --color-umber-danger: #f49a8a;
+    color: var(--color-umber-ink);
   }
 
   html {
     scroll-behavior: smooth;
+    scrollbar-color: var(--color-umber-line) var(--color-umber-base);
   }
 
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
+    }
+  }
+
+  /* Con el menú del móvil abierto, la página de detrás no se desplaza. */
+  html:has(details[data-menu][open]) {
+    overflow: hidden;
+  }
+
+  @media (min-width: 64rem) {
+    html:has(details[data-menu][open]) {
+      overflow: visible;
     }
   }
 
@@ -122,9 +170,10 @@
   }
 
   /*
-   * Grano de papel encima de todo, muy bajo. Mezcla normal y no `overlay`:
-   * un modo de fusión en una capa fija obliga a recomponer la página entera al
-   * hacer scroll, y en el móvil se nota.
+   * Grano de película encima de todo, muy bajo. Quieto: un grano que se mueve
+   * obliga a repintar la pantalla entera sin parar. Mezcla normal y no
+   * `overlay`: un modo de fusión en una capa fija obliga a recomponer la página
+   * al hacer scroll, y en el móvil se nota.
    */
   body::after {
     content: '';
@@ -134,21 +183,21 @@
     pointer-events: none;
     background-image: url('/grain.svg');
     background-size: 180px;
-    opacity: 0.04;
+    opacity: var(--grain);
   }
 
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.02em;
+    font-weight: 600;
+    letter-spacing: -0.025em;
     text-wrap: balance;
   }
 
-  /* La cursiva de los titulares es la de Instrument Serif, no una inclinación falsa. */
-  em {
-    font-synthesis: none;
+  /* En los titulares no hay cursivas: el peso y el tamaño ya hacen la jerarquía. */
+  :is(h1, h2, h3) em {
+    font-style: normal;
   }
 
   p {
@@ -156,7 +205,7 @@
   }
 
   ::selection {
-    background-color: color-mix(in oklab, var(--color-umber-accent) 25%, transparent);
+    background-color: color-mix(in oklab, var(--color-umber-accent) 32%, transparent);
     color: var(--color-umber-ink);
   }
 
@@ -169,25 +218,27 @@
 /* ─── Piezas comunes ─────────────────────────────────────────────────────────
    Las que se repiten en varias pantallas. El resto va en clases de Tailwind
    junto a su marcado. La regla de la tipografía: lo que se dice (Umber, quien
-   escribe, las sinopsis) va en serif; la interfaz, en sans.
+   escribe, las sinopsis) va en serif; todo lo demás (titulares, interfaz,
+   rótulos), en Libre Franklin, con la jerarquía en el peso y el tamaño. Sin
+   cursivas en los titulares ni mayúsculas espaciadas en los rótulos.
    -------------------------------------------------------------------------- */
 @layer components {
   /* Titulares. El tamaño crece con la pantalla sin saltos. */
   .display-1 {
-    @apply font-display text-[clamp(3.2rem,8.6vw,8.25rem)] leading-[0.9] tracking-[-0.03em];
+    @apply font-display text-[clamp(2.9rem,7.6vw,7.25rem)] leading-[0.95] font-semibold tracking-[-0.045em];
   }
 
   .display-2 {
-    @apply font-display text-[clamp(2.3rem,4.6vw,3.6rem)] leading-[1] tracking-[-0.02em];
+    @apply font-display text-[clamp(2.1rem,4.3vw,3.6rem)] leading-[1] font-semibold tracking-[-0.035em];
   }
 
   .display-3 {
-    @apply font-display text-[clamp(1.8rem,2.9vw,2.5rem)] leading-[1.05] tracking-[-0.015em];
+    @apply font-display text-[clamp(1.55rem,2.5vw,2.1rem)] leading-[1.1] font-semibold tracking-[-0.025em];
   }
 
-  /* Rótulo pequeño, estrecho y en mayúsculas; con `eyebrow-rule`, el de un titular: en rojo. */
+  /* Rótulo de una sección, encima de su titular; con `eyebrow-rule`, en rojo. */
   .eyebrow {
-    @apply text-umber-muted font-label text-[0.75rem] font-bold tracking-[0.16em] uppercase;
+    @apply text-umber-muted font-label text-[0.875rem] leading-snug font-semibold;
   }
 
   .eyebrow-rule {
@@ -203,12 +254,17 @@
     @apply font-serif text-[1.075rem] leading-[1.72] sm:text-[1.135rem];
   }
 
+  /* La acción principal: rellena de rojo y, al pasar por encima, encendida. */
   .btn-primary {
-    @apply bg-umber-accent text-umber-base hover:bg-umber-accent-hover font-label inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-3 text-[0.8rem] font-bold tracking-[0.12em] whitespace-nowrap uppercase transition-[background-color,transform] duration-300 ease-(--ease-soft) active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+    @apply bg-umber-accent-fill text-umber-on-accent hover:bg-umber-accent-fill-hover font-label inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-2.5 text-[0.9375rem] font-semibold whitespace-nowrap transition-[background-color,box-shadow,transform] duration-300 ease-(--ease-soft) active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary:not(:disabled):hover {
+    box-shadow: 0 14px 40px -14px color-mix(in oklab, var(--color-umber-accent-fill) 85%, transparent);
   }
 
   .btn-secondary {
-    @apply border-umber-ink text-umber-ink hover:bg-umber-ink hover:text-umber-base font-label inline-flex min-h-11 items-center justify-center gap-2.5 border px-5 py-3 text-[0.8rem] font-bold tracking-[0.12em] whitespace-nowrap uppercase transition-[border-color,background-color,transform] duration-300 ease-(--ease-soft) active:scale-[0.98];
+    @apply border-umber-ink/70 text-umber-ink hover:border-umber-ink hover:bg-umber-ink hover:text-umber-base font-label inline-flex min-h-11 items-center justify-center gap-2.5 border px-5 py-2.5 text-[0.9375rem] font-semibold whitespace-nowrap transition-[border-color,background-color,color,transform] duration-300 ease-(--ease-soft) active:scale-[0.98];
   }
 
   /* La flecha de un botón o enlace se adelanta un poco al pasar por encima. */
@@ -216,7 +272,7 @@
     @apply inline-block transition-transform duration-300 ease-(--ease-soft) motion-reduce:transition-none;
   }
 
-  :is(.btn-primary, .btn-secondary, .link, .link-quiet):hover .arrow {
+  :is(.btn-primary, .btn-secondary, .link, .link-quiet, .arrow-host):hover .arrow {
     transform: translateX(0.25rem);
   }
 
@@ -230,9 +286,9 @@
   }
 
   /*
-   * Campo sobre `umber-surface` y con la línea de abajo, como una casilla de un
-   * formulario impreso: el fondo dice que ahí se escribe. La línea es
-   * `umber-rule` (3,4:1): lo que identifica un control pide 3:1.
+   * Campo sobre `umber-surface` y con la línea de abajo: el fondo dice que ahí
+   * se escribe. La línea es `umber-rule` (3:1 o más): lo que identifica un
+   * control lo pide.
    */
   .field {
     @apply border-umber-rule text-umber-ink placeholder:text-umber-muted hover:border-umber-ink focus:border-umber-accent bg-umber-surface block w-full cursor-text rounded-none border-0 border-b px-3 py-2.5 transition-[border-color,box-shadow] duration-300 focus:shadow-[0_1px_0_0_var(--color-umber-accent)] focus:outline-none aria-invalid:border-umber-danger;
@@ -252,11 +308,11 @@
   }
 
   .field-label {
-    @apply text-umber-muted font-label block text-[0.75rem] font-bold tracking-[0.16em] uppercase;
+    @apply text-umber-muted font-label block text-[0.875rem] font-medium;
   }
 
   .chip {
-    @apply border-umber-rule text-umber-ink hover:border-umber-ink hover:bg-umber-ink hover:text-umber-base inline-flex min-h-11 items-center border px-4 py-2 text-[0.9rem] transition-[border-color,background-color,color] duration-300;
+    @apply border-umber-rule/80 text-umber-ink hover:border-umber-ink hover:bg-umber-ink hover:text-umber-base inline-flex min-h-11 items-center border px-4 py-2 text-[0.9rem] transition-[border-color,background-color,color] duration-300;
   }
 
   /*
@@ -269,7 +325,7 @@
   }
 
   .tab {
-    @apply text-umber-muted hover:text-umber-ink after:bg-umber-accent font-label relative block cursor-pointer pb-1.5 text-[0.8rem] font-bold tracking-[0.12em] uppercase transition-colors duration-300 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:transition-transform after:duration-500 after:ease-(--ease-soft) aria-[current=page]:text-umber-ink aria-[current=page]:after:scale-x-100;
+    @apply text-umber-muted hover:text-umber-ink after:bg-umber-accent font-label relative block cursor-pointer pb-1.5 text-[0.9375rem] font-medium transition-colors duration-300 after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:origin-left after:scale-x-0 after:transition-transform after:duration-500 after:ease-(--ease-soft) aria-[current=page]:text-umber-ink aria-[current=page]:after:scale-x-100;
   }
 
   /* La versión con radio: el `<input>` va oculto justo antes del texto. */
@@ -292,17 +348,31 @@
   }
 
   /*
-   * El cuadro donde se le escribe a Umber, en la portada y en el chat: filete de
-   * tinta arriba, borde de control alrededor y el fondo de los campos, para que
-   * se vea a la primera que ahí se escribe.
+   * El cuadro donde se le escribe a Umber, en la portada y en el chat: filete
+   * grueso arriba, borde de control alrededor y el fondo de los campos, para que
+   * se vea a la primera que ahí se escribe. Con el foco, todo en rojo.
    */
   .composer {
-    @apply border-umber-rule border-t-umber-ink bg-umber-surface hover:border-umber-ink cursor-text border border-t-2 transition-[border-color,box-shadow] duration-500 focus-within:border-umber-accent focus-within:shadow-[0_0_0_1px_var(--color-umber-accent)];
+    @apply border-umber-rule border-t-umber-ink bg-umber-surface hover:border-umber-ink cursor-text border border-t-2 transition-[border-color,box-shadow] duration-500 focus-within:border-umber-accent focus-within:shadow-[0_0_0_1px_var(--color-umber-accent),0_24px_60px_-28px_var(--color-umber-accent)];
   }
 
-  /* Fotograma con el color de la casa: un poco de sepia y menos saturación, como impreso. */
+  /*
+   * Sobre un fotograma, el cuadro deja pasar la imagen, desenfocada: es lo único
+   * de cristal de Umber, porque es lo único que va encima de una foto y se lee.
+   */
+  .composer-glass {
+    background-color: color-mix(in oklab, var(--color-umber-base) 62%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    backdrop-filter: blur(18px) saturate(1.2);
+  }
+
+  /*
+   * El etalonado de la casa: sombras profundas, algo de calor y menos
+   * saturación, para que fotogramas muy distintos parezcan de la misma película.
+   * El orden de los filtros es el de `develop`: si no casan, no se interpola.
+   */
   .graded {
-    filter: sepia(0.22) saturate(0.82) contrast(1.04) brightness(0.9);
+    filter: sepia(0.12) saturate(0.9) contrast(1.08) brightness(0.86);
   }
 
   /* Lista de plataformas o datos separada por puntos medios. */
@@ -310,15 +380,122 @@
     @apply flex flex-wrap gap-x-2 gap-y-1 [&>li+li]:before:mr-2 [&>li+li]:before:text-umber-muted/60 [&>li+li]:before:content-['·'];
   }
 
+  /* Plataformas como entradas: una caja estrecha por cada una. */
+  .ticket-list {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .ticket-list > li {
+    @apply border-umber-rule/70 text-umber-ink font-label inline-flex min-h-8 items-center border px-2.5 text-[0.8125rem] font-medium sm:min-h-9 sm:px-3 sm:text-[0.875rem];
+  }
+
   /* Textos legales: lectura larga, con apartados y listas. */
   .legal-text {
-    @apply text-umber-ink/90 max-w-[42rem] [&_a]:text-umber-accent [&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-[5px] [&_h2]:font-display [&_h2]:text-umber-ink [&_h2]:mt-14 [&_h2]:mb-4 [&_h2]:text-[1.9rem] [&_h2]:leading-tight [&_h3]:font-sans [&_h3]:text-umber-ink [&_h3]:mt-8 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_li]:mt-2 [&_p]:mt-4 [&_strong]:text-umber-ink [&_strong]:font-semibold [&_table]:mt-5 [&_table]:w-full [&_table]:font-sans [&_table]:text-sm [&_td]:border-umber-line [&_td]:border-t [&_td]:py-3 [&_td]:pr-4 [&_td]:align-top [&_th]:text-umber-muted [&_th]:pb-2 [&_th]:pr-4 [&_th]:text-left [&_th]:font-medium [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6;
+    @apply text-umber-ink/90 max-w-[42rem] [&_a]:text-umber-accent [&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-[5px] [&_h2]:font-display [&_h2]:text-umber-ink [&_h2]:mt-14 [&_h2]:mb-4 [&_h2]:text-[1.6rem] [&_h2]:leading-tight [&_h2]:tracking-[-0.025em] [&_h3]:font-sans [&_h3]:text-umber-ink [&_h3]:mt-8 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_li]:mt-2 [&_p]:mt-4 [&_strong]:text-umber-ink [&_strong]:font-semibold [&_table]:mt-5 [&_table]:w-full [&_table]:font-sans [&_table]:text-sm [&_td]:border-umber-line [&_td]:border-t [&_td]:py-3 [&_td]:pr-4 [&_td]:align-top [&_th]:text-umber-muted [&_th]:pb-2 [&_th]:pr-4 [&_th]:text-left [&_th]:font-medium [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6;
+  }
+}
+
+/* ─── La pantalla ────────────────────────────────────────────────────────────
+   Las piezas del fotograma a sangre (portada, ficha, cuenta): se mete bajo la
+   cabecera, se oscurece hacia donde va el texto y se funde con la sala.
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Lo que empieza detrás de la cabecera transparente: la portada y la ficha. */
+  .under-header {
+    margin-top: calc(-1 * var(--header-h));
+  }
+
+  /* Viñeta: los bordes del fotograma más oscuros, como en una proyección. */
+  .vignette {
+    background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgb(0 0 0 / 0.6) 100%);
+  }
+
+  /*
+   * Luz ambiente: una copia de la imagen, muy desenfocada, detrás de ella. Así
+   * cada cartel tiñe la sala de su color, como la luz de la pantalla.
+   */
+  .ambient {
+    @apply pointer-events-none absolute -inset-[14%] -z-10 opacity-55;
+    filter: blur(56px) saturate(1.6);
+    transform: translateZ(0);
+  }
+
+  :root[data-theme='light'] .ambient:not(.screen .ambient) {
+    @apply opacity-35;
+  }
+
+  /*
+   * Una fila de carteles que se desliza con el dedo. El borde derecho se
+   * desvanece para decir que hay más. Sin barra de desplazamiento: en escritorio
+   * estas filas son rejillas.
+   */
+  .rail {
+    @apply flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto overscroll-x-contain sm:scroll-px-8;
+    scrollbar-width: none;
+    mask-image: linear-gradient(to right, #000 calc(100% - 3rem), transparent);
+  }
+
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .rail > * {
+    @apply shrink-0 snap-start;
+  }
+
+  /*
+   * La cartela del cine mudo: una frase sola, centrada, con un marco doble.
+   * Así habla Umber en la portada.
+   */
+  .intertitle {
+    @apply border-umber-rule/50 relative border;
+    outline: 1px solid color-mix(in oklab, var(--color-umber-rule) 35%, transparent);
+    outline-offset: -0.75rem;
+  }
+
+  /*
+   * La cabecera sobre un fotograma: transparente arriba y oscura al bajar,
+   * con el propio scroll y sin JavaScript. Sin soporte, oscura desde el
+   * principio, que encima de una foto también se lee.
+   */
+  .header-overlay {
+    background-color: color-mix(in oklab, var(--color-umber-base) 78%, transparent);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .header-overlay {
+      background-color: transparent;
+      border-color: transparent;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      animation: header-solid linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 24rem;
+    }
+  }
+
+  .header-solid {
+    background-color: color-mix(in oklab, var(--color-umber-base) 92%, transparent);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+}
+
+@keyframes header-solid {
+  to {
+    background-color: color-mix(in oklab, var(--color-umber-base) 92%, transparent);
+    border-color: var(--color-umber-line);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
 }
 
 /* ─── Movimiento ─────────────────────────────────────────────────────────────
-   Pocas animaciones y lentas, que acompañen sin llamar la atención. Todas se
-   apagan con `prefers-reduced-motion`.
+   Como una proyección: las franjas se abren, la imagen se revela y el título
+   enfoca. Pocas animaciones, lentas, una sola vez, y todas se apagan con
+   `prefers-reduced-motion` (el estado final, sin transición).
    -------------------------------------------------------------------------- */
 @layer components {
   /* Entrada al cargar: sube un poco y aparece. El retraso, con `[animation-delay:…]`. */
@@ -326,9 +503,73 @@
     animation: rise 1s var(--ease-soft) both;
   }
 
-  /* El fotograma de la portada se revela como una foto. */
+  /* Un fotograma que se revela como una foto. */
   .develop {
     animation: develop 2.2s var(--ease-soft) 0.15s both;
+  }
+
+  /*
+   * Las franjas del proyector: dos cortinas negras que se abren desde el centro
+   * y dejan ver el fotograma. Por defecto ya están fuera: sin animación (o sin
+   * soporte), se ve la imagen.
+   */
+  .shutter {
+    @apply relative overflow-hidden;
+  }
+
+  .shutter::before,
+  .shutter::after {
+    @apply bg-umber-screen pointer-events-none absolute inset-x-0 z-[1] h-[51%] content-[''];
+  }
+
+  .shutter::before {
+    top: 0;
+    transform: translateY(-101%);
+    animation: shutter-top 1.4s var(--ease-cine) 0.05s both;
+  }
+
+  .shutter::after {
+    bottom: 0;
+    transform: translateY(101%);
+    animation: shutter-bottom 1.4s var(--ease-cine) 0.05s both;
+  }
+
+  /* El fotograma de la portada se acerca muy despacio, una sola vez. */
+  .ken-burns {
+    animation: ken-burns 28s cubic-bezier(0.2, 0.6, 0.2, 1) both;
+  }
+
+  /*
+   * El titular enfoca palabra a palabra, como un cambio de foco. Cada palabra
+   * es un `<span>` dentro de un contenedor `aria-hidden`: el titular entero va
+   * aparte, para los lectores de pantalla.
+   */
+  .focus-words > span {
+    display: inline-block;
+    animation: focus-in 1.2s var(--ease-soft) both;
+    animation-delay: calc(var(--words-delay, 250ms) + var(--i, 0) * 80ms);
+  }
+
+  .focus-words > span:nth-child(2) {
+    --i: 1;
+  }
+  .focus-words > span:nth-child(3) {
+    --i: 2;
+  }
+  .focus-words > span:nth-child(4) {
+    --i: 3;
+  }
+  .focus-words > span:nth-child(5) {
+    --i: 4;
+  }
+  .focus-words > span:nth-child(6) {
+    --i: 5;
+  }
+  .focus-words > span:nth-child(7) {
+    --i: 6;
+  }
+  .focus-words > span:nth-child(8) {
+    --i: 7;
   }
 
   /* Al hacer scroll: aparece cuando entra en pantalla. Sin soporte, ya está ahí. */
@@ -338,6 +579,27 @@
       animation-timeline: view();
       animation-range: entry 0% entry 55%;
     }
+  }
+
+  /* El menú del móvil: sus enlaces entran uno detrás de otro al abrirlo. */
+  details[data-menu][open] nav li {
+    animation: rise 0.7s var(--ease-soft) both;
+  }
+
+  details[data-menu][open] nav li:nth-child(2) {
+    animation-delay: 50ms;
+  }
+  details[data-menu][open] nav li:nth-child(3) {
+    animation-delay: 100ms;
+  }
+  details[data-menu][open] nav li:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  details[data-menu][open] nav li:nth-child(5) {
+    animation-delay: 200ms;
+  }
+  details[data-menu][open] nav li:nth-child(n + 6) {
+    animation-delay: 250ms;
   }
 
   /* Un mensaje nuevo del chat. */
@@ -355,7 +617,12 @@
     .develop,
     .reveal,
     .message-in,
-    .breathe {
+    .breathe,
+    .ken-burns,
+    .focus-words > span,
+    details[data-menu][open] nav li,
+    .shutter::before,
+    .shutter::after {
       animation: none;
     }
   }
@@ -378,14 +645,42 @@
 /*
  * Misma lista de filtros que `.graded`, en el mismo orden, más el desenfoque:
  * si no casan, el navegador no interpola y el cambio llega de golpe a mitad.
- * Sin paso intermedio de opacidad: acaba en la del elemento (el fondo de la
- * ficha va al 50 %).
+ * Sin paso intermedio de opacidad: acaba en la del elemento.
  */
 @keyframes develop {
   from {
     opacity: 0;
-    filter: sepia(1) saturate(0.82) contrast(1.04) brightness(0.5) blur(8px);
+    filter: sepia(0.7) saturate(0.5) contrast(1.08) brightness(0.4) blur(10px);
     transform: scale(1.06);
+  }
+}
+
+@keyframes shutter-top {
+  from {
+    transform: translateY(0);
+  }
+}
+
+@keyframes shutter-bottom {
+  from {
+    transform: translateY(0);
+  }
+}
+
+@keyframes ken-burns {
+  from {
+    transform: scale(1.14) translate3d(0, 1.5%, 0);
+  }
+  to {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes focus-in {
+  from {
+    opacity: 0;
+    filter: blur(14px);
+    transform: translateY(0.12em);
   }
 }
 
@@ -404,7 +699,7 @@
   .reveal-card {
     animation:
       card-rise 0.8s var(--ease-soft) var(--reveal-delay, 0ms) both,
-      card-glow 2s ease-out var(--reveal-delay, 0ms);
+      card-glow 2.4s ease-out var(--reveal-delay, 0ms);
   }
 
   [data-develop='waiting'] {
@@ -433,8 +728,8 @@
 @keyframes card-glow {
   from,
   25% {
-    border-color: color-mix(in oklab, var(--color-umber-accent) 50%, transparent);
-    box-shadow: 0 0 32px -8px color-mix(in oklab, var(--color-umber-accent) 30%, transparent);
+    border-color: color-mix(in oklab, var(--color-umber-accent) 55%, transparent);
+    box-shadow: 0 0 48px -10px color-mix(in oklab, var(--color-umber-accent) 40%, transparent);
   }
 }
 
@@ -450,10 +745,11 @@
 }
 
 /* ─── Juegos ─────────────────────────────────────────────────────────────────
-   «El título del día» y «El cartel del día» (`/juegos`). Con un solo acento,
-   cada estado de una casilla se distingue también por la forma: vacía, con
-   borde; destapada por tus letras, con fondo y letra en rojo; escrita por ti,
-   con borde de tinta; acertada, rellena de rojo.
+   «El título del día» y «El cartel del día» (`/juegos`). El tablero es la
+   marquesina de un cine: letras estrechas en sus casillas. Con un solo acento,
+   cada estado se distingue también por la luz: vacía, oscura; destapada por tus
+   letras, encendida (fondo claro, letra oscura); escrita por ti, con borde de
+   tinta; acertada, rellena de rojo.
    -------------------------------------------------------------------------- */
 @layer components {
   /*
@@ -496,10 +792,13 @@
   }
 
   .tile {
-    @apply border-umber-rule/45 text-umber-ink relative inline-flex shrink-0 items-center justify-center rounded-[3px] border font-sans leading-none font-semibold uppercase select-none;
+    @apply border-umber-line bg-umber-surface text-umber-ink font-label relative inline-flex shrink-0 items-center justify-center rounded-[3px] border leading-none font-semibold uppercase select-none;
     width: var(--tile);
     height: calc(var(--tile) * 1.12);
-    font-size: calc(var(--tile) * 0.48);
+    font-size: calc(var(--tile) * 0.52);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.04),
+      inset 0 -3px 0 rgb(0 0 0 / 0.28);
     transition:
       background-color 0.35s,
       border-color 0.35s,
@@ -518,27 +817,31 @@
     animation: tile-pop 0.18s var(--ease-soft);
   }
 
-  /* Destapada por tus letras: fija, no se escribe encima. */
+  /* Destapada por tus letras: encendida, como una letra de marquesina. */
   .tile[data-state='revealed'] {
-    @apply bg-umber-raised border-umber-accent/45 text-umber-accent;
+    @apply bg-umber-ink border-umber-ink text-umber-base;
+    box-shadow:
+      0 0 22px -6px color-mix(in oklab, var(--color-umber-ink) 55%, transparent),
+      inset 0 -3px 0 rgb(0 0 0 / 0.12);
   }
 
   .tile[data-state='solved'] {
-    @apply bg-umber-accent border-umber-accent text-umber-base;
-    box-shadow: 0 0 24px -6px color-mix(in oklab, var(--color-umber-accent) 70%, transparent);
+    @apply bg-umber-accent-fill border-umber-accent-fill text-umber-on-accent;
+    box-shadow: 0 0 26px -6px color-mix(in oklab, var(--color-umber-accent) 75%, transparent);
   }
 
   /* Al perder, lo que faltaba: apagado, para que se vea qué no salió. */
   .tile[data-state='answer'] {
     @apply bg-umber-line border-umber-line text-umber-muted;
+    box-shadow: none;
   }
 
   /* La puntuación del título: se ve, pero no es una casilla. */
   .tile-mark {
-    @apply text-umber-muted inline-flex items-center justify-center font-sans font-semibold select-none;
+    @apply text-umber-muted font-label inline-flex items-center justify-center font-semibold select-none;
     height: calc(var(--tile) * 1.12);
     min-width: calc(var(--tile) * 0.3);
-    font-size: calc(var(--tile) * 0.48);
+    font-size: calc(var(--tile) * 0.52);
   }
 
   .tile[data-turn] {
@@ -555,11 +858,11 @@
 
   /* Las cuatro letras elegidas. */
   .pick-slot {
-    @apply border-umber-rule/70 text-umber-ink inline-flex size-12 items-center justify-center rounded-[3px] border border-dashed font-sans text-xl font-semibold uppercase transition-[border-color,color,opacity] duration-300;
+    @apply border-umber-rule/70 text-umber-ink font-label inline-flex size-12 items-center justify-center rounded-[3px] border border-dashed text-xl font-semibold uppercase transition-[border-color,color,opacity] duration-300;
   }
 
   .pick-slot[data-filled] {
-    @apply border-umber-ink/80 border-solid;
+    @apply border-umber-ink/80 bg-umber-surface border-solid;
     animation: tile-pop 0.18s var(--ease-soft);
   }
 
@@ -573,7 +876,7 @@
 
   /* Las que ya probaste. */
   .miss-chip {
-    @apply border-umber-line text-umber-muted border px-3 py-1 font-sans text-xs tracking-[0.08em] uppercase line-through decoration-1;
+    @apply border-umber-line text-umber-muted border px-3 py-1 font-sans text-xs font-medium tracking-[0.04em] uppercase line-through decoration-1;
     animation: rise 0.5s var(--ease-soft) both;
   }
 
@@ -588,11 +891,13 @@
 
   /* El teclado de la pantalla. */
   .key {
-    @apply bg-umber-raised text-umber-ink inline-flex h-12 min-w-0 flex-1 items-center justify-center rounded-[4px] font-sans text-[0.95rem] font-semibold uppercase transition-[background-color,color,box-shadow,opacity] duration-300 select-none hover:bg-umber-line active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 sm:h-13;
+    @apply bg-umber-raised text-umber-ink hover:bg-umber-line inline-flex h-12 min-w-0 flex-1 items-center justify-center rounded-[4px] font-sans text-[0.95rem] font-semibold uppercase transition-[background-color,color,box-shadow,opacity] duration-300 select-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 sm:h-13;
+    box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.25);
   }
 
+  /* Intro y borrar: más pequeña, para que «Destapar» quepa en una tecla de 390 px. */
   .key-wide {
-    @apply flex-[1.6] text-[0.7rem] tracking-[0.06em];
+    @apply flex-[1.6] text-[0.75rem] font-semibold normal-case;
   }
 
   .key[data-picked] {
@@ -607,9 +912,13 @@
     @apply text-umber-muted/55 bg-umber-surface hover:bg-umber-surface line-through;
   }
 
-  /* El cartel del día: marco de cartel, con radio de 3 px como los demás. */
+  /*
+   * El cartel del día: en su marco, con la luz de la pantalla alrededor, como
+   * un cartel iluminado en el vestíbulo.
+   */
   .poster-frame {
-    @apply bg-umber-surface ring-umber-base relative aspect-[2/3] overflow-hidden rounded-[3px] ring-[6px];
+    @apply bg-umber-surface ring-umber-ink/10 relative aspect-[2/3] overflow-hidden rounded-[4px] ring-1;
+    box-shadow: 0 40px 90px -36px rgb(0 0 0 / 0.9);
   }
 
   .poster-frame img {
@@ -738,7 +1047,7 @@
     box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-umber-accent) 0%, transparent);
   }
   20% {
-    box-shadow: 0 0 60px 6px color-mix(in oklab, var(--color-umber-accent) 35%, transparent);
+    box-shadow: 0 0 70px 8px color-mix(in oklab, var(--color-umber-accent) 40%, transparent);
   }
   100% {
     box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-umber-accent) 0%, transparent);
@@ -770,15 +1079,15 @@
 }
 
 ::view-transition-old(root) {
-  animation: 180ms ease-out both page-out;
+  animation: 200ms ease-out both page-out;
 }
 
 ::view-transition-new(root) {
-  animation: 420ms var(--ease-soft) both page-in;
+  animation: 460ms var(--ease-soft) both page-in;
 }
 
 ::view-transition-group(poster) {
-  animation-duration: 520ms;
+  animation-duration: 560ms;
   animation-timing-function: var(--ease-soft);
 }
 

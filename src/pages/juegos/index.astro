@@ -23,10 +23,10 @@ const SAMPLE = ['', 'A', '', 'E', '', 'A', ''] as const;
   description="Dos juegos de cine cada día, con películas que conoce todo el mundo: adivínala por su cartel o por su título."
 >
   <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 pb-24 sm:px-8">
-    <header class="grid gap-x-10 gap-y-6 pt-10 pb-12 sm:pt-14 lg:grid-cols-12 lg:items-end">
+    <header class="grid grid-cols-1 gap-x-10 gap-y-6 pt-12 pb-12 sm:pt-16 lg:grid-cols-12 lg:items-end lg:pb-16">
       <div class="rise lg:col-span-7">
         <p class="eyebrow eyebrow-rule">Juegos</p>
-        <h1 class="display-1 mt-7">Una película <em>cada día</em></h1>
+        <h1 class="display-1 mt-7">Una película cada día</h1>
       </div>
       <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
         Dos juegos con películas que conoce todo el mundo, nuevos a medianoche. Sin cuenta: tu racha se guarda en
@@ -34,41 +34,64 @@ const SAMPLE = ['', 'A', '', 'E', '', 'A', ''] as const;
       </p>
     </header>
 
-    <div class="border-umber-line grid gap-x-10 gap-y-16 border-t pt-12 lg:grid-cols-12">
-      <section aria-labelledby="cartel" class="rise grid gap-8 [animation-delay:150ms] sm:grid-cols-[minmax(0,13rem)_1fr] lg:col-span-7">
-        <a href="/juegos/cartel" class="poster-frame block w-full max-w-[13rem]" tabindex="-1" aria-hidden="true">
-          {posterTeaser !== null && <img src={posterTeaser} alt="" width="500" height="750" loading="lazy" />}
-        </a>
-        <div class="sm:pt-4">
-          <h2 id="cartel" class="display-2">El cartel <em>del día</em></h2>
-          <p class="lead mt-5 max-w-sm">
-            Un cartel sin título, muy desenfocado. Con cada intento se ve un poco más: seis para acertar.
-          </p>
-          <a href="/juegos/cartel" class="btn-primary mt-8">
-            {poster === null ? 'Ver el juego' : `Jugar al n.º ${String(poster.number)}`}
-            <span class="arrow" aria-hidden="true">→</span>
-          </a>
-        </div>
-      </section>
-
-      <section aria-labelledby="titulo" class="rise [animation-delay:240ms] lg:col-span-5">
-        <div class="title-board" aria-hidden="true">
-          <div class="title-row !justify-start">
-            <span class="title-word">
-              {SAMPLE.map((letter) => <span class="tile" data-state={letter === '' ? undefined : 'revealed'}>{letter}</span>)}
-            </span>
+    {/* Cada juego, una tarjeta entera que se pulsa: en el móvil, el dedo no tiene que apuntar. */}
+    <ul class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <li class="rise [animation-delay:150ms]">
+        <a
+          href="/juegos/cartel"
+          aria-labelledby="cartel"
+          class="group border-umber-line bg-umber-surface hover:border-umber-rule relative isolate grid h-full grid-cols-1 gap-8 overflow-hidden border p-6 transition-colors duration-500 sm:grid-cols-[minmax(0,13rem)_1fr] sm:p-10"
+        >
+          {/* La luz del cartel desenfocado: ya está descargado, y no adelanta nada. */}
+          {posterTeaser !== null && <img src={posterTeaser} alt="" aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 size-full scale-125 object-cover opacity-25 blur-[50px]" />}
+          <div class="poster-frame mx-auto w-full max-w-[13rem] sm:mx-0">
+            {posterTeaser !== null && <img src={posterTeaser} alt="" width="500" height="750" loading="lazy" />}
           </div>
-        </div>
-        <h2 id="titulo" class="display-2 mt-9">El título <em>del día</em></h2>
-        <p class="lead mt-5 max-w-sm">
-          Elige cuatro letras, dos vocales como mucho, y mira dónde salen en el título. Si no lo sacas, te ayudan el año, el director, la
-          sinopsis y, al final, el cartel.
-        </p>
-        <a href="/juegos/titulo" class="btn-primary mt-8">
-          {title === null ? 'Ver el juego' : `Jugar al n.º ${String(title.number)}`}
-          <span class="arrow" aria-hidden="true">→</span>
+          <div class="flex flex-col sm:pt-4">
+            {poster !== null && <p class="eyebrow">N.º {poster.number}</p>}
+            <h2 id="cartel" class="display-2 group-hover:text-umber-accent mt-4 transition-colors">El cartel del día</h2>
+            <p class="lead mt-5 max-w-sm">
+              Un cartel sin título, muy desenfocado. Con cada intento se ve un poco más: seis para acertar.
+            </p>
+            <div class="mt-auto pt-8">
+              <span class="btn-primary">
+                {poster === null ? 'Ver el juego' : `Jugar al n.º ${String(poster.number)}`}
+                <span class="arrow" aria-hidden="true">→</span>
+              </span>
+            </div>
+          </div>
         </a>
-      </section>
-    </div>
+      </li>
+
+      <li class="rise [animation-delay:240ms]">
+        <a
+          href="/juegos/titulo"
+          aria-labelledby="titulo"
+          class="group border-umber-line bg-umber-surface hover:border-umber-rule flex h-full flex-col gap-10 border p-6 transition-colors duration-500 sm:p-10"
+        >
+          <div class="title-board [--tile:2.4rem] sm:[--tile:3.2rem]" aria-hidden="true">
+            <div class="title-row !justify-start">
+              <span class="title-word">
+                {SAMPLE.map((letter) => <span class="tile" data-state={letter === '' ? undefined : 'revealed'}>{letter}</span>)}
+              </span>
+            </div>
+          </div>
+          <div class="flex flex-1 flex-col">
+            {title !== null && <p class="eyebrow">N.º {title.number}</p>}
+            <h2 id="titulo" class="display-2 group-hover:text-umber-accent mt-4 transition-colors">El título del día</h2>
+            <p class="lead mt-5 max-w-md">
+              Elige cuatro letras, dos vocales como mucho, y mira dónde salen en el título. Si no lo sacas, te ayudan el año, el director, la
+              sinopsis y, al final, el cartel.
+            </p>
+            <div class="mt-auto pt-8">
+              <span class="btn-primary">
+                {title === null ? 'Ver el juego' : `Jugar al n.º ${String(title.number)}`}
+                <span class="arrow" aria-hidden="true">→</span>
+              </span>
+            </div>
+          </div>
+        </a>
+      </li>
+    </ul>
   </main>
 </Layout>

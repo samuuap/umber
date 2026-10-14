@@ -29,10 +29,21 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
 <article
   data-content-card
   data-content-id={item?.id}
-  class="border-umber-line bg-umber-surface/70 grid grid-cols-[6.25rem_1fr] gap-5 border p-4 sm:grid-cols-[8rem_1fr] sm:gap-6 sm:p-5"
+  class="border-umber-line bg-umber-surface/80 relative isolate grid grid-cols-[6.5rem_1fr] gap-5 overflow-hidden border p-4 sm:grid-cols-[9rem_1fr] sm:gap-7 sm:p-6"
 >
+  {/* La luz del cartel tiñe la ficha: la misma imagen, ya descargada, muy desenfocada. */}
+  <img
+    data-field="poster-glow"
+    src={posterUrl ?? undefined}
+    alt=""
+    aria-hidden="true"
+    loading="lazy"
+    decoding="async"
+    hidden={posterUrl === null}
+    class="pointer-events-none absolute inset-0 -z-10 size-full scale-125 object-cover opacity-20 blur-[64px] saturate-150"
+  />
   <div
-    class="bg-umber-raised relative aspect-[2/3] self-start overflow-hidden rounded-[3px] ring-1 ring-umber-ink/10"
+    class="bg-umber-raised ring-umber-ink/10 relative aspect-[2/3] self-start overflow-hidden rounded-[4px] shadow-[0_24px_48px_-24px_rgb(0_0_0/0.8)] ring-1"
   >
     <img
       data-field="poster"
@@ -58,7 +69,7 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
     <p data-field="kind" class="eyebrow">
       {description?.kind}
     </p>
-    <h3 class="mt-2 text-[1.55rem] leading-[1.1] sm:text-[1.8rem]">
+    <h3 class="mt-2 text-[1.65rem] leading-[1.05] tracking-[-0.02em] sm:text-[2.15rem]">
       <span data-field="title">{description?.title}</span>{' '}
       <span
         data-field="year"
@@ -78,7 +89,7 @@ const loginHref = `/entrar?next=${encodeURIComponent(returnPath(Astro.url))}`;
     <div data-field="platforms-block" hidden={platforms === null} class="border-umber-line mt-4 border-t pt-3.5">
       <p class="field-label">Dónde verla</p>
       {/* El estilo va en el padre: así vale también para los `<li>` que crea el chat. */}
-      <ul data-field="platforms" hidden={platforms !== null && platforms.length === 0} class="dot-list mt-1.5 text-sm">
+      <ul data-field="platforms" hidden={platforms !== null && platforms.length === 0} class="ticket-list mt-2.5">
         {platforms?.map((name) => <li>{name}</li>)}
       </ul>
       <p data-field="no-platforms" hidden={platforms?.length !== 0} class="text-umber-muted mt-1.5 text-sm">

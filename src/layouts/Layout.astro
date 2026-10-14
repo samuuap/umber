@@ -13,6 +13,13 @@ interface Props {
   image?: string | null;
   /** El chat lo quita: su compositor ocupa el pie de la pantalla. */
   footer?: boolean;
+  /**
+   * La página empieza con un fotograma a sangre (`.under-header`): la cabecera
+   * va transparente encima y se oscurece al bajar.
+   */
+  overlay?: boolean;
+  /** El chat la quiere quieta arriba: en el móvil, con el teclado, cada línea cuenta. */
+  stickyHeader?: boolean;
 }
 
 const {
@@ -20,11 +27,13 @@ const {
   description = 'Cuéntale a Umber cómo estás y qué te gusta, y te recomienda la película o la serie que encaja, con el porqué y dónde verla.',
   image = null,
   footer = true,
+  overlay = false,
+  stickyHeader = true,
 } = Astro.props;
 // Sin los filtros ni el `q` de la URL: la misma página para los buscadores.
 const canonical = new URL(Astro.url.pathname, Astro.url.origin).href;
 const shareImage = image ?? new URL('/og.png', Astro.url.origin).href;
-// Sin cookie, el del sistema (CSS); con ella, el que eligió con el botón de la cabecera.
+// Sin cookie, la sala (oscuro, en el CSS); con ella, el que eligió con el botón de la cabecera.
 const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value);
 ---
 
@@ -34,9 +43,9 @@ const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="color-scheme" content={theme ?? 'light dark'} />
-    <meta name="theme-color" content="#f3eee5" media={theme === 'dark' ? 'not all' : theme === 'light' ? undefined : '(prefers-color-scheme: light)'} />
-    <meta name="theme-color" content="#14110e" media={theme === 'light' ? 'not all' : theme === 'dark' ? undefined : '(prefers-color-scheme: dark)'} />
+    <meta name="color-scheme" content={theme ?? 'dark'} />
+    {/* La barra del navegador, del color de la cabecera: la pantalla, oscura en los dos modos. */}
+    <meta name="theme-color" content="#0b0a09" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -55,20 +64,18 @@ const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value);
     <meta property="og:image" content={shareImage} />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <Font cssVariable="--font-instrument" preload />
-    <Font cssVariable="--font-archivo" preload />
-    <Font cssVariable="--font-archivo-narrow" preload />
+    <Font cssVariable="--font-franklin" preload />
     {/* Sin precarga: solo la descargan las páginas que la usan (el chat, las fichas). */}
     <Font cssVariable="--font-newsreader-text" />
   </head>
   <body class="flex flex-col">
     <a
       href="#contenido"
-      class="bg-umber-accent text-umber-base sr-only z-[70] px-4 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      class="bg-umber-accent-fill text-umber-on-accent sr-only z-[70] px-4 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
     >
       Saltar al contenido
     </a>
-    <SiteHeader />
+    <SiteHeader overlay={overlay} sticky={stickyHeader} />
     <div id="contenido" class="flex flex-1 flex-col">
       <slot />
     </div>

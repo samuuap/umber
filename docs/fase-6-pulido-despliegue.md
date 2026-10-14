@@ -185,6 +185,39 @@ lanzamiento primero.
       burbujas. El texto sigue en la serif de lectura y no en Instrument Serif,
       que en texto largo cansa (regla de la tipografía)
 
+**Diseño: «La sala a oscuras»** (2026-10-14; ver «Estética» en CLAUDE.md)
+- [x] Rediseño hacia un estilo de cine, muy visual pero sin estorbar: oscuro
+      por defecto, fotogramas a sangre en la portada y la ficha bajo una
+      cabecera transparente que se oscurece al bajar, y luz ambiente de los
+      carteles. Hecho con las skills de diseño de MengTo (`build-awwwards-quality-sites`,
+      `animation-systems`, `no-ai-design-slop`)
+- [x] Portada: la pantalla (las franjas del proyector se abren, el titular
+      enfoca palabra a palabra, el cuadro de escribir sobre el fotograma, «En
+      pantalla» con la película), tres actos con números en hueco, la frase de
+      Umber como cartela del cine mudo, «Si te gustó…» con la película de la
+      pantalla, el otoño sobre un fotograma cálido y los dos juegos en tarjetas
+- [x] Cabecera fija (salvo en el chat), con menú a pantalla completa en el
+      móvil; pie como créditos finales; `/explorar` con los filtros fijos en
+      escritorio; ficha con el fotograma a sangre; chat con la luz del cartel en
+      la ficha recomendada; juegos con casillas de marquesina; cuenta con el
+      fotograma también en el móvil
+- [x] Probado en el servidor de desarrollo con capturas de Chromium a 1440 y
+      390 px, oscuro y claro, con y sin `prefers-reduced-motion`: sin scroll
+      horizontal en 15 páginas; `astro check`, build y tests en verde
+- [x] Tipografía nueva (2026-10-14): Libre Franklin para titulares e interfaz,
+      en lugar de Instrument Serif y Archivo, y fuera las cursivas de los
+      titulares y las mayúsculas espaciadas de rótulos y botones. Motivo: el
+      usuario veía la fuente «muy vibe-coded» y quería el aspecto más profesional
+      posible. Se compararon cuatro grotescas sobre la portada real (Libre
+      Franklin, Hanken Grotesk, Schibsted Grotesk y Host Grotesk); Franklin, por
+      sobria, compacta en titulares y por su historia en la prensa y los
+      créditos de cine. `public/og.png`, rehecha con la marca nueva
+- [ ] Probar la CSP sobre el build desplegado (en `astro dev` no se aplica):
+      no hay atributos `style` ni URIs `data:` nuevos, pero conviene verlo en
+      una vista previa de Vercel
+- [ ] Revisar con sesión las páginas que no se pudieron ver sin cuenta
+      (favoritos, conversaciones, cuenta); usan las piezas comunes
+
 **SEO y difusión**
 - [x] Metadatos y vista previa al compartir (2026-10-11): Open Graph, `twitter:card` y
       `canonical` en `Layout.astro`; por defecto `public/og.png` (1200×630, hecha con Edge sin interfaz), y en cada ficha su fotograma de TMDB y «Dónde ver X (año)…» como título y descripción: unas 16.000 páginas
@@ -519,6 +552,7 @@ Descartado:
 | `output: 'server'` con adaptador de Vercel | El chat necesita streaming en servidor. La portada podría prerenderizarse más adelante si interesa |
 | Fuentes autoalojadas | Sin terceros, sin salto de fuente y una petición externa menos |
 | **Rediseño «Programa de mano», claro y oscuro** (2026-10-11) | Decisión de producto: el diseño de antes gustaba, pero se quería «un diseño de verdad, muy profesional». De tres direcciones en maquetas, el usuario eligió B (papel, tinta y rojo) y pidió modo oscuro. El claro va por defecto; el oscuro, si lo pide el sistema o con el botón de la cabecera |
+| **Rediseño «La sala a oscuras», oscuro por defecto** (2026-10-14) | Decisión del usuario: «una vuelta grande» al diseño, con estilo de cine, muy visual y atractivo, pero que respete la experiencia de uso, en móvil y en ordenador. Oscuro por defecto como un cine, sea cual sea el modo del sistema; el claro sigue en el botón de la cabecera. Solo CSS para el movimiento (sin GSAP ni scroll suave por JavaScript): la CSP ya lo admite y no secuestra el scroll del chat |
 | El modo elegido, en una cookie y no en localStorage (2026-10-11) | El servidor lo lee y pinta ya el modo bueno: con localStorage haría falta un script en línea antes de pintar, que la CSP bloquea, o la página parpadearía. Es una cookie técnica, exenta de consentimiento |
 | **Sin gastos fijos**: Vercel Hobby, Supabase Free, subdominio `vercel.app` y un SMTP con plan gratuito. Solo se paga DeepSeek, por uso | Decisión de producto. El plan Hobby de Vercel es para uso no comercial |
 | **Ni servidores ni dominio de pago, tampoco para el correo** (2026-10-04) | Decisión de producto, reafirmada al hablar del correo de la cuenta. El correo, con un servicio gratuito sin dominio (propuesta: Gmail, ver «Correo de la cuenta»). Si un día hace falta pagar algo, se dice y se deja para después |
