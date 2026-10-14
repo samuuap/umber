@@ -12,9 +12,8 @@ corpus de unas 16.000 películas y series conocidas, vectorizadas en Supabase
 pgvector, y DeepSeek pone la voz. El otoño, con el que empezó el proyecto, es
 ahora una especialidad.
 
-La documentación técnica completa (esquema, flujo del chat, convenciones y
-estética) está en [`.claude/CLAUDE.md`](.claude/CLAUDE.md), y el estado del
-trabajo, en [`docs/`](docs/README.md).
+El estado del trabajo y las decisiones tomadas, con su motivo, están en
+[`docs/`](docs/README.md).
 
 ## Stack
 
@@ -71,7 +70,8 @@ búsqueda empeora sin dar ningún error.
 
 El seed del corpus (descarga de TMDB, puntuación, vectores y carga) y el
 calendario de los juegos (`scripts/seed/games.py`) están explicados en
-[`.claude/CLAUDE.md`](.claude/CLAUDE.md#comandos).
+[`docs/fase-3-seed-corpus.md`](docs/fase-3-seed-corpus.md) y
+[`docs/fase-9-juegos.md`](docs/fase-9-juegos.md).
 
 ## Automatización
 

@@ -236,13 +236,14 @@ export async function enforceRateLimit(scope: RateLimitScope, requester: Request
 
 /**
  * Decisión de producto (2026-10-11): el chat exige cuenta y cada cuenta recibe
- * 2 recomendaciones al día. Cuenta cada respuesta de Umber que recomienda algo,
+ * 2 recomendaciones al día; 5 desde el 2026-10-14, para el friends and family
+ * (100 cuentas: unas 1.500 al día, el tope global de mensajes). Cuenta cada respuesta de Umber que recomienda algo,
  * también «otra» de los mismos candidatos. Al llegar, el chat se cierra hasta el
  * día siguiente (UTC, como el resto de contadores), preguntas incluidas. Quedan
  * fuera las cuentas con rol `admin` o `tester` (las de los scripts de
  * evaluación), que tampoco cuentan para los demás límites ni para el global.
  */
-export const RECOMMENDATIONS_PER_DAY = 2;
+export const RECOMMENDATIONS_PER_DAY = 5;
 
 const recommendationsKey = (userId: string): string => `recommend:user:${userId}`;
 

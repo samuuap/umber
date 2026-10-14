@@ -3,8 +3,6 @@
 Índice de fases. Cada archivo lleva lo hecho, lo pendiente, las decisiones
 tomadas con su motivo y las preguntas abiertas de esa fase.
 
-La documentación **técnica** (stack, esquema, convenciones, estética) está en
-[`.claude/CLAUDE.md`](../.claude/CLAUDE.md). Aquí solo vive el estado del trabajo.
 Cómo busca Umber una película a partir de la conversación, para no especialistas: [`como-funciona.md`](como-funciona.md).
 
 | Fase | Contenido | Estado |
@@ -76,5 +74,5 @@ Ordenadas por la fase que las bloquea. El detalle está en cada archivo.
 - Cuando se resuelve una pregunta abierta, no se borra: pasa a la tabla de
   decisiones de su fase con el motivo. El motivo es lo que evita volver a
   discutirlo dentro de tres meses
-- Las decisiones que cambien el esquema o el stack van también a `CLAUDE.md`,
-  que es la fuente de verdad técnica
+- Las decisiones que cambien el esquema o el stack van también a `CLAUDE.md`
+  (local, fuera del repositorio), que es la fuente de verdad técnica

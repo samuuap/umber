@@ -33,9 +33,12 @@ scripts/seed/data/
 # jetbrains setting folder
 .idea/
 
-# claude code (agentes, skills, settings locales)
+# herramientas locales: Claude Code, skills de agentes y el editor
 .claude/
-!.claude/CLAUDE.md
+.agents/
+skills-lock.json
+.vscode/
 
+# vídeos generados con brag
 /brag*
 brag*/

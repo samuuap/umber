@@ -19,6 +19,7 @@ import Layout from '@/layouts/Layout.astro';
 import { errorMessage } from '@/lib/errors';
 import { EXPLORE_PATH } from '@/lib/explore';
 import { gameDay, loadDailyGame, posterImagePath } from '@/lib/games';
+import { RECOMMENDATIONS_PER_DAY } from '@/lib/rate-limit';
 import { pickAutumn, pickKnown, pickRelated, pickStill, type ShowcaseTitle } from '@/lib/showcase';
 import { backdropUrl, posterUrl } from '@/lib/tmdb';
 import { CHAT_MODES, CHAT_MODE_DEFINITIONS, MAX_MESSAGE_CHARS } from '@/lib/types';
@@ -184,7 +185,7 @@ const SAMPLE = ['', 'A', '', 'E', '', 'A', ''] as const;
             ></textarea>
             <div class="border-umber-line flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t px-5 py-3.5 sm:px-6">
               <p class="text-umber-muted text-xs">
-                {signedIn ? 'Tus conversaciones se guardan en tu cuenta.' : 'Con una cuenta gratis: dos recomendaciones al día.'}
+                {signedIn ? 'Tus conversaciones se guardan en tu cuenta.' : `Con una cuenta gratis: ${String(RECOMMENDATIONS_PER_DAY)} recomendaciones al día.`}
               </p>
               <button type="submit" class="btn-primary ml-auto">
                 Pedir recomendación <span class="arrow" aria-hidden="true">→</span>
