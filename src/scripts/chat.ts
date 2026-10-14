@@ -14,6 +14,7 @@ import {
   initFavoriteButtons,
   type FavoriteEventDetail,
 } from '@/scripts/content-card';
+import { pickedPlatforms } from '@/scripts/platform-picker';
 import {
   CONVERSATION_WARNING_TURNS,
   isChatMode,
@@ -84,6 +85,8 @@ const pastMessages: ChatHistoryMessage[] = [];
 const initialMessageCount = Number(root.dataset.messageCount ?? '0');
 const favorites = new Set<string>(JSON.parse(root.dataset.favorites ?? '[]') as string[]);
 let controller: AbortController | null = null;
+/** Dónde buscar en una conversación nueva, o `null`: todas. Una guardada manda las suyas. */
+let platforms: string[] | null = null;
 
 // La ficha de esta página vive en un `<template>`, y el `<script>` de
 // `ContentCard.astro` queda dentro, inerte: los botones se activan desde aquí.
@@ -298,7 +301,13 @@ async function readError(response: Response): Promise<{ code: string | null; mes
 function requestBody(message: string): ChatRequestBody {
   // Con conversación guardada, el servidor lee el historial de Supabase.
   return conversationId === null
-    ? { mode, message, history: pastMessages, ...(specialty === null ? {} : { specialty }) }
+    ? {
+        mode,
+        message,
+        history: pastMessages,
+        ...(specialty === null ? {} : { specialty }),
+        ...(platforms === null ? {} : { platforms }),
+      }
     : { mode, message, conversation_id: conversationId };
 }
 
@@ -500,10 +509,38 @@ if (list.children.length > 0) window.scrollTo({ top: document.documentElement.sc
 updateTurnsLeft();
 updateRecommendations();
 
-// Llega desde la portada con su primer mensaje: se envía ya. Fuera de la URL,
-// para que recargar no lo vuelva a mandar.
-const initialMessage = root.dataset.initialMessage ?? '';
-if (initialMessage.length > 0) {
-  window.history.replaceState(null, '', `/chat?mode=${mode}${specialty === 'autumn' ? '&especialidad=otono' : ''}`);
-  void send(initialMessage);
+/**
+ * Empieza la conversación. Si llega desde la portada con su primer mensaje, se
+ * envía ya, fuera de la URL para que recargar no lo vuelva a mandar.
+ */
+function start(): void {
+  const initialMessage = root.dataset.initialMessage ?? '';
+  if (initialMessage.length > 0) {
+    window.history.replaceState(null, '', `/chat?mode=${mode}${specialty === 'autumn' ? '&especialidad=otono' : ''}`);
+    void send(initialMessage);
+  }
+}
+
+// Una conversación nueva pregunta antes dónde buscar (sin IA): el cuadro sale después.
+const platformsStep = root.querySelector<HTMLFormElement>('[data-platforms-step]');
+if (platformsStep === null) {
+  start();
+} else {
+  platformsStep.addEventListener('submit', (event) => {
+    event.preventDefault();
+    platforms = pickedPlatforms(platformsStep);
+    const summary = root.querySelector<HTMLElement>('[data-platforms-summary]');
+    if (summary !== null) {
+      summary.textContent =
+        platforms === null
+          ? 'En todas las plataformas'
+          : `En ${new Intl.ListFormat('es', { type: 'conjunction' }).format(platforms)}`;
+      summary.hidden = false;
+    }
+    platformsStep.remove();
+    form.hidden = recommendationsLeft === 0;
+    if ((root.dataset.initialMessage ?? '') === '' && emptyState !== null) emptyState.hidden = false;
+    start();
+    if (!form.hidden) input.focus();
+  });
 }

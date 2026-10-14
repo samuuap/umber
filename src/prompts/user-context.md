@@ -9,6 +9,8 @@
                              El del mensaje, detectado en servidor; si no se sabe,
                              el de mensajes anteriores y luego el de la interfaz
     {{region}}               región para plataformas de streaming (p. ej. ES)
+    {{platforms}}            las que eligió al empezar (la búsqueda solo mira
+                             esas) o «todas»
     {{today}}                fecha actual en ISO, para el contexto estacional
     {{user_message}}         último mensaje del usuario, ya validado y citado con «> »
     {{conversation_state}}   en qué punto está: preguntas hechas, última búsqueda,
@@ -36,6 +38,7 @@
 - Especialidad: {{specialty}}
 - Idioma de la respuesta: {{reply_language}}
 - Región de streaming: {{region}}
+- Sus plataformas: {{platforms}}
 - Fecha: {{today}}
 
 ## Lo que acaba de escribir la persona

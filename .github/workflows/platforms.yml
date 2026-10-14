@@ -1,0 +1,37 @@
+name: Plataformas — refresco nocturno
+
+# «Mis plataformas»: el chat filtra la búsqueda por las plataformas de cada
+# título, así que `platforms_cache` tiene que tener todo el corpus y al día.
+# Cada noche pide a TMDB (datos de JustWatch) lo que tiene más de 20 horas:
+# scripts/seed/platforms.py. Unos minutos.
+#
+# Secretos que hacen falta en Settings → Secrets and variables → Actions:
+#   SUPABASE_URL
+#   SUPABASE_SECRET_KEY
+#   TMDB_READ_ACCESS_TOKEN
+
+on:
+  schedule:
+    - cron: '30 3 * * *' # cada día, 03:30 UTC (después de prune_traces)
+  workflow_dispatch: {}
+
+jobs:
+  platforms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Dependencias
+        run: pip install requests python-dotenv
+
+      - name: Refrescar las plataformas
+        run: python scripts/seed/platforms.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}

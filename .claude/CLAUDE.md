@@ -23,14 +23,14 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 ```
 /
 ├── src/
-│   ├── components/          # SiteHeader, SiteFooter, LeafMark, ContentCard, PosterCard, ChatMessage, AuthForm, AuthScene, GameResult
+│   ├── components/          # SiteHeader, SiteFooter, LeafMark, ContentCard, PosterCard, ChatMessage, AuthForm, AuthScene, GameResult, PlatformPicker
 │   ├── layouts/
-│   │   └── Layout.astro     # Layout base: modo (data-theme), tipografías, metadatos, cabecera y pie
+│   │   └── Layout.astro     # Layout base: modo (data-theme), tipografías, metadatos, cabecera (fija o sobre el fotograma) y pie
 │   ├── middleware.ts        # Sesión de Supabase (cookies) en Astro.locals, en cada petición
 │   ├── env.d.ts             # Tipos de Astro.locals
 │   ├── pages/
-│   │   ├── index.astro      # Portada: el cuadro para empezar (GET a /chat?mode=…&q=…) y sugerencias numeradas, cómo funciona en tres actos, «Si te gustó…», otoño y juegos
-│   │   ├── chat.astro       # Chat: ?mode=movie para empezar (&q= lo envía al abrir), ?conversation=<id> para retomar; sin consentimiento, a /antes-de-hablar
+│   │   ├── index.astro      # Portada: el fotograma a sangre con el cuadro para empezar (GET a /chat?mode=…&q=…) y sugerencias, cómo funciona en tres actos, la cartela de Umber, «Si te gustó…», otoño y juegos
+│   │   ├── chat.astro       # Chat: ?mode=movie para empezar (primero, las plataformas; &q= lo envía después), ?conversation=<id> para retomar; sin consentimiento, a /antes-de-hablar
 │   │   ├── antes-de-hablar.astro # Consentimiento para tratar los mensajes en China (DeepSeek, art. 49.1.a RGPD): cookie umber_consentimiento_ia
 │   │   ├── sobre-umber.astro    # Por qué Umber: el nombre, qué es y quién lo hace
 │   │   ├── aviso-legal.astro, privacidad.astro, cookies.astro, condiciones.astro  # Textos legales (LegalPage, src/lib/legal.ts)
@@ -42,7 +42,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── favoritos.astro  # Favoritos, con plataformas pedidas a TMDB en servidor
 │   │   ├── conversaciones.astro  # Conversaciones guardadas; POST para borrar una
 │   │   ├── cuenta/
-│   │   │   ├── index.astro      # Cambiar nombre de usuario, email y contraseña
+│   │   │   ├── index.astro      # Cambiar nombre de usuario, email y contraseña; «Mis plataformas»
 │   │   │   ├── nombre.astro     # Elegir nombre de usuario (tras entrar con Google, que no lo manda)
 │   │   │   ├── contrasena.astro # Fijar la contraseña nueva, tras el enlace de /recuperar
 │   │   │   └── borrar.astro     # Borrar la cuenta (RGPD): confirmar el email, Admin API, cierra sesión
@@ -78,7 +78,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── llm-pricing.ts   # Precio de DeepSeek por token, con hora punta
 │   │   ├── supabase.ts      # Clientes Supabase (anon / cookies / usuario / service)
 │   │   ├── tmdb.ts          # Funciones TMDB
-│   │   ├── platforms.ts     # Plataformas de TMDB con caché en Supabase (platforms_cache)
+│   │   ├── platforms.ts     # Plataformas de TMDB con caché en Supabase (platforms_cache) y su recuento
 │   │   ├── rate-limit.ts    # Límites de /api/chat, /api/search, /entrar y /registro, por usuario o IP
 │   │   ├── recommendations.ts # Fichas por id, para las conversaciones retomadas
 │   │   ├── explore.ts       # Filtros de /explorar en la URL, listado, géneros y ficha
@@ -106,6 +106,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── transitions.ts   # El cartel pulsado viaja a la ficha (View Transitions)
 │   │   ├── theme.ts         # El botón de la cabecera: modo claro u oscuro
 │   │   ├── auth-form.ts     # Mostrar la contraseña y avisar si las dos no coinciden
+│   │   ├── platform-picker.ts # «Todas» en el selector de plataformas (chat y /cuenta)
 │   │   ├── conversations.ts # Confirmar antes de borrar una conversación
 │   │   ├── games.ts         # Juegos: partida y racha en localStorage, compartir, final, hojas al acertar
 │   │   ├── game-title.ts    # El título del día: letras, teclado, pistas
@@ -115,7 +116,7 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │   │   ├── specialty-autumn.md  # Capa de la especialidad de otoño
 │   │   └── user-context.md  # Plantilla del user prompt con {{variables}}
 │   └── styles/
-│       └── global.css       # Tailwind + «Programa de mano», claro y oscuro
+│       └── global.css       # Tailwind + «La sala a oscuras», oscuro y claro
 ├── scripts/
 │   ├── verify-schema.mjs    # Comprueba esquema y RLS vía Data API
 │   ├── check-guardrails.mjs # Casos delicados contra el chat: fuera de tema, crisis, piratería…
@@ -131,7 +132,8 @@ Experto en cine con IA (antes, planificador otoñal: el otoño es ahora una espe
 │       ├── load-db.py       # Upsert del corpus en Supabase pgvector y sus parecidos
 │       ├── search.py        # Búsquedas de control contra el corpus cargado
 │       ├── check-embeddings.py  # ¿Da un servicio los mismos vectores que el corpus?
-│       └── games.py         # Calendario de los juegos del día (daily_games), por adelantado
+│       ├── games.py         # Calendario de los juegos del día (daily_games), por adelantado
+│       └── platforms.py     # Plataformas de todo el corpus en platforms_cache (cada noche, workflow)
 ├── supabase/
 │   ├── config.toml          # Configuración del CLI
 │   └── migrations/          # Esquema versionado, en orden de aplicación
@@ -222,6 +224,7 @@ python scripts/seed/eval-similar.py                # «Más como esta», puntuad
 python scripts/seed/eval-autumn.py                 # «Más otoñales» contra una lista de referencia (--pilot: el prompt nuevo, céntimos)
 python scripts/seed/check-embeddings.py            # ¿da el servicio de .env.local los vectores del corpus?
 python scripts/seed/games.py                       # juegos del día: hasta tener los próximos 365 (--dry-run, --min-votes)
+python scripts/seed/platforms.py                   # plataformas de todo el corpus (lo de más de 20 h); cada noche en GitHub Actions
 ```
 
 Todos los pasos cachean en `scripts/seed/data/` (ignorado en git): se reanudan
@@ -359,6 +362,7 @@ CREATE TABLE conversations (
   user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   mode        TEXT NOT NULL CHECK (mode IN ('movie', 'tv', 'weekend', 'month')),
   specialty   TEXT CHECK (specialty IN ('autumn')),  -- null: Umber general (Fase 8)
+  platforms   TEXT[],                -- las elegidas al empezar (1–40); null: todas
   messages    JSONB NOT NULL DEFAULT '[]',  -- { role, content, created_at } y, en los de
                                            -- Umber, recommendation_ids y language
   created_at  TIMESTAMPTZ DEFAULT NOW(),
@@ -383,7 +387,8 @@ CREATE OR REPLACE FUNCTION search_content(
   genres_any TEXT[], genres_none TEXT[], year_from INT, year_to INT,
   max_runtime INT, languages TEXT[], min_votes INT, max_votes INT,
   person TEXT,          -- dirección o reparto, sin tildes ni mayúsculas
-  min_autumn FLOAT      -- la especialidad de otoño
+  min_autumn FLOAT,     -- la especialidad de otoño
+  platforms TEXT[], platforms_region TEXT DEFAULT 'ES'  -- «Mis plataformas»
 )
 RETURNS TABLE (
   id UUID, tmdb_id INTEGER, type TEXT, title TEXT, title_en TEXT,
@@ -435,6 +440,10 @@ no se ve en la firma:
 - **Tras una migración que reescriba las filas de `content`** (un `update` de
   toda la tabla, como la de `people_search`), `vacuum full public.content` y
   reconstruir el índice HNSW: sin ello, las búsquedas pasaron de 0,1 a 2 s
+- **El filtro por plataforma** lee `platforms_cache` en una sentencia aparte,
+  solo cuando se pide (`v_ids`): esa tabla es del servidor, y nombrarla en las
+  consultas haría fallar por permisos a `anon` aunque no filtrara. Cuenta como
+  los demás filtros para elegir búsqueda exacta o por índice
 - **El filtro por persona va sobre `content.people_search`** (dirección y
   reparto ya plegados, con un trigger). Plegar en cada búsqueda eran 112.000
   llamadas a `fold_search_text`, que no se incrusta por llevar `search_path`:
@@ -549,6 +558,9 @@ CREATE TABLE rate_limits (
   PRIMARY KEY (key, window_seconds, window_start)
 );
 
+-- Títulos por plataforma en una región, de más a menos: el selector. Solo service_role
+platform_counts(p_region TEXT, p_type TEXT DEFAULT NULL) RETURNS TABLE (platform TEXT, titles BIGINT)
+
 -- 0 si la petición cabe; si no, segundos hasta poder repetir
 hit_rate_limit(p_key TEXT, p_window_seconds INT[], p_limits INT[]) RETURNS INTEGER
 ```
@@ -559,7 +571,11 @@ hit_rate_limit(p_key TEXT, p_window_seconds INT[], p_limits INT[]) RETURNS INTEG
   a la publishable key dejaría gastar el cupo de otra IP
 - `by_region` lleva **todas las regiones**, ya normalizadas por
   `getStreamingNamesByRegion()`: TMDB las manda juntas. Una región que no aparece no
-  tiene plataformas de suscripción ni gratis. La caducidad (3 días) la aplica
+  tiene plataformas de suscripción ni gratis.
+- **Tiene todo el corpus** (2026-10-13): `scripts/seed/platforms.py` lo pide cada
+  noche (`.github/workflows/platforms.yml`), porque el chat filtra por ella al
+  buscar. Su normalización de nombres **tiene que coincidir** con
+  `streamingNames()` de `src/lib/tmdb.ts`, que también escribe aquí La caducidad (3 días) la aplica
   `src/lib/platforms.ts`; una fila caducada no se borra, porque sirve de
   respaldo si TMDB no responde
 - `hit_rate_limit` cuenta en ventanas fijas alineadas con la época (el día es de
@@ -618,6 +634,15 @@ en `done.options` y la guarda con el mensaje (`options`); el chat las pinta como
 botones encima del cuadro y pulsar una la envía. Al recomendar no se ofrecen. En
 el historial que ve el modelo, cada pregunta lleva otra vez su línea: sin ella,
 al tercer turno dejaba de ponerla.
+
+**Plataformas** (2026-10-13): una conversación nueva empieza, sin IA, con «¿Dónde
+la vas a ver?»: las plataformas de la región de más a menos títulos
+(`platform_counts`), «Todas» delante y las de «Mis plataformas»
+(`user_metadata.platforms`, en `/cuenta`) ya marcadas; se pueden cambiar para esa
+conversación. Van en `platforms` de la petición y se guardan con ella. La
+búsqueda por ánimo solo mira esas; si deja menos de 3, primero quita los demás
+filtros y, si ni así, busca en todas y Umber dice dónde está la que recomienda.
+`buscar_por_titulo` no filtra.
 
 **Especialidad** (`?especialidad=otono` en `/chat`, `specialty` en la API, y en
 la conversación guardada): solo títulos de otoño (`autumn_score` ≥ 0,32 en
@@ -696,8 +721,9 @@ Contrato de `POST /api/chat`, tipado en `src/lib/types.ts`:
 - **Cuerpo** (`ChatRequestBody`): `mode`, `message` (≤ 1.000 caracteres) y,
   opcionales, `history` (mensajes `user`/`assistant`, solo sin conversación
   guardada; el navegador manda la conversación entera), `conversation_id`,
-  `locale`, `region` y `specialty` (`autumn`; con `conversation_id` manda la
-  guardada). Los mensajes de Umber del historial llevan lo que
+  `locale`, `region`, `specialty` (`autumn`) y `platforms` (nombres de
+  `platform_counts`, 40 como mucho; sin ellas, todas). Con `conversation_id`
+  mandan la especialidad y las plataformas guardadas. Los mensajes de Umber del historial llevan lo que
   devolvió `done`: `search` y `recommendation_ids`. Sin eso, el servidor no sabe
   qué candidatos le quedan
 - **Tope por conversación**: 40 mensajes contando los de Umber
@@ -911,92 +937,139 @@ Los modos `weekend` y `month` están diseñados. No eliminar sus tipos ni consta
 
 ## Estética
 
-«Programa de mano» (rediseño del 2026-10-11, antes «Noche de otoño»): como el
-programa de una filmoteca o de un festival. Papel, tinta y **un solo acento**,
-el rojo; titulares grandes en serif, rótulos en mayúsculas estrechas y filetes
-en vez de cajas y sombras. Mucho espacio y composiciones asimétricas. Nada de
-degradados de color ni de elementos infantiles. Maquetas en el lienzo
-https://claude.ai/artifact/8tE1CS26eWqNEwdTaijD2m (dirección B). Tokens
-`umber-*` en `src/styles/global.css`.
+«La sala a oscuras» (rediseño del 2026-10-14, antes «Programa de mano»): Umber
+como un cine. Oscuro por defecto, la imagen manda (fotogramas a sangre bajo una
+cabecera transparente, carteles con su propia luz) y **un solo acento**, el
+rojo de butaca. Una sola familia para titulares e interfaz, Libre Franklin, con
+la jerarquía en el peso y el tamaño, y la serif de lectura para lo que se dice;
+filetes en vez de cajas. Del programa de mano quedan la serif de lectura, el
+rojo medido y el papel, ahora como modo claro.
+Tokens `umber-*` en `src/styles/global.css`.
 
-**Dos modos con los mismos tokens**: claro (papel) por defecto, y oscuro si el
-sistema lo pide (`prefers-color-scheme`) o la persona lo elige con el botón de
-la cabecera. La elección va en la cookie `umber_tema` (un año), que
+**Dos modos con los mismos tokens**: oscuro («la sala») por defecto, sea cual
+sea el del sistema, y claro («matiné», el papel) si la persona lo elige con el
+botón de la cabecera. La elección va en la cookie `umber_tema` (un año), que
 `Layout.astro` lee para poner `data-theme` en `<html>`: el servidor pinta ya el
 modo bueno, sin script en línea (la CSP lo bloquearía) ni parpadeo
-(`src/lib/theme.ts`, `src/scripts/theme.ts`). Un color nuevo va en los dos
-bloques de `global.css` (el de `@theme` y el oscuro, que está dos veces: con
-`prefers-color-scheme` y con `data-theme='dark'`).
+(`src/lib/theme.ts`, `src/scripts/theme.ts`). **La pantalla (`.screen`) es oscura
+en los dos modos**: la cabecera, el pie, el fotograma de la portada, la cartela
+de Umber y el apartado de otoño, como las franjas negras de un cine. Un color
+nuevo va en los tres bloques de `global.css`: el de `@theme` (oscuro), el de
+`.screen` (oscuro) y el de `[data-theme='light']`.
 
 ```
-                   Claro     Oscuro
-Fondo base:        #F3EEE5   #14110E   (papel / noche)            umber-base
-Superficie:        #EBE4D8   #1D1915   (el buscador, campos)      umber-surface
-Superficie +1:     #E2D9CA   #26211B   (tus mensajes, teclas)     umber-raised
-Filetes:           #CFC6B8   #39322A   (separan; decorativos)     umber-line
-Borde de control:  #8A8073   #7D7265   3:1 o más                  umber-rule
-Texto principal:   #16130F   #EDE6DA   (tinta / papel)  14:1+     umber-ink
-Texto secundario:  #5E564C   #A39A8D   6,5:1+                     umber-muted
-Acento:            #B8321C   #E8664C   (bermellón)      5:1+      umber-accent (+ -hover)
-Errores:           #9F1D1D   #F2998A   siempre con texto          umber-danger
-Bien:              #2F6B3A   #8CC79A   siempre con texto          umber-success
+                   Oscuro    Claro
+Fondo base:        #0B0A09   #F3EEE5   (sala / papel)               umber-base
+Superficie:        #151311   #EBE4D8   (campos, fichas)             umber-surface
+Superficie +1:     #201C19   #E2D9CA   (teclas)                     umber-raised
+Filetes:           #2E2925   #CFC6B8   (separan; decorativos)       umber-line
+Borde de control:  #7A7064   #8A8073   3:1 o más                    umber-rule
+Texto principal:   #F3EDE3   #16130F   14:1+                        umber-ink
+Texto secundario:  #A99F92   #5E564C   5:1+ (también sobre raised)  umber-muted
+Acento (texto):    #F26B50   #B8321C   5:1+                         umber-accent (+ -hover)
+Acento (relleno):  #C63A22   #B8321C   texto encima 4,9:1+          umber-accent-fill (+ -hover), umber-on-accent
+Errores:           #F49A8A   #9F1D1D   siempre con texto            umber-danger
+Bien:              #8CC79A   #2F6B3A   siempre con texto            umber-success
+Franjas:           #050404   (igual en los dos)                     umber-screen
 
-Titulares:         Instrument Serif 400 y cursiva                   font-display
-Lo que se lee:     Newsreader de lectura (opsz 16), 400 y 600       font-serif
-Interfaz:          Archivo 400–700                                  font-sans
-Rótulos, botones:  Archivo estrecha (wdth 75), 600–700, mayúsculas  font-label
+Titulares:         Libre Franklin 600, tracking negativo            font-display
+Interfaz:          Libre Franklin 400–500                           font-sans
+Rótulos, botones:  Libre Franklin 500–600, sin mayúsculas           font-label
+Lo que se lee:     Newsreader de lectura (opsz 16), 400 y 600,      font-serif
+                   con su cursiva
 ```
 
-- **El rojo, medido**: la acción principal, lo elegido (la línea de una
-  pestaña), el rótulo de un titular (`eyebrow-rule`) y los títulos que
-  recomienda Umber. Lo demás, en tinta o gris. Sobre el rojo, el texto va en
-  `umber-base` (papel en claro, noche en oscuro): pasa AA en los dos
-- **La regla de la tipografía**: lo que se dice va en serif (Umber, lo que
-  escribes, las sinopsis); los titulares, en Instrument Serif, que es de
-  titular y en texto largo cansa; la interfaz, en sans, y sus rótulos y botones
-  en mayúsculas estrechas. La cursiva marca una palabra por titular, no más
-  («¿Qué te apetece ver *hoy*?»)
+- **El rojo, medido**: la acción principal (`btn-primary`, rellena con
+  `umber-accent-fill` y texto `umber-on-accent`; al pasar por encima, se
+  enciende con una sombra roja), lo elegido (la línea de una pestaña), el
+  rótulo de un titular (`eyebrow-rule`) y los títulos que recomienda Umber. Lo
+  demás, en tinta o gris. Hay dos rojos porque uno solo no puede ser a la vez
+  texto legible sobre negro y fondo de un texto blanco
+- **La regla de la tipografía** (2026-10-14): lo que se dice va en serif
+  (Umber, lo que escribes, las sinopsis, la cartela de la portada); todo lo
+  demás, en Libre Franklin, la versión libre de la Franklin Gothic de la prensa y
+  de los créditos de cine. Una sola familia variable (400–800), con la jerarquía
+  en el peso y el tamaño: titulares en 600 con tracking negativo
+  (`display-1/2/3`), interfaz en 400–500, botones y rótulos en 500–600
+- **Lo que no**: cursivas en los titulares (la palabra en cursiva de cada
+  titular, con Instrument Serif, era lo que más hacía parecer la web «vibe-coded»),
+  rótulos y botones en mayúsculas espaciadas, y números decorativos. Las
+  mayúsculas quedan para las letras de los juegos y las tablas del panel de
+  admin. Una cursiva en la prosa va en la de Newsreader, que se carga (no se
+  inclina la redonda)
+- **La pantalla** (portada y ficha): el fotograma a sangre se mete bajo la
+  cabecera (`overlay` en `Layout`, `.under-header` en la sección), con viñeta
+  (`.vignette`), un degradado negro arriba para que la cabecera se lea y otro
+  hacia `umber-base` abajo, por donde sigue la página. La cabecera va
+  transparente encima y se oscurece al bajar con el propio scroll
+  (`.header-overlay`, `animation-timeline: scroll()`; sin soporte, oscura desde
+  el principio). Es fija arriba en todas las páginas salvo en el chat
+  (`stickyHeader={false}`), donde en el móvil cada línea cuenta
+- **Cristal, solo uno**: el cuadro de escribir de la portada
+  (`composer-glass`), porque es lo único que va encima de una foto y se lee
+- **Luz ambiente** (`.ambient`): una copia pequeña del cartel (`w92`), muy
+  desenfocada, detrás de él; así cada cartel tiñe la sala de su color. En la
+  portada, la ficha, la ficha del chat (`data-field="poster-glow"`), los juegos
+  y la cabecera de `/explorar`. Sin modos de fusión ni animarla
 - Contraste contra el fondo base, en los dos modos; todos pasan AA. Los campos
   van sobre `umber-surface` con la línea de abajo en `umber-rule` (lo que
-  identifica un control pide 3:1): el fondo dice que ahí se escribe (2026-10-12)
-- Esquinas rectas: botones, chips y el cuadro de escribir sin radio. El cuadro
-  de escribir (`composer`) lleva un filete grueso de tinta arriba, borde de
-  control alrededor y el fondo de los campos; con el foco, todo en rojo
+  identifica un control pide 3:1)
+- Esquinas rectas en botones, chips y el cuadro de escribir; los carteles, con
+  radio de 4 px y un filete `ring-1 ring-umber-ink/10`
 - Piezas comunes en `global.css`: usarlas antes que repetir clases.
   Titulares `display-1/2/3`; `eyebrow` (y `eyebrow-rule`, en rojo), `lead`,
   `reading`; `btn-primary`, `btn-secondary` y `.arrow` (la flecha que se
-  adelanta); `link`, `link-quiet`; `field`, `field-label`, `select-wrap`;
-  `chip`; `tabs`/`tab` (pestañas con línea, en enlaces o en radios, y la
-  navegación); `composer` (el cuadro donde se escribe a Umber); `graded` (el
-  etalonado de los fotogramas); `dot-list`; `legal-text`
-- Imágenes: carteles con radio de 3 px, no de tarjeta. Los fotogramas de
-  ambiente (portada, cuenta, fondo de la ficha) llevan `graded`, para que
-  fotogramas muy distintos parezcan de la misma película. Salen de
-  `src/lib/showcase.ts`, elegidas por criterio y no por id: en general, películas
-  muy conocidas y bien valoradas (5.000 votos o más, nota de 7,4), y en la portada
-  una de ellas con sus parecidos («Si te gustó…»); en el apartado de otoño, dramas
-  y romances otoñales, sin terror, comedia ni infantil
+  adelanta; `.arrow-host` para un enlace cualquiera); `link`, `link-quiet`;
+  `field`, `field-label`, `select-wrap`; `chip`; `tabs`/`tab`; `composer` (y
+  `composer-glass`); `graded` (el etalonado de los fotogramas); `dot-list`;
+  `ticket-list` (las plataformas, como entradas); `rail` (una fila de carteles
+  que se desliza en el móvil); `intertitle` (la cartela del cine mudo);
+  `poster-frame`; `legal-text`
+- **Una rejilla sin columnas en el móvil lleva `grid-cols-1`**: sin ella, una
+  fila con `whitespace-nowrap` (un `rail`, unas casillas) ensancha la columna y
+  la página se sale de los 390 px
+- Imágenes: los fotogramas de ambiente (portada, ficha, cuenta) llevan
+  `graded`, para que fotogramas muy distintos parezcan de la misma película.
+  Salen de `src/lib/showcase.ts`, elegidas por criterio y no por id: en
+  general, películas muy conocidas y bien valoradas (5.000 votos o más, nota de
+  7,4), y en la portada una de ellas («En pantalla») con sus parecidos («Si te
+  gustó…»); en el apartado de otoño, dramas y romances otoñales, con el
+  fotograma de uno de ellos de fondo, más cálido
 - **Umber es general; el otoño, un apartado** (Fase 8): nada de otoño en los
   textos generales (portada, pie, título y descripción por defecto). La
   especialidad tiene su sección en la portada, con la etiqueta «Nuevo», y lleva a
   `/chat?…&especialidad=otono` y a `/explorar?sort=autumn`
-- Grano encima de todo (`/grain.svg`, al 4 %), con mezcla normal:
-  un modo de fusión en una capa fija hace que el scroll recomponga la página
-- **Movimiento**, siempre lento y apagado con `prefers-reduced-motion`:
-  `rise` al cargar (escalonado con `[animation-delay:…]`), `develop` (un
-  fotograma que se revela), `reveal` al entrar en pantalla con
-  `animation-timeline: view()` (sin soporte, ya está ahí) y `message-in` en el
-  chat. Entre páginas, `@view-transition` funde una con otra sin JavaScript, y el
-  cartel pulsado en una rejilla viaja hasta la ficha (`src/scripts/transitions.ts`,
-  con `data-poster-link`, `data-poster` y `data-poster-target`)
-- Fuentes: solo `latin` (cubre el español). Cortes fijos de los ejes variables,
-  no el eje entero: Newsreader en opsz 16 y Archivo estrecha en wdth 75 (un
-  rótulo ocupa un 21 % menos). La de lectura no se precarga: solo la bajan las
-  páginas que la usan. Un peso o una cursiva nuevos hay que añadirlos en
-  `fonts` de `astro.config.mjs`
-- La marca: en la cabecera, «Umber» en Instrument Serif con un punto rojo; la
-  hoja (`LeafMark`) queda como avatar de Umber en el chat, en el pie y en el
-  favicon
+- **Los juegos son una marquesina**: las casillas del título, letras
+  mayúsculas en su hueco; destapada, encendida (fondo claro, letra oscura); escrita por ti,
+  con borde de tinta; acertada, rellena de rojo. Cada estado se distingue por la
+  luz y la forma, no solo por el color
+- Grano de película encima de todo (`/grain.svg`, al 5,5 % en oscuro y al 4 % en
+  claro), quieto y con mezcla normal: un modo de fusión en una capa fija hace
+  que el scroll recomponga la página
+- **Movimiento**, como una proyección, siempre lento, una sola vez y apagado con
+  `prefers-reduced-motion` (queda el estado final). En la portada: las franjas
+  del proyector se abren (`.shutter`), el fotograma se revela (`develop`) y se
+  acerca muy despacio (`ken-burns`), y el titular enfoca palabra a palabra
+  (`.focus-words`: cada palabra en un `<span>` dentro de un contenedor
+  `aria-hidden`, con el titular entero aparte en `sr-only`). Después, `rise` al
+  cargar (escalonado con `[animation-delay:…]`), `reveal` al entrar en
+  pantalla con `animation-timeline: view()` (sin soporte, ya está ahí) y
+  `message-in` en el chat. El cuadro de escribir está a la vista antes de 1 s.
+  Entre páginas, `@view-transition` funde una con otra sin JavaScript, y el
+  cartel pulsado en una rejilla viaja hasta la ficha (`src/scripts/transitions.ts`)
+- **Sin GSAP ni scroll suave por JavaScript**, a propósito: todo lo anterior es
+  CSS, que la CSP ya admite, no pesa y no secuestra el scroll del chat ni el de
+  los lectores de pantalla
+- Fuentes: solo `latin` (cubre el español). Libre Franklin, un archivo variable
+  de 400 a 800, precargado; Newsreader, en su corte fijo opsz 16, sin precargar:
+  solo la bajan las páginas que la usan, y su cursiva, solo si hay cursiva. Un
+  peso o una cursiva nuevos hay que añadirlos en `fonts` de `astro.config.mjs`
+- La marca: «Umber» en Libre Franklin 700 con el punto en rojo (el de Franklin
+  es cuadrado), en la cabecera y en el pie, al mismo tamaño;
+  `public/og.png` (la vista previa al compartir) es la misma marca sobre la sala; la hoja (`LeafMark`) queda como
+  avatar de Umber en el chat, en la cartela de la portada y en el favicon
+- **El pie**: la marca, los enlaces en dos columnas y, abajo, en una línea, la
+  atribución a TMDB y JustWatch (obligatoria) y los textos legales
 
 ---
 

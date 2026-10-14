@@ -14,6 +14,7 @@ import type { Json } from '@/lib/database.types';
 import { SupabaseError, errorMessage } from '@/lib/errors';
 import { getSupabaseAdminClient, unwrap } from '@/lib/supabase';
 import { fetchPlatformsByRegion, type PlatformLookup, type PlatformsByRegion } from '@/lib/tmdb';
+import type { ContentType } from '@/lib/types';
 
 /**
  * Tres días. Las plataformas cambian cada pocas semanas, casi siempre a fin de
@@ -154,4 +155,51 @@ export async function lookupPlatforms(
     }),
     saved: writeCache(fetched),
   };
+}
+
+// ─── «Mis plataformas» ───────────────────────────────────────────────────────
+
+/** Como el `CHECK` de `conversations.platforms` y el tope de `search_content`. */
+export const MAX_PLATFORMS = 40;
+const MAX_PLATFORM_NAME_CHARS = 60;
+
+/**
+ * Una lista de plataformas que llega de fuera (la petición, los metadatos de la
+ * cuenta), o `null` si no es una lista: entonces, todas. Sin duplicados ni
+ * nombres vacíos; una lista vacía también es `null`.
+ */
+export function parsePlatformNames(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const names = [
+    ...new Set(
+      value.flatMap((name: unknown) =>
+        typeof name === 'string' && name.trim().length > 0 ? [name.trim().slice(0, MAX_PLATFORM_NAME_CHARS)] : [],
+      ),
+    ),
+  ].slice(0, MAX_PLATFORMS);
+  return names.length > 0 ? names : null;
+}
+
+export interface PlatformCount {
+  readonly name: string;
+  readonly titles: number;
+}
+
+/**
+ * Las plataformas de una región, de la que más títulos tiene a la que menos:
+ * el orden del selector. Con `type`, solo películas o solo series. Si Supabase
+ * falla, ninguna: el chat sigue, sin filtrar por plataforma.
+ */
+export async function platformCounts(region: string, type: ContentType | null): Promise<PlatformCount[]> {
+  try {
+    const rows = unwrap(
+      await getSupabaseAdminClient()
+        .rpc('platform_counts', { p_region: region, ...(type === null ? {} : { p_type: type }) })
+        .abortSignal(AbortSignal.timeout(CACHE_WRITE_TIMEOUT_MS)),
+    );
+    return rows.map((row) => ({ name: row.platform, titles: row.titles }));
+  } catch (error: unknown) {
+    console.warn('[platforms] Sin el recuento de plataformas:', errorMessage(error));
+    return [];
+  }
 }

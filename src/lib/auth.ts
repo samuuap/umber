@@ -9,6 +9,7 @@
 import { isRecord } from '@/lib/api';
 import { AuthError, errorMessage } from '@/lib/errors';
 import { readAiConsent, type AiConsentRecord } from '@/lib/legal';
+import { parsePlatformNames } from '@/lib/platforms';
 import {
   createSupabaseUserClient,
   getSupabaseClient,
@@ -30,6 +31,8 @@ export interface SessionUser {
   readonly isTester: boolean;
   /** El consentimiento para el chat guardado en la cuenta (`src/lib/legal.ts`), o `null`. */
   readonly aiConsent: AiConsentRecord | null;
+  /** «Mis plataformas» (`user_metadata.platforms`): las que el chat propone marcadas. `null`, ninguna guardada. */
+  readonly platforms: string[] | null;
 }
 
 export const MIN_PASSWORD_CHARS = 8;
@@ -105,6 +108,7 @@ export async function getSessionUser(supabase: UmberSupabaseClient): Promise<Ses
       isAdmin: roleOf(appMetadata) === 'admin',
       isTester: roleOf(appMetadata) === 'tester',
       aiConsent: readAiConsent(claims.user_metadata),
+      platforms: parsePlatformNames(claims.user_metadata?.['platforms']),
     };
   } catch (error: unknown) {
     // Una cookie corrupta o un refresh token revocado no tumban la página: se

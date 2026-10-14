@@ -1,0 +1,26 @@
+---
+/** Una plataforma de `PlatformPicker`: la casilla, oculta, y el chip con su número de títulos. */
+import type { PlatformCount } from '@/lib/platforms';
+
+interface Props {
+  platform: PlatformCount;
+  checked: boolean;
+  /** Qué cuenta el número: «películas», «series» o «títulos». */
+  unit: string;
+}
+
+const { platform, checked, unit } = Astro.props;
+---
+
+<li>
+  <label>
+    <input type="checkbox" name="platform" value={platform.name} class="sr-only" checked={checked} />
+    <span class="chip gap-2">
+      {platform.name}
+      <span class="text-xs tabular-nums">
+        {new Intl.NumberFormat('es-ES').format(platform.titles)}
+        <span class="sr-only">{unit}</span>
+      </span>
+    </span>
+  </label>
+</li>

@@ -5,6 +5,7 @@ tomadas con su motivo y las preguntas abiertas de esa fase.
 
 La documentación **técnica** (stack, esquema, convenciones, estética) está en
 [`.claude/CLAUDE.md`](../.claude/CLAUDE.md). Aquí solo vive el estado del trabajo.
+Cómo busca Umber una película a partir de la conversación, para no especialistas: [`como-funciona.md`](como-funciona.md).
 
 | Fase | Contenido | Estado |
 |---|---|---|

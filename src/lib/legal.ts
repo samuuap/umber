@@ -57,7 +57,7 @@ export function hasAiConsent(cookie: string | undefined, record: AiConsentRecord
 }
 
 /** La fecha de la versión en vigor de los textos. */
-export const LEGAL_UPDATED = '12 de octubre de 2026';
+export const LEGAL_UPDATED = '14 de octubre de 2026';
 
 export const LEGAL_PAGES = [
   { href: '/aviso-legal', label: 'Aviso legal' },

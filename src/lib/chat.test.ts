@@ -17,7 +17,16 @@ describe('parseChatRequest', () => {
       locale: 'en',
       region: 'US',
       specialty: null,
+      platforms: null,
     });
+  });
+
+  test('las plataformas: sin duplicados ni vacías; una lista vacía son todas', () => {
+    expect(parseChatRequest({ ...valid, platforms: ['Netflix', ' Filmin ', 'Netflix', '', 3] }, null).platforms).toEqual([
+      'Netflix',
+      'Filmin',
+    ]);
+    expect(parseChatRequest({ ...valid, platforms: [] }, null).platforms).toBeNull();
   });
 
   test.each([
@@ -29,6 +38,8 @@ describe('parseChatRequest', () => {
     ['conversación que no es un uuid', { ...valid, conversation_id: '1 or 1=1' }],
     ['región mal escrita', { ...valid, region: 'españa' }],
     ['especialidad desconocida', { ...valid, specialty: 'winter' }],
+    ['plataformas que no son una lista', { ...valid, platforms: 'Netflix' }],
+    ['demasiadas plataformas', { ...valid, platforms: Array.from({ length: 41 }, (_, i) => `P${String(i)}`) }],
   ])('rechaza: %s', (_, body) => {
     expect(() => parseChatRequest(body, null)).toThrow(ValidationError);
   });

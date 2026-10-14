@@ -121,6 +121,8 @@ interface PreparedChat {
   readonly language: Locale;
   /** La de la conversación guardada o, si es nueva, la que pidió. */
   readonly specialty: Specialty | null;
+  /** Las de la conversación (`null`, todas): se guardan al crearla. */
+  readonly platforms: readonly string[] | null;
   /** La respuesta de Umber según llega. La primera llamada a DeepSeek ya está abierta. */
   readonly parts: AsyncIterable<ReplyPart>;
   readonly outcome: TurnOutcome;
@@ -237,6 +239,7 @@ async function prepareChat(
   );
   trace.conversationId = conversation?.id ?? null;
   const specialty = conversation === null ? chat.specialty : conversation.specialty;
+  const platforms = conversation === null ? chat.platforms : conversation.platforms;
 
   // Con conversación guardada manda Supabase; sin ella, lo que el cliente tiene en memoria.
   const history = conversation?.messages ?? chat.history;
@@ -311,6 +314,7 @@ async function prepareChat(
   trace.meta['region'] = chat.region;
   trace.meta['history_messages'] = history.length;
   trace.meta['specialty'] = specialty;
+  trace.meta['platforms'] = platforms;
   trace.meta['skip_questions'] = skipQuestions;
   const base: ChatRequestOptions = {
     messages: buildChatMessages({
@@ -321,6 +325,7 @@ async function prepareChat(
       recommended,
       language,
       specialty,
+      platforms,
       skipQuestions,
     }),
     tools: [...(tools.moodSearch ? [SEARCH_TOOL] : []), ...(tools.titleSearch ? [TITLE_SEARCH_TOOL] : [])],
@@ -335,6 +340,7 @@ async function prepareChat(
       state.recommendedIds.has(candidate.id) || isAlreadyRecommended(candidate, recommended) || namedByUser(candidate),
     trace,
     specialty,
+    platforms: platforms === null ? null : { region: chat.region, names: platforms },
   };
 
   /**
@@ -437,7 +443,7 @@ async function prepareChat(
       ? runSearch(head.value.call)
       : continueText(head.value.text, events, runSearch);
 
-  return { request: chat, user, conversation, history, language, specialty, parts, outcome };
+  return { request: chat, user, conversation, history, language, specialty, platforms, parts, outcome };
 }
 
 // ─── Guardado ────────────────────────────────────────────────────────────────
@@ -472,6 +478,7 @@ async function persist(
       userId: user.id,
       mode: request.mode,
       specialty: prepared.specialty,
+      platforms: prepared.platforms,
       existing: conversation,
       messages: [
         ...earlier,

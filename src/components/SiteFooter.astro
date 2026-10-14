@@ -1,81 +1,88 @@
 ---
 /**
- * Pie común. La atribución a TMDB la exigen sus condiciones de uso de la API, y
- * la de JustWatch, las de los datos de plataformas que TMDB redistribuye.
+ * Pie común, en la pantalla (`.screen`, oscura también en el modo claro): la
+ * marca al tamaño de la cabecera, los enlaces en dos columnas y, abajo, en una
+ * línea, las atribuciones y los textos legales.
+ *
+ * La atribución a TMDB la exigen sus condiciones de uso de la API, y la de
+ * JustWatch, las de los datos de plataformas que TMDB redistribuye.
  */
-import LeafMark from '@/components/LeafMark.astro';
 import { EXPLORE_PATH } from '@/lib/explore';
 import { LEGAL_PAGES } from '@/lib/legal';
 
 const user = Astro.locals.user;
 const year = new Date().getFullYear();
 
-const links = [
-  { href: '/', label: 'Pedir una recomendación' },
-  { href: EXPLORE_PATH, label: 'Explorar el catálogo' },
-  ...(user === null
-    ? [
-        { href: '/registro', label: 'Crear una cuenta' },
-        { href: '/entrar', label: 'Entrar' },
-      ]
-    : [
-        { href: '/conversaciones', label: 'Tus conversaciones' },
-        { href: '/favoritos', label: 'Tus favoritos' },
-      ]),
-  { href: '/sobre-umber', label: '¿Por qué Umber?' },
+const groups = [
+  {
+    title: 'Umber',
+    links: [
+      { href: '/', label: 'Pedir una recomendación' },
+      { href: EXPLORE_PATH, label: 'Explorar el catálogo' },
+      { href: '/juegos', label: 'Los juegos del día' },
+      { href: '/sobre-umber', label: '¿Por qué Umber?' },
+    ],
+  },
+  {
+    title: 'Tu cuenta',
+    links:
+      user === null
+        ? [
+            { href: '/registro', label: 'Crear una cuenta' },
+            { href: '/entrar', label: 'Entrar' },
+          ]
+        : [
+            { href: '/conversaciones', label: 'Tus conversaciones' },
+            { href: '/favoritos', label: 'Tus favoritos' },
+            { href: '/cuenta', label: 'Tu cuenta' },
+          ],
+  },
 ];
+
+const creditLink = 'text-umber-ink hover:text-umber-accent underline decoration-umber-rule underline-offset-4 transition-colors';
 ---
 
-<footer class="border-umber-line mt-28 border-t pb-[env(safe-area-inset-bottom)]">
-  <div class="mx-auto grid max-w-[80rem] gap-12 px-5 py-16 sm:px-8 md:grid-cols-12">
-    <div class="md:col-span-5">
-      <p class="font-display flex items-center gap-3 text-5xl tracking-[-0.035em]">
-        <LeafMark class="text-umber-accent size-7" />
-        Umber
-      </p>
-      <p class="text-umber-muted mt-5 max-w-xs leading-relaxed">
-        Tu cinéfilo de confianza: películas y series elegidas <em class="font-display text-umber-ink text-[1.15em]">con calma</em>.
-      </p>
-    </div>
+<footer class="screen bg-umber-base border-umber-line mt-28 border-t pb-[env(safe-area-inset-bottom)]">
+  <div class="mx-auto max-w-[80rem] px-5 sm:px-8">
+    <div class="grid gap-x-10 gap-y-12 py-14 md:grid-cols-12 lg:py-20">
+      <div class="md:col-span-5">
+        <a href="/" class="font-display text-[1.6rem] leading-none font-bold tracking-[-0.05em] sm:text-[1.8rem]" aria-label="Umber, inicio">
+          Umber<span class="text-umber-accent" aria-hidden="true">.</span>
+        </a>
+        <p class="text-umber-muted mt-4 max-w-xs text-sm leading-relaxed">
+          Tu cinéfilo de confianza: películas y series elegidas con calma.
+        </p>
+      </div>
 
-    <nav aria-label="Pie" class="md:col-span-3 md:col-start-7">
-      <p class="eyebrow">Umber</p>
-      <ul class="mt-5 space-y-2.5 text-sm">
+      <nav aria-label="Pie" class="grid grid-cols-2 gap-x-6 gap-y-10 md:col-span-6 md:col-start-7">
         {
-          links.map((link) => (
-            <li>
-              <a href={link.href} class="link-quiet">
-                {link.label}
-              </a>
-            </li>
+          groups.map((group) => (
+            <div>
+              <p class="eyebrow">{group.title}</p>
+              <ul class="mt-4 grid gap-y-3 text-sm">
+                {group.links.map((link) => (
+                  <li>
+                    <a href={link.href} class="link-quiet">
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))
         }
-      </ul>
-    </nav>
-
-    <div class="text-umber-muted space-y-3 text-sm leading-relaxed md:col-span-3">
-      <p class="eyebrow">Créditos</p>
-      <p class="pt-2">
-        Datos e imágenes de{' '}
-        <a href="https://www.themoviedb.org/" class="text-umber-ink/90 hover:text-umber-ink underline decoration-1 underline-offset-4"
-          >TMDB</a
-        >. Umber usa la API de TMDB, pero no está respaldado ni certificado por TMDB.
-      </p>
-      <p>
-        Plataformas de streaming según{' '}
-        <a href="https://www.justwatch.com/" class="text-umber-ink/90 hover:text-umber-ink underline decoration-1 underline-offset-4"
-          >JustWatch</a
-        >.
-      </p>
+      </nav>
     </div>
-  </div>
-  <div class="border-umber-line border-t">
-    <div
-      class="text-umber-muted mx-auto flex max-w-[80rem] flex-wrap justify-between gap-x-6 gap-y-1 px-5 py-6 text-xs sm:px-8"
-    >
-      <span>Umber, {year}</span>
+
+    <div class="border-umber-line text-umber-muted grid gap-y-4 border-t py-6 text-xs leading-relaxed md:grid-cols-[1fr_auto] md:gap-x-10">
+      <p>
+        Datos e imágenes de <a href="https://www.themoviedb.org/" class={creditLink}>TMDB</a>; plataformas, de{' '}
+        <a href="https://www.justwatch.com/" class={creditLink}>JustWatch</a>. Umber usa la API de TMDB, pero no está
+        respaldado ni certificado por TMDB.
+      </p>
       <nav aria-label="Legal">
         <ul class="flex flex-wrap gap-x-5 gap-y-1">
+          <li>© {year} Umber</li>
           {
             LEGAL_PAGES.map((page) => (
               <li>
@@ -87,7 +94,6 @@ const links = [
           }
         </ul>
       </nav>
-      <span>Hecho con calma y mucho cine</span>
     </div>
   </div>
 </footer>

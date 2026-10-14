@@ -6,6 +6,7 @@
  */
 import { isRecord } from '@/lib/api';
 import { NotFoundError, SupabaseError } from '@/lib/errors';
+import { parsePlatformNames } from '@/lib/platforms';
 import { unwrap, type UmberSupabaseClient } from '@/lib/supabase';
 import { parseTurnMeta } from '@/lib/turns';
 import {
@@ -22,6 +23,8 @@ export interface StoredConversation {
   readonly mode: ChatMode;
   /** La especialidad con la que empezó (otoño), o `null`. */
   readonly specialty: Specialty | null;
+  /** Las plataformas elegidas al empezar, o `null`: todas. */
+  readonly platforms: string[] | null;
   readonly messages: readonly StoredChatMessage[];
 }
 
@@ -62,7 +65,7 @@ export async function loadConversation(
 ): Promise<StoredConversation> {
   const { data, error } = await client
     .from('conversations')
-    .select('id, mode, specialty, messages')
+    .select('id, mode, specialty, platforms, messages')
     .eq('id', id)
     .maybeSingle();
   if (error !== null) throw new SupabaseError(error.message, error);
@@ -74,6 +77,7 @@ export async function loadConversation(
     id: data.id,
     mode: data.mode,
     specialty: isSpecialty(data.specialty) ? data.specialty : null,
+    platforms: parsePlatformNames(data.platforms),
     messages: parseMessages(data.messages),
   };
 }
@@ -118,6 +122,7 @@ export interface ExportedConversation {
   readonly id: string;
   readonly mode: ChatMode;
   readonly specialty: Specialty | null;
+  readonly platforms: string[] | null;
   readonly messages: readonly StoredChatMessage[];
   readonly created_at: string;
   readonly updated_at: string;
@@ -130,7 +135,7 @@ export async function listConversationsForExport(
   const rows = unwrap(
     await client
       .from('conversations')
-      .select('id, mode, specialty, messages, created_at, updated_at')
+      .select('id, mode, specialty, platforms, messages, created_at, updated_at')
       .order('created_at', { ascending: true }),
   );
 
@@ -141,6 +146,7 @@ export async function listConversationsForExport(
             id: row.id,
             mode: row.mode,
             specialty: isSpecialty(row.specialty) ? row.specialty : null,
+            platforms: parsePlatformNames(row.platforms),
             messages: parseMessages(row.messages),
             created_at: row.created_at,
             updated_at: row.updated_at,
@@ -162,6 +168,8 @@ export interface SaveTurnOptions {
   readonly mode: ChatMode;
   /** Solo cuenta al crearla: una conversación no cambia de especialidad. */
   readonly specialty: Specialty | null;
+  /** Como la especialidad: solo al crearla. */
+  readonly platforms: readonly string[] | null;
   /** La conversación tal como se leyó, o `null` si es nueva. */
   readonly existing: StoredConversation | null;
   /** Mensajes que se añaden al final. */
@@ -208,6 +216,7 @@ export async function saveConversationTurn(
           user_id: options.userId,
           mode: options.mode,
           specialty: options.specialty,
+          platforms: options.platforms === null ? null : [...options.platforms],
           messages: toJson(options.messages),
         })
         .select('id'),

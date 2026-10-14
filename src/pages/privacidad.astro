@@ -34,6 +34,10 @@ import { LEGAL_OWNER } from '@/lib/legal';
       <strong>Tus conversaciones con Umber</strong>, para que puedas retomarlas, y <strong>tus favoritos</strong>.
     </li>
     <li>
+      <strong>Tus plataformas</strong>: las que guardas en «Mis plataformas», para proponértelas marcadas, y las que
+      eliges al empezar cada conversación, que se guardan con ella para buscar solo en esas.
+    </li>
+    <li>
       <strong>Tu consentimiento para el chat</strong>: si aceptas que DeepSeek trate tus mensajes (ver
       «Transferencias internacionales»), guardamos en tu cuenta que lo aceptaste, qué versión del texto y cuándo,
       para poder demostrarlo.
@@ -51,7 +55,7 @@ import { LEGAL_OWNER } from '@/lib/legal';
   <h3>Cuando hablas con Umber o usas el buscador</h3>
   <p>
     Guardamos un <strong>registro de cada petición</strong> al chat y al buscador: el mensaje que escribes, la
-    respuesta, qué títulos se buscaron y recomendaron, el tiempo que tardó y lo que costó. Para hablar con Umber
+    respuesta, qué títulos se buscaron y recomendaron, en qué plataformas, el tiempo que tardó y lo que costó. Para hablar con Umber
     hace falta cuenta, y el registro va unido a ella; el buscador se puede usar sin cuenta, y entonces va unido a un
     código que calculamos a partir de tu dirección IP con una función
     irreversible (un HMAC), de modo que <strong>la IP no se guarda en el registro</strong>.
@@ -140,7 +144,7 @@ import { LEGAL_OWNER } from '@/lib/legal';
     </li>
     <li>
       <strong>DeepSeek</strong> (el modelo de lenguaje que redacta las respuestas de Umber). Recibe el texto de la
-      conversación, sin tu email, tu nombre ni tu IP. <strong>Está en China</strong>, un país sin decisión de
+      conversación y las plataformas que elegiste, sin tu email, tu nombre ni tu IP. <strong>Está en China</strong>, un país sin decisión de
       adecuación de la Comisión Europea: ver «Transferencias internacionales».
     </li>
     <li>

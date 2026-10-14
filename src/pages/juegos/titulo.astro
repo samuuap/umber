@@ -89,13 +89,13 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
   description="Adivina el título de una película muy conocida con cuatro letras y unas pistas. Uno nuevo cada día."
 >
   <main class="mx-auto w-full max-w-[80rem] flex-1 px-5 pb-20 sm:px-8">
-    <header class="grid gap-x-10 gap-y-6 pt-10 pb-10 sm:pt-14 lg:grid-cols-12 lg:items-end">
+    <header class="grid grid-cols-1 gap-x-10 gap-y-6 pt-12 pb-10 sm:pt-16 lg:grid-cols-12 lg:items-end">
       <div class="rise lg:col-span-7">
         <p class="eyebrow eyebrow-rule">
           <a href="/juegos" class="link-quiet">Juegos</a>
           {daily !== null && <span class="ml-2">· N.º {daily.number}</span>}
         </p>
-        <h1 class="display-1 mt-7">El título <em>del día</em></h1>
+        <h1 class="display-1 mt-7">El título del día</h1>
       </div>
       <p class="lead rise max-w-md [animation-delay:120ms] lg:col-span-4 lg:col-start-9 lg:pb-3">
         Elige cuatro letras, dos vocales como mucho, y mira dónde salen. Si no sacas el título, cada fallo trae una pista: el año, el director,
@@ -111,7 +111,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
         >
           <div class="lg:col-span-5">
             <h2 id="idioma" class="display-2">
-              ¿En qué <em>idioma</em>?
+              ¿En qué idioma?
             </h2>
             <p class="lead mt-5 max-w-sm">Es la misma película en los dos. Podrás cambiar cuando quieras.</p>
           </div>
@@ -121,7 +121,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
                 href="?idioma=es"
                 class="group border-umber-line hover:border-umber-rule hover:bg-umber-ink/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
               >
-                <span class="font-display block text-[2rem] leading-none">Español</span>
+                <span class="font-display block text-[1.75rem] leading-none font-semibold tracking-[-0.03em]">Español</span>
                 <span class="text-umber-muted mt-3 block text-sm leading-relaxed">
                   Como se estrenó en España: <i class="font-serif">Cadena perpetua</i>.
                 </span>
@@ -136,7 +136,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
                 lang="en"
                 class="group border-umber-line hover:border-umber-rule hover:bg-umber-ink/[0.02] block h-full rounded-[3px] border p-6 transition-colors duration-300"
               >
-                <span class="font-display block text-[2rem] leading-none">English</span>
+                <span class="font-display block text-[1.75rem] leading-none font-semibold tracking-[-0.03em]">English</span>
                 <span class="text-umber-muted mt-3 block text-sm leading-relaxed">
                   The English title: <i class="font-serif">The Shawshank Redemption</i>.
                 </span>
@@ -150,7 +150,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
       ) : daily === null ? (
         <section class="border-umber-line rise border-t py-20 [animation-delay:150ms] lg:grid lg:grid-cols-12 lg:gap-x-10">
           <p class="display-2 lg:col-span-6">
-            Hoy no hay <em>título</em>
+            Hoy no hay título
           </p>
           <div class="mt-6 lg:col-span-5 lg:col-start-8 lg:mt-3">
             <p class="lead">Se nos ha acabado la lista de películas. Vuelve mañana, o prueba con el cartel del día.</p>
@@ -286,7 +286,7 @@ const KEY_ROWS: Record<Locale, readonly (readonly string[])[]> = {
                       lang={kind === 'synopsis' ? language : undefined}
                       class:list={[
                         'mt-2',
-                        kind === 'synopsis' ? 'reading text-umber-ink/90 text-[1rem]!' : 'font-display text-3xl',
+                        kind === 'synopsis' ? 'reading text-umber-ink/90 text-[1rem]!' : 'font-display text-3xl font-semibold tracking-[-0.03em]',
                       ]}
                     />
                   )}

@@ -757,7 +757,7 @@ patrocinio y B2B.**
 ### Semanas 7–12 · Retención
 
 - [ ] «Ya la he visto» + no repetir lo recomendado entre conversaciones
-- [ ] «Mis plataformas» (gratis)
+- [x] «Mis plataformas» (gratis), 2026-10-13: ver la Fase 6
 - [ ] Separar «Quiero verla» de «Me encantó»
 - [ ] Racha de juegos en la cuenta + invitación al terminar
 - [ ] Compartir una recomendación; PWA mínima

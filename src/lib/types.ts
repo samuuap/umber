@@ -309,6 +309,12 @@ export interface ChatRequestBody {
    * se guardó con ella.
    */
   readonly specialty?: Specialty;
+  /**
+   * Las plataformas donde la puede ver, elegidas al empezar: los nombres que
+   * pinta `/chat` (`platform_counts`). Sin ellas, o vacía, todas. Con
+   * `conversation_id` mandan las que se guardaron con ella.
+   */
+  readonly platforms?: readonly string[];
 }
 
 /** Título que Umber ha recomendado, con lo que necesita la ficha de contenido. */

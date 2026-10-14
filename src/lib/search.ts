@@ -243,6 +243,8 @@ export interface SearchOptions {
   readonly filters?: SearchFilters;
   /** Solo el catálogo de esa especialidad, y su puntuación al ordenar. */
   readonly specialty?: Specialty | null;
+  /** Solo lo que está en alguna de estas plataformas de la región («Mis plataformas»). */
+  readonly platforms?: { readonly region: string; readonly names: readonly string[] } | null;
 }
 
 /** Los candidatos de `search_content` para un vector ya calculado, con estos filtros. */
@@ -250,6 +252,7 @@ async function searchPool(
   vector: readonly number[],
   options: SearchOptions,
   filters: SearchFilters,
+  platforms: SearchOptions['platforms'] = null,
 ): Promise<RankedCandidate[]> {
   const { contentType } = options;
   const specialty = options.specialty ?? null;
@@ -280,6 +283,7 @@ async function searchPool(
       ...(filters.popularity === 'known' ? { min_votes: KNOWN_MIN_VOTES[thresholds] } : {}),
       ...(filters.popularity === 'lesser' ? { max_votes: LESSER_MAX_VOTES[thresholds] } : {}),
       ...(specialty === 'autumn' ? { min_autumn: AUTUMN_MIN_SCORE[thresholds] } : {}),
+      ...(platforms === null ? {} : { platforms: [...platforms.names], platforms_region: platforms.region }),
     }),
   );
 
@@ -306,9 +310,12 @@ const RELAXATIONS: readonly { readonly label: string; readonly relax: (filters: 
   { label: 'época y duración', relax: (filters) => ({ ...filters, yearFrom: null, yearTo: null, maxRuntime: null }) },
 ];
 
+/** Lo que va en `relaxed` cuando hubo que buscar fuera de sus plataformas. */
+export const PLATFORMS_RELAXED = 'plataformas';
+
 export interface CandidateSearch {
   readonly candidates: RankedCandidate[];
-  /** Los filtros que hubo que quitar, en el orden de `RELAXATIONS`. */
+  /** Los filtros que hubo que quitar, en el orden de `RELAXATIONS`; primero `PLATFORMS_RELAXED` si salió de sus plataformas. */
   readonly relaxed: readonly string[];
 }
 
@@ -320,18 +327,29 @@ export async function searchCandidates(query: string, options: SearchOptions): P
       .filter((candidate) => options.exclude === undefined || !options.exclude(candidate))
       .slice(0, options.limit ?? DEFAULT_CANDIDATE_COUNT);
 
-  let filters = options.filters ?? NO_FILTERS;
-  let candidates = keep(await searchPool(vector, options, filters));
-  const relaxed: string[] = [];
-  for (const step of RELAXATIONS) {
-    if (candidates.length >= MIN_FILTERED_RESULTS) break;
-    const next = step.relax(filters);
-    if (JSON.stringify(next) === JSON.stringify(filters)) continue;
-    filters = next;
-    relaxed.push(step.label);
-    candidates = keep(await searchPool(vector, options, filters));
-  }
-  return { candidates, relaxed };
+  /** Con estas plataformas, quitando filtros por orden hasta que salgan suficientes. */
+  const relaxing = async (platforms: SearchOptions['platforms']): Promise<CandidateSearch> => {
+    let filters = options.filters ?? NO_FILTERS;
+    let candidates = keep(await searchPool(vector, options, filters, platforms));
+    const relaxed: string[] = [];
+    for (const step of RELAXATIONS) {
+      if (candidates.length >= MIN_FILTERED_RESULTS) break;
+      const next = step.relax(filters);
+      if (JSON.stringify(next) === JSON.stringify(filters)) continue;
+      filters = next;
+      relaxed.push(step.label);
+      candidates = keep(await searchPool(vector, options, filters, platforms));
+    }
+    return { candidates, relaxed };
+  };
+
+  const platforms = options.platforms ?? null;
+  const inPlatforms = await relaxing(platforms);
+  if (inPlatforms.candidates.length >= MIN_FILTERED_RESULTS || platforms === null) return inPlatforms;
+  // Las plataformas, lo último: mejor algo menos ajustado en las suyas que lo
+  // pedido en otra. Si ni así, lo pedido esté donde esté, y Umber le dice dónde.
+  const anywhere = await relaxing(null);
+  return { candidates: anywhere.candidates, relaxed: [PLATFORMS_RELAXED, ...anywhere.relaxed] };
 }
 
 /** Minúsculas, sin tildes ni puntuación: «¡Olvídate de mí!» y «olvidate de mi» son iguales. */

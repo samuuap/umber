@@ -61,6 +61,7 @@ export interface UserContextValues {
   readonly reply_language: string;
   readonly specialty: string;
   readonly region: string;
+  readonly platforms: string;
   readonly today: string;
   readonly user_message: string;
   readonly conversation_state: string;

@@ -1,12 +1,13 @@
 ---
 /**
- * `/cuenta` — cambiar nombre de usuario, email y contraseña, y retirar el
- * consentimiento del chat. Formularios independientes (campo oculto `action`),
+ * `/cuenta` — cambiar nombre de usuario, email y contraseña, elegir «Mis
+ * plataformas» y retirar el consentimiento del chat. Formularios independientes (campo oculto `action`),
  * cada uno con su propio error y aviso de éxito.
  *
  * Cambiar el email manda confirmación (y, según la configuración del proyecto,
  * también desde el email actual: «Secure email change») antes de aplicarse.
  */
+import PlatformPicker from '@/components/PlatformPicker.astro';
 import Layout from '@/layouts/Layout.astro';
 import {
   MAX_PASSWORD_CHARS,
@@ -19,6 +20,9 @@ import {
   type AuthFormError,
 } from '@/lib/auth';
 import { AI_CONSENT_COOKIE, AI_CONSENT_VERSION, hasAiConsent } from '@/lib/legal';
+import { regionFromAcceptLanguage } from '@/lib/locale';
+import { platformCounts } from '@/lib/platforms';
+import { TMDB_DEFAULT_REGION } from '@/lib/tmdb';
 
 if (Astro.locals.user === null) return Astro.redirect('/entrar?next=%2Fcuenta');
 const user = Astro.locals.user;
@@ -38,6 +42,15 @@ let passwordDone = false;
 let consented = hasAiConsent(Astro.cookies.get(AI_CONSENT_COOKIE)?.value, user.aiConsent);
 let consentWithdrawn = false;
 let consentError: string | null = null;
+
+/** Las de su región, de más a menos títulos: lo que se puede marcar. */
+const platforms = await platformCounts(
+  regionFromAcceptLanguage(Astro.request.headers.get('accept-language')) ?? TMDB_DEFAULT_REGION,
+  null,
+);
+let myPlatforms = user.platforms;
+let platformsDone = false;
+let platformsError: string | null = null;
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -100,6 +113,21 @@ if (Astro.request.method === 'POST') {
         passwordError = { message: authErrorMessage(error), field: null };
       }
     }
+  } else if (action === 'platforms') {
+    // Solo las que existen; todas o ninguna es no guardar ninguna: el chat las propone todas.
+    const picked = form.getAll('platform').filter(
+      (name): name is string => typeof name === 'string' && platforms.some((platform) => platform.name === name),
+    );
+    const next = picked.length === 0 || picked.length === platforms.length ? null : picked;
+    const { error } = await Astro.locals.supabase.auth.updateUser({ data: { platforms: next } });
+    if (error === null) {
+      // Para que los claims de la sesión (de donde las lee `/chat`) lleven ya las nuevas.
+      await Astro.locals.supabase.auth.refreshSession();
+      myPlatforms = next;
+      platformsDone = true;
+    } else {
+      platformsError = authErrorMessage(error);
+    }
   } else if (action === 'ai_consent_withdraw') {
     // Retirarlo (art. 7.3 RGPD): de la cuenta y de este navegador. Sin él, `/chat` vuelve a pedirlo.
     const { error } = await Astro.locals.supabase.auth.updateUser({ data: { ai_consent: null } });
@@ -112,7 +140,13 @@ if (Astro.request.method === 'POST') {
       consentError = authErrorMessage(error);
     }
   }
-  if (usernameError !== null || emailError !== null || passwordError !== null || consentError !== null) {
+  if (
+    usernameError !== null ||
+    emailError !== null ||
+    passwordError !== null ||
+    consentError !== null ||
+    platformsError !== null
+  ) {
     Astro.response.status = 400;
   }
 }
@@ -268,6 +302,40 @@ const consentDate =
         <button type="submit" class="btn-secondary py-2.5 text-sm">Cambiar contraseña</button>
       </form>
     </section>
+
+    {
+      platforms.length > 0 && (
+        <section id="plataformas" class="border-umber-line mt-10 border-t pt-8">
+          <h2 class="font-display text-xl">Mis plataformas</h2>
+          <p class="text-umber-muted mt-2 text-sm leading-relaxed">
+            Las que tienes. Al empezar una conversación vendrán marcadas, y Umber solo te recomendará lo que esté en
+            ellas; ahí mismo puedes cambiarlas si estás en otra casa.
+          </p>
+          {platformsDone && (
+            <p role="status" class="text-umber-accent mt-3 text-sm">
+              Plataformas guardadas.
+            </p>
+          )}
+          {platformsError !== null && (
+            <p role="alert" class="mt-3 text-sm text-umber-danger">
+              {platformsError}
+            </p>
+          )}
+          <form method="post" class="mt-5">
+            <input type="hidden" name="action" value="platforms" />
+            <PlatformPicker
+              platforms={platforms}
+              checked={myPlatforms ?? []}
+              legend="Mis plataformas"
+              unit="títulos"
+            />
+            <button type="submit" class="btn-secondary mt-5 py-2.5 text-sm">
+              Guardar
+            </button>
+          </form>
+        </section>
+      )
+    }
 
     <section class="border-umber-line mt-10 border-t pt-8">
       <h2 class="font-display text-xl">El chat y DeepSeek</h2>

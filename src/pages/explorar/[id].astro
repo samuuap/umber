@@ -42,6 +42,8 @@ const loginHref = `/entrar?next=${encodeURIComponent(Astro.url.pathname + Astro.
 const kind = CHAT_MODE_DEFINITIONS[item.type].label;
 const poster = posterUrl(item.poster_path, 'w342');
 const posterLarge = posterUrl(item.poster_path, 'w500');
+/** Para la luz del cartel: pequeño, que se desenfoca entero. */
+const posterSmall = posterUrl(item.poster_path, 'w92');
 const backdrop = item.backdrop_path;
 
 function formatRuntime(minutes: number): string {
@@ -75,65 +77,74 @@ const metaDescription = `Dónde ver ${item.title}${yearSuffix} en streaming, y t
 const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
 ---
 
-<Layout title={`${item.title}${yearSuffix} — dónde verla | Umber`} description={metaDescription} image={shareImage}>
+<Layout title={`${item.title}${yearSuffix} — dónde verla | Umber`} description={metaDescription} image={shareImage} overlay>
   <main class="flex-1">
-    <section class="relative isolate">
-      {
-        backdrop !== null && (
-          <div class="absolute inset-x-0 top-0 -z-10 h-[min(34rem,70vh)] overflow-hidden lg:h-[min(46rem,82vh)]" aria-hidden="true">
+    <section class="under-header relative isolate">
+      {/*
+        El fotograma a sangre, como la pantalla, bajo la cabecera transparente.
+        Abajo y a la izquierda se funde con la base de la página (papel en matiné),
+        donde va el texto.
+      */}
+      <div class="absolute inset-x-0 top-0 -z-10 h-[56svh] overflow-hidden sm:h-[64svh] lg:h-[min(50rem,88svh)]" aria-hidden="true">
+        {
+          backdrop !== null && (
             <img
               src={backdropUrl(backdrop, 'w1280')}
               srcset={`${backdropUrl(backdrop, 'w780')} 780w, ${backdropUrl(backdrop, 'w1280')} 1280w`}
               sizes="100vw"
               alt=""
               fetchpriority="high"
-              class="graded develop h-full w-full object-cover object-top opacity-50"
+              class="graded develop h-full w-full object-cover object-[50%_25%]"
             />
-            <div class="from-umber-base via-umber-base/70 to-umber-base/20 absolute inset-0 bg-gradient-to-t" />
-            <div class="from-umber-base/85 absolute inset-0 bg-gradient-to-r via-transparent to-transparent" />
-            {/* Arriba se funde con la cabecera, sin un corte. */}
-            <div class="from-umber-base absolute inset-x-0 top-0 h-28 bg-gradient-to-b to-transparent" />
-          </div>
-        )
-      }
+          )
+        }
+        <div class="vignette absolute inset-0" />
+        <div class="from-umber-base via-umber-base/70 absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t to-transparent lg:h-1/2" />
+        <div class="from-umber-base/85 via-umber-base/30 absolute inset-y-0 left-0 hidden w-2/3 bg-gradient-to-r to-transparent lg:block" />
+        {/* La última, encima de las otras: la cabecera y «Explorar» se leen también en matiné. */}
+        <div class="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-black/75 to-transparent" />
+      </div>
 
-      <div class="mx-auto max-w-[80rem] px-5 pt-4 sm:px-8">
-        <a href={backHref} class="link-quiet text-sm">
+      <div class="mx-auto max-w-[80rem] px-5 pt-[calc(var(--header-h)+1rem)] sm:px-8">
+        <a href={backHref} class="screen link-quiet text-umber-ink/80 text-sm">
           <span aria-hidden="true">←</span> Explorar
         </a>
 
-        <div class="mt-24 grid gap-x-10 gap-y-10 sm:mt-40 lg:mt-56 lg:grid-cols-12">
+        <div class="mt-[24svh] grid grid-cols-1 gap-x-10 gap-y-8 sm:mt-[30svh] lg:mt-[min(24rem,48svh)] lg:grid-cols-12">
           <div class="lg:col-span-3">
-            <div
-              data-poster-target
-              class="bg-umber-surface ring-umber-base aspect-[2/3] w-40 overflow-hidden rounded-[3px] ring-[6px] [view-transition-name:poster] sm:w-52 lg:w-full"
-            >
-              {
-                poster === null ? (
-                  <div class="text-umber-muted flex h-full items-center justify-center font-serif italic">Sin cartel</div>
-                ) : (
-                  <img
-                    src={poster}
-                    srcset={posterLarge === null ? undefined : `${poster} 342w, ${posterLarge} 500w`}
-                    sizes="(min-width: 1024px) 22vw, (min-width: 640px) 208px, 160px"
-                    alt={`Cartel de ${item.title}`}
-                    width="342"
-                    height="513"
-                    class="h-full w-full object-cover"
-                  />
-                )
-              }
+            <div class="relative isolate w-36 sm:w-52 lg:w-full">
+              {posterSmall !== null && <img src={posterSmall} alt="" width="92" height="138" class="ambient size-full object-cover" aria-hidden="true" />}
+              <div
+                data-poster-target
+                class="bg-umber-surface ring-umber-ink/15 aspect-[2/3] overflow-hidden rounded-[4px] shadow-[0_40px_80px_-30px_rgb(0_0_0/0.9)] ring-1 [view-transition-name:poster]"
+              >
+                {
+                  poster === null ? (
+                    <div class="text-umber-muted flex h-full items-center justify-center font-serif italic">Sin cartel</div>
+                  ) : (
+                    <img
+                      src={poster}
+                      srcset={posterLarge === null ? undefined : `${poster} 342w, ${posterLarge} 500w`}
+                      sizes="(min-width: 1024px) 22vw, (min-width: 640px) 208px, 144px"
+                      alt={`Cartel de ${item.title}`}
+                      width="342"
+                      height="513"
+                      class="h-full w-full object-cover"
+                    />
+                  )
+                }
+              </div>
             </div>
           </div>
 
-          <div class="min-w-0 lg:col-span-8 lg:col-start-5">
+          <div class="min-w-0 lg:col-span-8 lg:col-start-5 lg:pt-10">
             <p class="eyebrow eyebrow-rule rise">{kind}</p>
-            <h1 class="rise font-display mt-6 text-[clamp(2.6rem,6vw,5.25rem)] leading-[0.98] tracking-[-0.035em] [animation-delay:80ms]">
+            <h1 class="rise font-display mt-5 text-[clamp(2.6rem,6.4vw,6rem)] leading-[0.95] tracking-[-0.045em] [animation-delay:80ms]">
               {item.title}
             </h1>
             {
               otherTitle !== null && (
-                <p class="font-display text-umber-muted rise mt-3 text-2xl italic [animation-delay:140ms]">{otherTitle}</p>
+                <p class="text-umber-muted rise mt-3 text-xl font-medium tracking-[-0.01em] [animation-delay:140ms]">{otherTitle}</p>
               )
             }
 
@@ -143,7 +154,7 @@ const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
                   {facts.map((fact) => (
                     <div class="min-w-0">
                       <dt class="field-label">{fact.label}</dt>
-                      <dd class="mt-1.5 font-serif text-[1.05rem]">{fact.value}</dd>
+                      <dd class="font-display mt-1.5 text-[1.2rem] leading-tight font-medium tracking-[-0.02em]">{fact.value}</dd>
                     </div>
                   ))}
                 </dl>
@@ -180,7 +191,7 @@ const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
                   {itemPlatforms.length === 0 ? (
                     <p class="text-umber-muted mt-2 text-sm">No está en plataformas de suscripción ahora mismo.</p>
                   ) : (
-                    <ul class="dot-list mt-2 font-serif text-[1.15rem]">
+                    <ul class="ticket-list mt-3">
                       {itemPlatforms.map((name) => (
                         <li>{name}</li>
                       ))}
@@ -192,6 +203,9 @@ const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
 
             {/* `data-content-card`: ahí busca el botón de favorito dónde dar su aviso. */}
             <div data-content-card class="mt-10 flex flex-wrap items-center gap-3">
+              <a href={askHref} class="btn-primary">
+                Pedirle a Umber algo parecido <span class="arrow" aria-hidden="true">→</span>
+              </a>
               {
                 user === null ? (
                   <a href={loginHref} class="btn-secondary">
@@ -203,7 +217,7 @@ const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
                     data-favorite-button
                     data-content-id={item.id}
                     aria-pressed={favorite ? 'true' : 'false'}
-                    class="group/fav btn-secondary aria-pressed:border-umber-accent aria-pressed:text-umber-accent"
+                    class="group/fav btn-secondary aria-pressed:border-umber-accent aria-pressed:text-umber-accent aria-pressed:hover:bg-transparent"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true" class="size-4 fill-transparent transition-colors group-aria-pressed/fav:fill-current">
                       <path d="M6 4h12v17l-6-4-6 4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
@@ -213,9 +227,6 @@ const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
                   </button>
                 )
               }
-              <a href={askHref} class="btn-primary">
-                Pedirle a Umber algo parecido <span class="arrow" aria-hidden="true">→</span>
-              </a>
               <p data-field="favorite-status" role="status" hidden class="text-umber-accent w-full text-xs"></p>
             </div>
           </div>
@@ -225,19 +236,19 @@ const shareImage = backdropUrl(backdrop, 'w1280') ?? posterLarge;
 
     {
       similar.length > 0 && (
-        <section aria-labelledby="mas-como-esta" class="border-umber-line mx-auto mt-28 w-full max-w-[80rem] border-t px-5 pt-16 sm:px-8">
+        <section aria-labelledby="mas-como-esta" class="mx-auto mt-28 w-full max-w-[80rem] px-5 sm:px-8 lg:mt-36">
           <div class="reveal flex flex-wrap items-end justify-between gap-6">
             <div>
               <p class="eyebrow eyebrow-rule">Si te gusta esta</p>
               <h2 id="mas-como-esta" class="display-2 mt-6 scroll-mt-8">
-                Más como <em>esta</em>
+                Más como esta
               </h2>
             </div>
           </div>
           {/* En el móvil, una fila que se desliza; desde `sm`, rejilla. */}
-          <ul class="-mx-5 mt-12 flex snap-x scroll-px-5 gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 sm:overflow-visible sm:px-0 sm:pb-0 md:grid-cols-4 lg:grid-cols-6 lg:gap-x-6">
+          <ul class="rail -mx-5 mt-12 px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 sm:overflow-visible sm:px-0 sm:pb-0 sm:[mask-image:none] md:grid-cols-4 lg:grid-cols-6 lg:gap-x-6">
             {similar.map((title) => (
-              <li class="w-[42%] shrink-0 snap-start sm:w-auto">
+              <li class="w-[42%] sm:w-auto">
                 <PosterCard item={title} href={`${EXPLORE_PATH}/${title.id}${listSearch}`} />
               </li>
             ))}

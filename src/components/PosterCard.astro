@@ -31,9 +31,10 @@ const sizes = '(min-width: 1024px) 183px, (min-width: 640px) 30vw, 46vw';
 ---
 
 <a href={href} data-poster-link class="group block">
+  {/* Al pasar por encima, el cartel se adelanta y se ilumina, como en el vestíbulo de un cine. */}
   <div
     data-poster
-    class="bg-umber-surface relative aspect-[2/3] overflow-hidden rounded-[3px] ring-1 ring-umber-ink/10 transition-transform duration-500 ease-(--ease-soft) group-hover:-translate-y-1.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+    class="bg-umber-surface ring-umber-ink/10 relative aspect-[2/3] overflow-hidden rounded-[4px] ring-1 transition-[transform,box-shadow] duration-500 ease-(--ease-soft) group-hover:-translate-y-1.5 group-hover:shadow-[0_28px_50px_-22px_rgb(0_0_0/0.85)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
   >
     {
       small === null || large === null ? (
@@ -50,7 +51,7 @@ const sizes = '(min-width: 1024px) 183px, (min-width: 640px) 30vw, 46vw';
           height="513"
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
-          class="h-full w-full object-cover saturate-[0.9] transition-[filter,transform] duration-700 ease-(--ease-soft) group-hover:scale-[1.03] group-hover:saturate-100 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          class="h-full w-full object-cover brightness-[0.92] saturate-[0.9] transition-[filter,transform] duration-700 ease-(--ease-soft) group-hover:scale-[1.04] group-hover:brightness-105 group-hover:saturate-100 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
         />
       )
     }

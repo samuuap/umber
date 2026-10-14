@@ -7,12 +7,17 @@
  *   /chat?conversation=<uuid>   conversación guardada (exige sesión)
  *   …&especialidad=otono        con la especialidad de otoño (Fase 8)
  *
+ * Una conversación nueva empieza, sin IA, preguntando en qué plataformas buscar:
+ * las de mayor catálogo primero y las de «Mis plataformas» (`/cuenta`) ya
+ * marcadas. Se guardan con la conversación.
+ *
  * El modo va en la URL para que la página se pueda compartir y recargar. La
  * lógica del navegador está en `src/scripts/chat.ts`.
  */
 import ChatMessage from '@/components/ChatMessage.astro';
 import ContentCard from '@/components/ContentCard.astro';
 import LeafMark from '@/components/LeafMark.astro';
+import PlatformPicker from '@/components/PlatformPicker.astro';
 import Layout from '@/layouts/Layout.astro';
 import { UUID_PATTERN } from '@/lib/api';
 import { loadConversation, type StoredConversation } from '@/lib/conversations';
@@ -21,6 +26,7 @@ import { listFavoriteIds } from '@/lib/favorites';
 import { AI_CONSENT_COOKIE, hasAiConsent } from '@/lib/legal';
 import { RECOMMENDATIONS_PER_DAY, recommendationsLeft } from '@/lib/rate-limit';
 import { regionFromAcceptLanguage } from '@/lib/locale';
+import { platformCounts } from '@/lib/platforms';
 import { loadRecommendations } from '@/lib/recommendations';
 import { TMDB_DEFAULT_REGION } from '@/lib/tmdb';
 import {
@@ -101,14 +107,24 @@ const initialMessage =
     : '';
 const region =
   regionFromAcceptLanguage(Astro.request.headers.get('accept-language')) ?? TMDB_DEFAULT_REGION;
+const contentType = CHAT_MODE_DEFINITIONS[mode].contentType;
 // Las fichas de la conversación guardada: una consulta para todos sus mensajes.
-const [favoriteIds, recommendationFor] = await Promise.all([
+// Las plataformas, solo para preguntarlas al empezar una nueva.
+const [favoriteIds, recommendationFor, platforms] = await Promise.all([
   user === null ? Promise.resolve([]) : listFavoriteIds(supabase),
   loadRecommendations(
     messages.flatMap((message) => message.recommendation_ids ?? []),
     region,
   ),
+  conversation === null && !outOfRecommendations ? platformCounts(region, contentType) : Promise.resolve([]),
 ]);
+/** Sin recuento (Supabase falló), no se pregunta: se busca en todas. */
+const askPlatforms = platforms.length > 0;
+// Las de su cuenta que hay en esta región; sin ninguna guardada, todas.
+const saved = (user.platforms ?? []).filter((name) => platforms.some((platform) => platform.name === name));
+/** Dónde busca una conversación guardada, para recordárselo. */
+const platformsText = (names: readonly string[] | null): string =>
+  names === null ? 'En todas las plataformas' : `En ${new Intl.ListFormat('es', { type: 'conjunction' }).format(names)}`;
 const cardsOf = (message: (typeof messages)[number]) =>
   (message.recommendation_ids ?? []).flatMap((id) => {
     const item = recommendationFor(id, message.language ?? DEFAULT_LOCALE);
@@ -134,7 +150,7 @@ const countText = (left: number): string =>
 const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
 ---
 
-<Layout title={`${definition.label} — Umber`} footer={false}>
+<Layout title={`${definition.label} — Umber`} footer={false} stickyHeader={false}>
   <main
     data-chat
     data-mode={mode}
@@ -150,19 +166,50 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
       <div>
         <p class="eyebrow eyebrow-rule">{specialty === 'autumn' ? `${definition.label} · Otoño` : definition.label}</p>
         <h1 class="display-3 mt-4">
-          {mode === 'tv' ? <>Una serie para <em>estos días</em></> : <>Una película para <em>hoy</em></>}
+          {mode === 'tv' ? <>Una serie para estos días</> : <>Una película para hoy</>}
         </h1>
       </div>
       <a href="/" class="link-quiet text-sm">Nueva conversación <span class="arrow" aria-hidden="true">→</span></a>
+      <p data-platforms-summary hidden={conversation === null} class="text-umber-muted w-full text-sm">
+        {conversation !== null && platformsText(conversation.platforms)}
+      </p>
     </header>
 
+    {
+      askPlatforms && (
+        <form data-platforms-step class="rise pt-6 pb-10 sm:pt-10">
+          <p class="eyebrow flex items-center gap-2.5">
+            <LeafMark class="text-umber-accent size-3.5" />
+            Antes de empezar
+          </p>
+          <p class="display-2 mt-5">¿Dónde la vas a ver?</p>
+          <p class="text-umber-muted mt-4 max-w-[34rem] text-sm leading-relaxed">
+            Solo te recomendaré lo que esté en las plataformas que marques
+            {saved.length > 0 ? '; vienen marcadas las de tu cuenta' : ''}. Sin ninguna, busco en todas. Si estás en otra casa, cámbialas: solo
+            cuenta para esta conversación. <a href="/cuenta#plataformas" class="link">Guardar las mías</a>
+          </p>
+          <div class="mt-7">
+            <PlatformPicker
+              platforms={platforms}
+              checked={saved}
+              legend="Plataformas donde buscar"
+              unit={mode === 'tv' ? 'series' : 'películas'}
+            />
+          </div>
+          <button type="submit" class="btn-primary mt-8">
+            Seguir <span class="arrow" aria-hidden="true">→</span>
+          </button>
+        </form>
+      )
+    }
+
     <section aria-label="Conversación" class="flex-1 pt-2 pb-8">
-      <div data-empty-state hidden={messages.length > 0 || initialMessage !== ''} class="rise pt-6 pb-6 sm:pt-10 sm:pb-10">
+      <div data-empty-state hidden={messages.length > 0 || initialMessage !== '' || askPlatforms} class="rise pt-6 pb-6 sm:pt-10 sm:pb-10">
         <p class="eyebrow flex items-center gap-2.5">
           <LeafMark class="text-umber-accent size-3.5" />
           Umber
         </p>
-        <p class="display-3 mt-5">¿Cómo te <em>sientes</em>?</p>
+        <p class="display-2 mt-5">¿Cómo te sientes?</p>
         <p class="reading text-umber-muted mt-4 hidden max-w-[34rem] sm:block">
           Cuéntamelo con tus palabras —el tiempo que hace, tu ánimo, con quién la vas a ver— y te busco algo
           que encaje.
@@ -170,7 +217,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
         <div class="mt-6 sm:mt-10">
           <p id="sugerencias" class="eyebrow">O empieza por aquí</p>
           <ul
-            class="mt-4 flex gap-2 max-sm:-mx-5 max-sm:overflow-x-auto max-sm:px-5 max-sm:pb-1 sm:flex-wrap"
+            class="rail -mx-5 mt-4 gap-2 px-5 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:[mask-image:none]"
             aria-labelledby="sugerencias"
           >
             {
@@ -202,7 +249,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
 
     <form
       data-composer
-      hidden={ended || outOfRecommendations}
+      hidden={ended || outOfRecommendations || askPlatforms}
       class="from-umber-base via-umber-base/95 sticky bottom-0 -mx-5 bg-gradient-to-t to-transparent px-5 pt-8 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]"
     >
       <p data-turns-left hidden role="status" class="text-umber-accent pb-3 text-center text-xs font-medium"></p>
@@ -223,7 +270,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
           rows="2"
           maxlength={MAX_MESSAGE_CHARS}
           required
-          placeholder="Escribe aquí: cómo estás, con quién la vas a ver, algo que te encantó…"
+          placeholder="Escribe aquí cómo estás…"
           class="placeholder:text-umber-muted max-h-48 min-h-12 flex-1 resize-none bg-transparent py-2 font-serif text-[1.08rem] leading-relaxed focus:outline-none"
         ></textarea>
         <button type="button" data-stop hidden class="btn-secondary px-4 py-2.5">Detener</button>
@@ -259,7 +306,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     >
       <p class="eyebrow eyebrow-rule">Fin de la conversación</p>
       <p class="display-3 mt-4">
-        Esta conversación ha llegado <em>a su final</em>
+        Esta conversación ha llegado a su final
       </p>
       <p class="text-umber-muted mt-3">Tus favoritos siguen guardados.</p>
       <a href="/" class="btn-primary mt-7">
@@ -275,7 +322,7 @@ const suggestions = mode === 'movie' || mode === 'tv' ? SUGGESTIONS[mode] : [];
     >
       <p class="eyebrow eyebrow-rule">Hasta mañana</p>
       <p class="display-3 mt-4">
-        Ya tienes tus <em>{RECOMMENDATIONS_PER_DAY}</em> recomendaciones de hoy
+        Ya tienes tus {RECOMMENDATIONS_PER_DAY} recomendaciones de hoy
       </p>
       <p class="text-umber-muted mt-3 max-w-md leading-relaxed">
         Cada día puedes pedirle a Umber {RECOMMENDATIONS_PER_DAY}{resetsAt !== null && `; vuelven a las ${resetsAt}`}. Mientras, tus favoritos y tus conversaciones

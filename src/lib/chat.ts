@@ -15,12 +15,13 @@ import {
   regionFromAcceptLanguage,
 } from '@/lib/locale';
 import type { ToolDefinition } from '@/lib/deepseek';
-import { lookupPlatforms, type PlatformsCache } from '@/lib/platforms';
+import { lookupPlatforms, MAX_PLATFORMS, parsePlatformNames, type PlatformsCache } from '@/lib/platforms';
 import { renderUserContext, systemPrompt } from '@/lib/prompts';
 import {
   MOVIE_GENRES,
   normalizeTitle,
   parseSearchFilters,
+  PLATFORMS_RELAXED,
   type FilterKeys,
   type RankedCandidate,
 } from '@/lib/search';
@@ -79,6 +80,8 @@ export interface ChatRequest {
   readonly region: string;
   /** La de una conversación nueva; con `conversationId` manda la guardada. */
   readonly specialty: Specialty | null;
+  /** Las de una conversación nueva, o `null`: todas. Con `conversationId` mandan las guardadas. */
+  readonly platforms: string[] | null;
 }
 
 function parseHistory(value: unknown): ChatHistoryMessage[] {
@@ -144,6 +147,11 @@ export function parseChatRequest(body: unknown, acceptLanguage: string | null): 
     throw new ValidationError('Especialidad desconocida.');
   }
 
+  const platforms = body['platforms'];
+  if (platforms !== undefined && (!Array.isArray(platforms) || platforms.length > MAX_PLATFORMS)) {
+    throw new ValidationError(`Las plataformas tienen que ser una lista de ${String(MAX_PLATFORMS)} como mucho.`);
+  }
+
   return {
     mode,
     message: parseText(body['message'], MAX_MESSAGE_CHARS, 'el mensaje'),
@@ -152,6 +160,7 @@ export function parseChatRequest(body: unknown, acceptLanguage: string | null): 
     locale: locale ?? localeFromAcceptLanguage(acceptLanguage) ?? DEFAULT_LOCALE,
     region: region ?? regionFromAcceptLanguage(acceptLanguage) ?? TMDB_DEFAULT_REGION,
     specialty: specialty ?? null,
+    platforms: parsePlatformNames(platforms),
   };
 }
 
@@ -588,6 +597,8 @@ export interface ChatContext {
   /** Idioma en que responde Umber: ver `replyLanguage`. */
   readonly language: Locale;
   readonly specialty: Specialty | null;
+  /** Las de la conversación, o `null`: todas. */
+  readonly platforms: readonly string[] | null;
   /** Ha pedido que le recomiende ya: ver `wantsToSkipQuestions`. */
   readonly skipQuestions: boolean;
 }
@@ -689,9 +700,14 @@ export function formatSearchResult(
   return [
     'Candidatos del catálogo para esa búsqueda. Son los únicos que puedes recomendar ahora; los que te quedaban de antes ya no valen.',
     `${order}, pero el orden no es una recomendación: elige el que de verdad encaje con lo que ha pedido.`,
-    ...(relaxed.length > 0
+    ...(relaxed.includes(PLATFORMS_RELAXED)
       ? [
-          `Con todo lo que pidió no había casi nada, así que se han quitado estas condiciones: ${relaxed.join(', ')}. Si el que recomiendas no cumple alguna, díselo con naturalidad.`,
+          'En sus plataformas no había nada que encajara, así que estos están en otras. Díselo con naturalidad y dile dónde puede ver el que recomiendes.',
+        ]
+      : []),
+    ...(relaxed.some((label) => label !== PLATFORMS_RELAXED)
+      ? [
+          `Con todo lo que pidió no había casi nada, así que se han quitado estas condiciones: ${relaxed.filter((label) => label !== PLATFORMS_RELAXED).join(', ')}. Si el que recomiendas no cumple alguna, díselo con naturalidad.`,
         ]
       : []),
     '',
@@ -780,6 +796,10 @@ export function buildChatMessages(context: ChatContext): ChatMessage[] {
     reply_language: LANGUAGE_NAMES[language],
     specialty: specialty === null ? 'ninguna: recomiendas de todo' : SPECIALTY_NAMES[specialty],
     region: request.region,
+    platforms:
+      context.platforms === null
+        ? 'todas'
+        : `${context.platforms.join(', ')} (las búsquedas solo miran estas)`,
     today: new Date().toISOString().slice(0, 10),
     user_message: quote(request.message),
     conversation_state: [describeState(state, context.skipQuestions), describeEnding(context.history.length)]

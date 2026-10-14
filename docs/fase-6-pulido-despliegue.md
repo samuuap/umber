@@ -209,6 +209,39 @@ lanzamiento primero.
       burbujas. El texto sigue en la serif de lectura y no en Instrument Serif,
       que en texto largo cansa (regla de la tipografía)
 
+**Diseño: «La sala a oscuras»** (2026-10-14; ver «Estética» en CLAUDE.md)
+- [x] Rediseño hacia un estilo de cine, muy visual pero sin estorbar: oscuro
+      por defecto, fotogramas a sangre en la portada y la ficha bajo una
+      cabecera transparente que se oscurece al bajar, y luz ambiente de los
+      carteles. Hecho con las skills de diseño de MengTo (`build-awwwards-quality-sites`,
+      `animation-systems`, `no-ai-design-slop`)
+- [x] Portada: la pantalla (las franjas del proyector se abren, el titular
+      enfoca palabra a palabra, el cuadro de escribir sobre el fotograma, «En
+      pantalla» con la película), tres actos con números en hueco, la frase de
+      Umber como cartela del cine mudo, «Si te gustó…» con la película de la
+      pantalla, el otoño sobre un fotograma cálido y los dos juegos en tarjetas
+- [x] Cabecera fija (salvo en el chat), con menú a pantalla completa en el
+      móvil; pie como créditos finales; `/explorar` con los filtros fijos en
+      escritorio; ficha con el fotograma a sangre; chat con la luz del cartel en
+      la ficha recomendada; juegos con casillas de marquesina; cuenta con el
+      fotograma también en el móvil
+- [x] Probado en el servidor de desarrollo con capturas de Chromium a 1440 y
+      390 px, oscuro y claro, con y sin `prefers-reduced-motion`: sin scroll
+      horizontal en 15 páginas; `astro check`, build y tests en verde
+- [x] Tipografía nueva (2026-10-14): Libre Franklin para titulares e interfaz,
+      en lugar de Instrument Serif y Archivo, y fuera las cursivas de los
+      titulares y las mayúsculas espaciadas de rótulos y botones. Motivo: el
+      usuario veía la fuente «muy vibe-coded» y quería el aspecto más profesional
+      posible. Se compararon cuatro grotescas sobre la portada real (Libre
+      Franklin, Hanken Grotesk, Schibsted Grotesk y Host Grotesk); Franklin, por
+      sobria, compacta en titulares y por su historia en la prensa y los
+      créditos de cine. `public/og.png`, rehecha con la marca nueva
+- [ ] Probar la CSP sobre el build desplegado (en `astro dev` no se aplica):
+      no hay atributos `style` ni URIs `data:` nuevos, pero conviene verlo en
+      una vista previa de Vercel
+- [ ] Revisar con sesión las páginas que no se pudieron ver sin cuenta
+      (favoritos, conversaciones, cuenta); usan las piezas comunes
+
 **SEO y difusión**
 - [x] Metadatos y vista previa al compartir (2026-10-11): Open Graph, `twitter:card` y
       `canonical` en `Layout.astro`; por defecto `public/og.png` (1200×630, hecha con Edge sin interfaz), y en cada ficha su fotograma de TMDB y «Dónde ver X (año)…» como título y descripción: unas 16.000 páginas
@@ -220,6 +253,31 @@ lanzamiento primero.
 - [ ] Compartir una recomendación
 - [ ] Explorar: que la vista inicial no sea una pared de terror (decidir cómo)
 - [ ] Instalable en el móvil (PWA)
+
+**Mis plataformas** (2026-10-13, lo pedían usuarios; «gratis» en la auditoría)
+- [x] `platforms_cache` con todo el corpus: `scripts/seed/platforms.py` pide a
+      TMDB (`/watch/providers`, datos de JustWatch) lo que falta o tiene más de
+      20 horas, y lo repite cada noche `.github/workflows/platforms.yml`. Antes
+      solo había 1.646 de unos 16.000 títulos: lo que la app había enseñado
+- [x] `search_content` filtra por plataformas y región (`platforms`,
+      `platforms_region`), y `platform_counts` cuenta los títulos de cada una
+      (migración `20261013120000`)
+- [x] Al empezar una conversación, antes de la primera pregunta y sin IA:
+      «¿Dónde la vas a ver?», con las plataformas de más a menos títulos
+      (películas o series, según el modo), «Todas» delante y las de la cuenta
+      ya marcadas. Se pueden cambiar para esa conversación (en casa de otra
+      persona). Se guardan con ella (`conversations.platforms`)
+- [x] `/cuenta` → «Mis plataformas» (`user_metadata.platforms`)
+- [x] Si en sus plataformas no hay casi nada (menos de 3), se quitan primero
+      los demás filtros; si ni así, busca en todas y Umber dice dónde está
+- [ ] **Aplicar la migración** (`npm run db:push`) y `npm run db:types`
+      (`database.types.ts` lleva a mano lo mismo que generará), y los secretos
+      del workflow en GitHub: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+      `TMDB_READ_ACCESS_TOKEN`
+- [ ] Probarlo en el navegador de punta a punta y pasar `eval-chat`
+- [ ] `buscar_por_titulo` no filtra por plataforma: quien pide un título
+      concreto lo quiere a él, pero sus parecidos podrían filtrarse
+- [ ] Cambiar las plataformas a mitad de conversación (hoy, solo al empezar)
 
 ### Diseño y rendimiento (2026-10-04)
 
@@ -536,9 +594,11 @@ Descartado:
 | Decisión | Motivo |
 |---|---|
 | **El chat exige cuenta, con 2 recomendaciones al día** (2026-10-11): sin sesión, `/chat` manda a `/registro` (y vuelve con el mensaje) y `/api/chat` responde 401; fuera la conversación de prueba sin cuenta. Cuenta cada respuesta que recomienda, también «otra»; al llegar a 2, el chat se cierra hasta el día siguiente con un panel. Admin y cuentas `tester` (las de los scripts) quedan fuera | Decisión del usuario: contar el uso de cada persona. Ese día, una evaluación de 60 conversaciones agotó el tope global de 300 mensajes y dejó a todos, a un usuario nuevo incluido, con 429 hasta medianoche. Probado contra el build con usuarios temporales: sin sesión 302 y 401; con las 2 gastadas, 429 `recommendations_used` sin llamar a DeepSeek; una cuenta `tester`, sin límite |
+| **Mis plataformas: se preguntan al empezar, sin IA** (2026-10-13), con las de la cuenta marcadas y cambiables para esa conversación | Decisión del usuario: puede estar en casa de otra persona con otras plataformas. Una pregunta con botones es más rápida y fiable que dejar que el modelo la saque de la conversación. El filtro va en la base (`platforms_cache` de todo el corpus, cada noche) y no después de buscar: de 30 candidatos podían quedar 2, y costaba 30 llamadas a TMDB por búsqueda. Si no hay nada en sus plataformas, se recomienda de otra diciéndolo, mejor que no recomendar |
 | `output: 'server'` con adaptador de Vercel | El chat necesita streaming en servidor. La portada podría prerenderizarse más adelante si interesa |
 | Fuentes autoalojadas | Sin terceros, sin salto de fuente y una petición externa menos |
 | **Rediseño «Programa de mano», claro y oscuro** (2026-10-11) | Decisión de producto: el diseño de antes gustaba, pero se quería «un diseño de verdad, muy profesional». De tres direcciones en maquetas, el usuario eligió B (papel, tinta y rojo) y pidió modo oscuro. El claro va por defecto; el oscuro, si lo pide el sistema o con el botón de la cabecera |
+| **Rediseño «La sala a oscuras», oscuro por defecto** (2026-10-14) | Decisión del usuario: «una vuelta grande» al diseño, con estilo de cine, muy visual y atractivo, pero que respete la experiencia de uso, en móvil y en ordenador. Oscuro por defecto como un cine, sea cual sea el modo del sistema; el claro sigue en el botón de la cabecera. Solo CSS para el movimiento (sin GSAP ni scroll suave por JavaScript): la CSP ya lo admite y no secuestra el scroll del chat |
 | El modo elegido, en una cookie y no en localStorage (2026-10-11) | El servidor lo lee y pinta ya el modo bueno: con localStorage haría falta un script en línea antes de pintar, que la CSP bloquea, o la página parpadearía. Es una cookie técnica, exenta de consentimiento |
 | **Sin gastos fijos**: Vercel Hobby, Supabase Free, subdominio `vercel.app` y un SMTP con plan gratuito. Solo se paga DeepSeek, por uso | Decisión de producto. El plan Hobby de Vercel es para uso no comercial |
 | **Ni servidores ni dominio de pago, tampoco para el correo** (2026-10-04) | Decisión de producto, reafirmada al hablar del correo de la cuenta. El correo, con un servicio gratuito sin dominio (propuesta: Gmail, ver «Correo de la cuenta»). Si un día hace falta pagar algo, se dice y se deja para después |

@@ -242,6 +242,7 @@ export type Database = {
           id: string
           messages: Json
           mode: string
+          platforms: string[] | null
           specialty: string | null
           updated_at: string
           user_id: string
@@ -251,6 +252,7 @@ export type Database = {
           id?: string
           messages?: Json
           mode: string
+          platforms?: string[] | null
           specialty?: string | null
           updated_at?: string
           user_id: string
@@ -260,6 +262,7 @@ export type Database = {
           id?: string
           messages?: Json
           mode?: string
+          platforms?: string[] | null
           specialty?: string | null
           updated_at?: string
           user_id?: string
@@ -586,6 +589,13 @@ export type Database = {
         Returns: number
       }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      platform_counts: {
+        Args: { p_region: string; p_type?: string }
+        Returns: {
+          platform: string
+          titles: number
+        }[]
+      }
       prune_traces: { Args: never; Returns: undefined }
       record_trace: {
         Args: { p_calls: Json; p_trace: Json }
@@ -604,6 +614,8 @@ export type Database = {
           min_score?: number
           min_votes?: number
           person?: string
+          platforms?: string[]
+          platforms_region?: string
           query_embedding: string
           year_from?: number
           year_to?: number

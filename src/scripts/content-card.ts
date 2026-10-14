@@ -68,6 +68,12 @@ export function fillContentCard(card: HTMLElement, item: Recommendation, favorit
     poster.hidden = false;
     if (noPoster !== null) noPoster.hidden = true;
   }
+  // La luz del cartel: la misma imagen, que el navegador ya tiene.
+  const glow = field<HTMLImageElement>(card, 'poster-glow');
+  if (glow !== null && item.poster_url !== null) {
+    glow.src = item.poster_url;
+    glow.hidden = false;
+  }
 
   // `null` es «TMDB no respondió»: mejor no decir nada que decir «en ninguna».
   const platformsBlock = field(card, 'platforms-block');
