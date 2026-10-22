@@ -1,7 +1,8 @@
 ---
 /**
- * `/cuenta` — cambiar nombre de usuario, email y contraseña, elegir «Mis
- * plataformas» y retirar el consentimiento del chat. Formularios independientes (campo oculto `action`),
+ * `/cuenta` — cambiar nombre de usuario, email y contraseña (si no entra solo
+ * con Google), elegir «Mis plataformas», retirar el consentimiento del chat y
+ * cerrar la sesión. Formularios independientes (campo oculto `action`),
  * cada uno con su propio error y aviso de éxito.
  *
  * Cambiar el email manda confirmación (y, según la configuración del proyecto,
@@ -247,61 +248,65 @@ const consentDate =
       </form>
     </section>
 
-    <section class="border-umber-line mt-10 border-t pt-8">
-      <h2 class="font-display text-xl">Contraseña</h2>
-      {
-        passwordDone && (
-          <p role="status" class="text-umber-accent mt-3 text-sm">Contraseña actualizada.</p>
-        )
-      }
-      {
-        passwordError !== null && passwordError.field === null && (
-          <p role="alert" class="mt-3 text-sm text-umber-danger">{passwordError.message}</p>
-        )
-      }
-      <form method="post" class="mt-5 space-y-3">
-        <input type="hidden" name="action" value="password" />
-        {/* Para el gestor de contraseñas: a qué cuenta corresponde la contraseña nueva. */}
-        <input type="email" name="account_email" autocomplete="username" value={user.email ?? ''} hidden readonly />
-        <div class="space-y-1.5">
-          <label for="password" class="field-label">Contraseña nueva</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="new-password"
-            required
-            minlength={MIN_PASSWORD_CHARS}
-            maxlength={MAX_PASSWORD_CHARS}
-            aria-invalid={passwordError?.field === 'password' ? 'true' : undefined}
-            class={inputClass}
-          />
+    {
+      user.hasPassword && (
+        <section class="border-umber-line mt-10 border-t pt-8">
+          <h2 class="font-display text-xl">Contraseña</h2>
           {
-            passwordError?.field === 'password' && (
-              <p role="alert" class="text-xs text-umber-danger">{passwordError.message}</p>
+            passwordDone && (
+              <p role="status" class="text-umber-accent mt-3 text-sm">Contraseña actualizada.</p>
             )
           }
-        </div>
-        <div class="space-y-1.5">
-          <label for="password_confirm" class="field-label">Repite la contraseña</label>
-          <input
-            id="password_confirm"
-            name="password_confirm"
-            type="password"
-            autocomplete="new-password"
-            required
-            aria-invalid={passwordError?.field === 'password_confirm' ? 'true' : undefined}
-            class={inputClass}
-          />
           {
-            passwordError?.field === 'password_confirm' && (
-              <p role="alert" class="text-xs text-umber-danger">{passwordError.message}</p>
+            passwordError !== null && passwordError.field === null && (
+              <p role="alert" class="mt-3 text-sm text-umber-danger">{passwordError.message}</p>
             )
           }
-        </div>
-        <button type="submit" class="btn-secondary py-2.5 text-sm">Cambiar contraseña</button>
-      </form>
-    </section>
+          <form method="post" class="mt-5 space-y-3">
+            <input type="hidden" name="action" value="password" />
+            {/* Para el gestor de contraseñas: a qué cuenta corresponde la contraseña nueva. */}
+            <input type="email" name="account_email" autocomplete="username" value={user.email ?? ''} hidden readonly />
+            <div class="space-y-1.5">
+              <label for="password" class="field-label">Contraseña nueva</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                required
+                minlength={MIN_PASSWORD_CHARS}
+                maxlength={MAX_PASSWORD_CHARS}
+                aria-invalid={passwordError?.field === 'password' ? 'true' : undefined}
+                class={inputClass}
+              />
+              {
+                passwordError?.field === 'password' && (
+                  <p role="alert" class="text-xs text-umber-danger">{passwordError.message}</p>
+                )
+              }
+            </div>
+            <div class="space-y-1.5">
+              <label for="password_confirm" class="field-label">Repite la contraseña</label>
+              <input
+                id="password_confirm"
+                name="password_confirm"
+                type="password"
+                autocomplete="new-password"
+                required
+                aria-invalid={passwordError?.field === 'password_confirm' ? 'true' : undefined}
+                class={inputClass}
+              />
+              {
+                passwordError?.field === 'password_confirm' && (
+                  <p role="alert" class="text-xs text-umber-danger">{passwordError.message}</p>
+                )
+              }
+            </div>
+            <button type="submit" class="btn-secondary py-2.5 text-sm">Cambiar contraseña</button>
+          </form>
+        </section>
+      )
+    }
 
     {
       platforms.length > 0 && (
@@ -370,6 +375,16 @@ const consentDate =
       <a href="/api/account/export" class="link mt-4 inline-block text-sm" download>
         Descargar tus datos
       </a>
+    </section>
+
+    <section class="border-umber-line mt-10 border-t pt-8">
+      <h2 class="font-display text-xl">Sesión</h2>
+      <p class="text-umber-muted mt-2 text-sm leading-relaxed">
+        Sigues dentro en este navegador hasta que salgas. Sal si lo usa más gente.
+      </p>
+      <form method="post" action="/salir" class="mt-4">
+        <button type="submit" class="btn-secondary py-2.5 text-sm">Cerrar sesión</button>
+      </form>
     </section>
 
     <section class="mt-10 border-t border-umber-danger/30 pt-8">

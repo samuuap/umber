@@ -33,6 +33,11 @@ export interface SessionUser {
   readonly aiConsent: AiConsentRecord | null;
   /** «Mis plataformas» (`user_metadata.platforms`): las que el chat propone marcadas. `null`, ninguna guardada. */
   readonly platforms: string[] | null;
+  /**
+   * Si entra con email y contraseña (`app_metadata.providers` incluye `email`).
+   * Solo con Google, no: `/cuenta` no le ofrece cambiar una contraseña que no tiene.
+   */
+  readonly hasPassword: boolean;
 }
 
 export const MIN_PASSWORD_CHARS = 8;
@@ -91,6 +96,12 @@ function roleOf(appMetadata: unknown): string | null {
   return typeof role === 'string' ? role : null;
 }
 
+/** Sin `providers` (no debería pasar), se da por hecho que sí: mejor ofrecer el cambio de más que esconderlo. */
+function hasEmailProvider(appMetadata: unknown): boolean {
+  const providers = isRecord(appMetadata) ? appMetadata['providers'] : null;
+  return !Array.isArray(providers) || providers.includes('email');
+}
+
 export async function getSessionUser(supabase: UmberSupabaseClient): Promise<SessionUser | null> {
   try {
     const { data } = await supabase.auth.getClaims();
@@ -109,6 +120,7 @@ export async function getSessionUser(supabase: UmberSupabaseClient): Promise<Ses
       isTester: roleOf(appMetadata) === 'tester',
       aiConsent: readAiConsent(claims.user_metadata),
       platforms: parsePlatformNames(claims.user_metadata?.['platforms']),
+      hasPassword: hasEmailProvider(appMetadata),
     };
   } catch (error: unknown) {
     // Una cookie corrupta o un refresh token revocado no tumban la página: se

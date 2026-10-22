@@ -16,7 +16,11 @@ export const GET: APIRoute = async ({ url, locals, redirect }) => {
 
   const { data, error } = await locals.supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${url.origin}/auth/confirm?next=${encodeURIComponent(next)}` },
+    options: {
+      redirectTo: `${url.origin}/auth/confirm?next=${encodeURIComponent(next)}`,
+      // Que Google pregunte con qué cuenta: tras «Salir», en un navegador compartido, no entra solo con la última.
+      queryParams: { prompt: 'select_account' },
+    },
   });
 
   if (error !== null || data.url.length === 0) {
