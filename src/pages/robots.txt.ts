@@ -14,6 +14,10 @@ const DISALLOW = [
   '/chat',
   '/antes-de-hablar',
   '/salir',
+  // Toda URL con parámetros: los filtros de /explorar (tipo × género × orden ×
+  // página) y las fichas que los arrastran eran millones de URLs para un bot,
+  // cada una una función. Lo que se indexa ya está en el sitemap, sin ellos.
+  '/*?',
 ];
 
 export const GET: APIRoute = ({ url }) =>
