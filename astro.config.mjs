@@ -1,14 +1,14 @@
 // @ts-check
 import { defineConfig, envField, fontProviders } from 'astro/config';
 
-import vercel from '@astrojs/vercel';
+import netlify from '@astrojs/netlify';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
   // SSR: el chat necesita endpoints de servidor con streaming.
   output: 'server',
-  adapter: vercel(),
+  adapter: netlify(),
 
   // CSP con los hashes de los scripts y estilos que genera Astro. En las páginas
   // SSR va como cabecera, así que `frame-ancestors` sí se aplica (en un <meta>
